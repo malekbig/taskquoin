@@ -1,0 +1,6 @@
+{
+  "code-review": "sha256:ece6e11fdb2ff16474456393b6987f7686d6510b9aec642269deda5b8ba651cc",
+  "planning-contract": "sha256:5c6dbdd656554e6c23656c52bbba92edda0dd2cadd5ff2496de122798ec958d0",
+  "security-review": "sha256:75d6ddb91db906b68b612586d75c69d124652c4c1060a61d835ddf26e9e10ff8",
+  "tdd": "sha256:47088899bae5f395f7d375ef558f851c995a98703cff0b9dd6a5819ef23e452a"
+}

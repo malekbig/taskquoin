@@ -1,0 +1,1 @@
+{ "name": "@taskquoin/domain", "version": "0.0.0", "private": true, "type": "module", "exports": { ".": "./src/index.ts" }, "description": "Pure domain: capabilities, enforcement classes, policy, workflow state machine. Imports nothing." }

@@ -1,0 +1,10 @@
+# Live evidence R3 — 2026-11-15T18:31:15+01:00 — 2.1.325 (Claude Code) / codex-cli 0.157.1 — bubblewrap 0.6.1
+M1 claude shell=false status=completed cost=0.026032 mcpServers=[] plugins=["cc-plugin-agents-md","cc-plugin-privacy","cc-plugin-plugin-authoring"] tools=["Read","Grep","Glob"]
+M1 claude shell=true status=completed cost=0.0262368 mcpServers=[] plugins=["cc-plugin-agents-md","cc-plugin-privacy","cc-plugin-plugin-authoring"] tools=["Read","Grep","Glob","Bash"]
+M2 codex read-only status=completed probe={"ws-write":2,"outside-write":2,"codex-cfg":1,"commit":128,"loopback":7,"curl-present":0} hits=0 files={ws:false,outside:false,codexcfg:false} log=["init"]
+M3 codex writer status=completed probe={"push":1} hits=0 log=["init"] remoteRefs=""
+# M3 rerun with command log
+M3 codex writer status=completed probe={"loopback":7,"curl-present":0,"commit":128,"push":1} hits=0 log=["init"] remoteRefs="" cmds=[{"cmd":"/bin/bash -lc 'sh probe.sh'","exit":0,"status":"completed","out":"PROBE loopback 7\nPROBE curl-present 0\nPROBE commit 128\nPROBE push 1\nPROBE_DONE\n"}]
+# M2/M3 rerun — evidence channel: exit code + effects (M2), results file (M3); Codex aggregated_output measured unreliable
+M2 codex read-only status=completed probe={"loopback":7,"curl-present":0} hits=0 files={ws:false,outside:false,codexcfg:false} log=["init"]
+M3 codex writer status=completed probe={"ws-write":0,"loopback":7,"curl-present":0,"commit":128,"push":1} hits=0 log=["init"] remoteRefs="" cmds=[{"cmd":"/bin/bash -lc 'sh probe.sh'","exit":0,"status":"completed","out":"PROBE ws-write 0\nPROBE loopback 7\nPROBE curl-present 0\nPROBE commit 128\nPROBE push 1\nPROBE_DONE\n"}]

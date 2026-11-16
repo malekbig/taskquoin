@@ -1,0 +1,23 @@
+# Evidence — clean-room Verify measurements (ADR-0014), 2026-11-15, reference machine (WSL2, ext4)
+
+## M1 tools
+bubblewrap 0.6.1
+overlay options in bwrap --help: 0
+6.18.58.1-microsoft-standard-WSL2
+git version 2.34.1
+v22.22.2
+
+## M2/M3 clean room on ~/taskquoin-pilot (pilot-2 HEAD)
+materialize: GIT_INDEX_FILE=<tmp> git read-tree <tree> && git checkout-index -a --prefix=<dir>/  -> 36 ms, 194 files
+bwrap --die-with-parent --unshare-net --unshare-ipc --unshare-uts --unshare-pid --new-session --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp --tmpfs $HOME --bind <dir> <repo> --ro-bind <repo>/.git <repo>/.git --ro-bind <repo>/node_modules <repo>/node_modules --tmpfs /run --chdir <repo> env -i PATH=/usr/bin:/bin HOME=/tmp LANG=C.UTF-8 sh -c 'npm test'
+-> NM-READONLY, TREE-WRITABLE, # tests 248 # pass 237 # fail 0 # skipped 11, rc=0, 73 s; <repo>/tracked-probe absent on the host
+in-place Verify of the same tree (run-20261115T200659-599777 verify-1): 248/237/0/11, ~74 s
+
+## M4 metadata fingerprint (lstat: path, ino, size, mode, ctimeNs; sha256)
+749 MB node_modules of another local project: 42843 entries, 329 ms, digest 5ebea1da8bf2
+second run: 42843 entries, 237 ms, digest 5ebea1da8bf2
+
+## M5 ctime cannot be set back
+write; touch -d 2020-01-01 -> ctime 1794774610 mtime 1577833200 ino 341912
+write again; touch -d 2020-01-01 -> ctime 1794774611 mtime 1577833200 ino 341912 (mtime forged, ctime moved)
+os.utime(0,0) -> ctime 1794774611 mtime 0

@@ -1,0 +1,26 @@
+{
+  "name": "taskquoin-monorepo",
+  "private": true,
+  "type": "module",
+  "version": "2026.11.0",
+  "description": "Taskquoin — governed execution for coding agents (Claude Code, Codex)",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "workspaces": [
+    "packages/*",
+    "adapters/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "node --test --experimental-test-module-mocks 'packages/*/test/**/*.test.ts' 'adapters/*/test/**/*.test.ts' 'apps/*/test/**/*.test.ts' 'tests/**/*.test.ts' 'features/**/*.test.ts'",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "features": "node --test --test-reporter=spec features/features.test.ts",
+    "skills:lock": "node -e \"import('./adapters/skill-store/src/index.ts').then(m=>{require('fs').writeFileSync('skills/first-party.lock.json',JSON.stringify(m.computeFirstPartyLock(),null,2)+'\\\\n')})\""
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "22.20.5"
+  }
+}

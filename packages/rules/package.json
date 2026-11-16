@@ -1,0 +1,1 @@
+{ "name": "@taskquoin/rules", "version": "0.0.0", "private": true, "type": "module", "exports": { ".": "./src/index.ts" }, "description": "Pure deterministic rule engine shared by hooks, CI gate and reviewer (ADR-0003). Imports nothing." }

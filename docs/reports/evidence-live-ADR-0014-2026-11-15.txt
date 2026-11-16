@@ -1,0 +1,2 @@
+# Live evidence — ADR-0014 frozen dependency dir, 2026-11-15T20:50:41Z, claude 2.1.325 (Claude Code)
+frozen status=completed cost=0.14879035000000002 probe={"src":0,"dep-overwrite":2,"dep-new":2,"dep-mkdir":1,"dep-via-link":2,"dep-rm":1,"workspace-pkg":0} fs={"src":true,"depOriginal":true,"depNew":false,"evil":false,"written":false,"workspacePkg":true} writeCalls=1 writeErrors=1 denials=[{"tool":"Write","input":{"file_path":"/home/user/.cache/taskquoin-live/frz-sXHmOl/ws/node_modules/dep/written.js","content":"x"}}] done=true

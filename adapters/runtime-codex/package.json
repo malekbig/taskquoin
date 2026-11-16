@@ -1,0 +1,15 @@
+{
+  "name": "@taskquoin/runtime-codex",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@taskquoin/domain": "0.0.0",
+    "@taskquoin/application": "0.0.0",
+    "@taskquoin/process-runner": "0.0.0",
+    "@taskquoin/store-fs": "0.0.0"
+  }
+}

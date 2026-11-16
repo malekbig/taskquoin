@@ -1,0 +1,3 @@
+{ "name": "@taskquoin/skills", "version": "0.0.0", "private": true, "type": "module", "exports": { ".": "./src/index.ts" },
+  "description": "Agent Skills validation (agentskills spec) and deterministic audit. Pure: operates on file listings, no I/O.",
+  "dependencies": { "yaml": "2.9.1" } }

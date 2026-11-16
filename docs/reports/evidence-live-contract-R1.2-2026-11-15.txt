@@ -1,0 +1,5 @@
+# Live contract evidence R1.2 — 2026-11-15T17:38:28+01:00 — 2.1.325 (Claude Code) / codex-cli 0.157.1 — branch fix/r1.2-hardening
+claude 2.1.325 (Claude Code) status=completed cost=0.11726600000000001 turns=7 denials=["Write","Write","Write","Read"]
+claude files: allowed/ok.txt=true forbidden/no.txt=false .claude/settings.json=false outside=false canaryLeaked=false
+codex codex-cli 0.157.1 status=completed measured={"allowed":true,"forbidden":true,"outside":false,"network":false,"codexDir":false,"gitHooks":false,"tmp":false,"runTmpUsable":true}
+claude bash-operators status=completed cost=0.1427135 denials=["echo hello x && touch chained.txt","echo hello $(touch subst.txt)","echo hello y; touch semi.txt","echo hello `touch backtick.txt`"] created={"chained":false,"subst":false,"semi":false,"backtick":false}

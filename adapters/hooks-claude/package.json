@@ -1,0 +1,1 @@
+{ "name": "@taskquoin/hooks-claude", "version": "0.0.0", "private": true, "type": "module", "exports": { ".": "./src/index.ts" }, "dependencies": { "@taskquoin/rules": "0.0.0" } }

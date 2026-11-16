@@ -1,0 +1,5 @@
+#!/bin/sh
+# Taskquoin launcher. The first launch in a terminal links it as ~/.local/bin/taskquoin (user-level, removable with
+# `taskquoin setup --remove`), so `taskquoin` works everywhere. Nothing is installed globally.
+here=$(dirname "$(readlink -f "$0")")
+exec node "$here/../apps/cli/src/main.ts" "$@"

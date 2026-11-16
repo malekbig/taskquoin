@@ -1,0 +1,13 @@
+{
+  "name": "@taskquoin/local-tool",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@taskquoin/process-runner": "0.0.0",
+    "@taskquoin/rules": "0.0.0"
+  }
+}

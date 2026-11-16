@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.taskquoin-state/
+.idea/
+.tq-test-tmp/
+.worktrees/
+.superpowers/

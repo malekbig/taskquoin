@@ -1,0 +1,4 @@
+# Live evidence R2 (hooks) — 2026-11-15T17:51:27+01:00 — 2.1.325 (Claude Code)
+hooks A no-hook status=completed cost=0.082114 protected=ORIGINAL denials=["Write"]
+hooks B with-hook status=completed cost=0.088644 protected=ORIGINAL hookBlocked=["Write"]
+hooks C git status=completed cost=0.055048599999999996 log=["normal","init"]

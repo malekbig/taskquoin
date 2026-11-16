@@ -1,0 +1,3 @@
+{ "name": "@taskquoin/config", "version": "0.0.0", "private": true, "type": "module", "exports": { ".": "./src/index.ts" },
+  "description": "taskquoin.yaml schema, validation and defaults.",
+  "dependencies": { "@taskquoin/domain": "0.0.0", "yaml": "2.9.1" } }

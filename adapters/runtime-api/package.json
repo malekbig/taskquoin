@@ -1,0 +1,13 @@
+{
+  "name": "@taskquoin/runtime-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@taskquoin/domain": "0.0.0",
+    "@taskquoin/application": "0.0.0"
+  }
+}

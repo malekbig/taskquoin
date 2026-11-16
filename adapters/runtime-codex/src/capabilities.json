@@ -1,0 +1,192 @@
+{
+  "runtime": "codex",
+  "runtimeVersion": "0.157.1",
+  "measuredOn": "2026-11-15",
+  "evidence": "docs/reports/evidence-live-contract-R1.2-2026-11-15.txt (current mechanisms). Network evidence (curl to example.com failing) is a weak negative and does not certify (Codex R1.1 review). Every Codex agent has a shell: the model reads files through it. R3: docs/reports/evidence-live-R3-2026-11-15.txt. Codex --json aggregated_output measured UNRELIABLE (lines lost / empty in ~1/3 runs): never used as evidence. R3.1 rerun of every live suite after the Codex R3 fixes: docs/reports/evidence-live-R3.1-2026-11-15.txt.",
+  "entries": {
+    "fs.read": [
+      {
+        "class": "ADVISORY",
+        "granularity": "workspace",
+        "evidence": "inferred",
+        "mechanism": "the OS sandbox does not restrict reads of user-readable files, inside or outside the workspace",
+        "holdsFor": [
+          "deny-all",
+          "scoped",
+          "workspace"
+        ]
+      }
+    ],
+    "fs.write": [
+      {
+        "when": {
+          "sandbox": "read-only"
+        },
+        "class": "ENFORCED",
+        "granularity": "workspace",
+        "evidence": "measured",
+        "mechanism": "read-only sandbox: no filesystem writes",
+        "holdsFor": [
+          "deny-all",
+          "workspace"
+        ],
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M2: read-only — writes inside and outside the workspace absent"
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "workspace",
+        "evidence": "measured",
+        "mechanism": "workspace-write sandbox: writes confined to the workspace PLUS the per-run scratch dir (writable_roots, outside the repository, removed after the run); /tmp and $TMPDIR excluded. R1.1 measured an earlier form (TMPDIR inside the workspace) — re-measure",
+        "holdsFor": [
+          "workspace"
+        ],
+        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R1.2 codex (fix/r1.2-hardening): workspace write ok, outside write failed, /tmp write failed, per-run scratch TMPDIR usable"
+      }
+    ],
+    "shell.run": [
+      {
+        "class": "ADVISORY",
+        "granularity": "workspace",
+        "evidence": "inferred",
+        "mechanism": "shell is always available to Codex (it reads files through it); command patterns are not enforced; effects are bounded by the sandbox",
+        "holdsFor": [
+          "deny-all",
+          "scoped",
+          "workspace"
+        ]
+      }
+    ],
+    "net.egress": [
+      {
+        "when": {
+          "scope": "scoped"
+        },
+        "class": "UNSUPPORTED",
+        "granularity": "workspace",
+        "evidence": "inferred",
+        "mechanism": "network is all-or-nothing in the sandbox; no per-host allow",
+        "holdsFor": [
+          "deny-all",
+          "scoped",
+          "workspace"
+        ]
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "workspace",
+        "evidence": "measured",
+        "mechanism": "network_access=false (measured: loopback HTTP 0 hits in read-only and workspace-write); web_search disabled and plugin/app/browser/computer-use features off by flag (documented, not separately measured)",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M2 (read-only) and M3 (workspace-write): curl to a 127.0.0.1 server failed, 0 hits"
+      }
+    ],
+    "vcs.commit": [
+      {
+        "class": "ENFORCED",
+        "granularity": "workspace",
+        "evidence": "measured",
+        "mechanism": "the sandbox keeps .git read-only in both modes: git commit fails (measured)",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M2 + M3: git commit exit 128, history unchanged"
+      }
+    ],
+    "vcs.push": [
+      {
+        "class": "ENFORCED",
+        "granularity": "workspace",
+        "evidence": "measured",
+        "mechanism": "no network and no writable root outside the workspace/scratch ⇒ a push reaches neither a network remote nor a local-path remote outside them (measured M3); a bare remote created INSIDE the workspace stays reachable (within the boundary)",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M3: push to a local bare remote outside the workspace failed, remote refs empty; no network (0 hits)"
+      }
+    ],
+    "connector.read": [
+      {
+        "when": {
+          "scope": "scoped"
+        },
+        "class": "UNSUPPORTED",
+        "granularity": "workspace",
+        "evidence": "inferred",
+        "mechanism": "no reviewed connector mechanism before R6",
+        "holdsFor": [
+          "deny-all",
+          "scoped",
+          "workspace"
+        ]
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "workspace",
+        "evidence": "inferred",
+        "mechanism": "--ignore-user-config drops user [mcp_servers]; project .codex/config.toml must not load (sentinel test)",
+        "holdsFor": [
+          "deny-all"
+        ]
+      }
+    ],
+    "connector.write": [
+      {
+        "when": {
+          "scope": "scoped"
+        },
+        "class": "BROKERED",
+        "granularity": "workspace",
+        "evidence": "inferred",
+        "requires": [
+          "broker-available"
+        ],
+        "mechanism": "Action Broker (ADR-0004) — not implemented before R6",
+        "holdsFor": [
+          "deny-all",
+          "scoped",
+          "workspace"
+        ]
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "workspace",
+        "evidence": "inferred",
+        "mechanism": "no MCP servers configured for agent runs",
+        "holdsFor": [
+          "deny-all"
+        ]
+      }
+    ],
+    "config.modify": [
+      {
+        "when": {
+          "sandbox": "read-only"
+        },
+        "class": "ENFORCED",
+        "granularity": "workspace",
+        "evidence": "measured",
+        "mechanism": "read-only sandbox: no writes at all",
+        "holdsFor": [
+          "deny-all",
+          "scoped",
+          "workspace"
+        ],
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M2: read-only — .codex/config.toml write absent"
+      },
+      {
+        "class": "ADVISORY",
+        "granularity": "workspace",
+        "evidence": "measured",
+        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R1.2 codex: forbidden/ inside workspace written; .codex/ and .git/hooks writes failed",
+        "mechanism": "writers: .codex/ and .git/ protected by the sandbox, other config paths inside the workspace (taskquoin.yaml, .claude/, AGENTS.md) are not",
+        "holdsFor": [
+          "deny-all",
+          "scoped",
+          "workspace"
+        ]
+      }
+    ]
+  }
+}

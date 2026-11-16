@@ -1,0 +1,116 @@
+{
+ "runtime": "api",
+ "runtimeVersion": "1",
+ "measuredOn": "2026-11-16",
+ "evidence": "By construction, proven by deterministic tests against a local fake provider (adapters/runtime-api/test/executor.test.ts). The provider itself receives the code: that is the project's explicit consent (providers listed in taskquoin.yaml, ADR-0016).",
+ "entries": {
+  "fs.read": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no tool interface: the adapter sends one text request and reads one text answer \u2014 the model gets no file, shell, network, VCS, connector or configuration access; tool calls in an answer fail the run",
+    "evidenceRef": "adapters/runtime-api/test/executor.test.ts (request body without tools; tool_calls \u2192 failed; redirect refused)"
+   }
+  ],
+  "fs.write": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no tool interface: the adapter sends one text request and reads one text answer \u2014 the model gets no file, shell, network, VCS, connector or configuration access; tool calls in an answer fail the run",
+    "evidenceRef": "adapters/runtime-api/test/executor.test.ts (request body without tools; tool_calls \u2192 failed; redirect refused)"
+   }
+  ],
+  "shell.run": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no tool interface: the adapter sends one text request and reads one text answer \u2014 the model gets no file, shell, network, VCS, connector or configuration access; tool calls in an answer fail the run",
+    "evidenceRef": "adapters/runtime-api/test/executor.test.ts (request body without tools; tool_calls \u2192 failed; redirect refused)"
+   }
+  ],
+  "net.egress": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no tool interface: the adapter sends one text request and reads one text answer \u2014 the model gets no file, shell, network, VCS, connector or configuration access; tool calls in an answer fail the run",
+    "evidenceRef": "adapters/runtime-api/test/executor.test.ts (request body without tools; tool_calls \u2192 failed; redirect refused)"
+   }
+  ],
+  "vcs.commit": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no tool interface: the adapter sends one text request and reads one text answer \u2014 the model gets no file, shell, network, VCS, connector or configuration access; tool calls in an answer fail the run",
+    "evidenceRef": "adapters/runtime-api/test/executor.test.ts (request body without tools; tool_calls \u2192 failed; redirect refused)"
+   }
+  ],
+  "vcs.push": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no tool interface: the adapter sends one text request and reads one text answer \u2014 the model gets no file, shell, network, VCS, connector or configuration access; tool calls in an answer fail the run",
+    "evidenceRef": "adapters/runtime-api/test/executor.test.ts (request body without tools; tool_calls \u2192 failed; redirect refused)"
+   }
+  ],
+  "connector.read": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no tool interface: the adapter sends one text request and reads one text answer \u2014 the model gets no file, shell, network, VCS, connector or configuration access; tool calls in an answer fail the run",
+    "evidenceRef": "adapters/runtime-api/test/executor.test.ts (request body without tools; tool_calls \u2192 failed; redirect refused)"
+   }
+  ],
+  "connector.write": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no tool interface: the adapter sends one text request and reads one text answer \u2014 the model gets no file, shell, network, VCS, connector or configuration access; tool calls in an answer fail the run",
+    "evidenceRef": "adapters/runtime-api/test/executor.test.ts (request body without tools; tool_calls \u2192 failed; redirect refused)"
+   }
+  ],
+  "config.modify": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no tool interface: the adapter sends one text request and reads one text answer \u2014 the model gets no file, shell, network, VCS, connector or configuration access; tool calls in an answer fail the run",
+    "evidenceRef": "adapters/runtime-api/test/executor.test.ts (request body without tools; tool_calls \u2192 failed; redirect refused)"
+   }
+  ]
+ }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@taskquoin/cli",
+  "version": "2026.11.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "taskquoin": "./src/main.ts"
+  },
+  "dependencies": {
+    "@taskquoin/application": "0.0.0",
+    "@taskquoin/config": "0.0.0",
+    "@taskquoin/domain": "0.0.0",
+    "@taskquoin/git": "0.0.0",
+    "@taskquoin/host-probe": "0.0.0",
+    "@taskquoin/local-tool": "0.0.0",
+    "@taskquoin/memory-claude-mem": "0.0.0",
+    "@taskquoin/process-runner": "0.0.0",
+    "@taskquoin/rules": "0.0.0",
+    "@taskquoin/runtime-api": "0.0.0",
+    "@taskquoin/runtime-claude": "0.0.0",
+    "@taskquoin/runtime-codex": "0.0.0",
+    "@taskquoin/skill-store": "0.0.0",
+    "@taskquoin/skills": "0.0.0",
+    "@taskquoin/store-fs": "0.0.0"
+  }
+}

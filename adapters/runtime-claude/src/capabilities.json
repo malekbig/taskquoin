@@ -1,0 +1,375 @@
+{
+  "runtime": "claude",
+  "runtimeVersion": "2.1.325",
+  "measuredOn": "2026-11-15",
+  "evidence": "docs/reports/evidence-live-contract-R1.2-2026-11-15.txt (current mechanisms). R1.1 evidence superseded where mechanisms changed (ADR-0008). Hooks: docs/reports/evidence-live-R2-2026-11-15.txt. Bash sandbox: with sandbox.failIfUnavailable and bubblewrap/socat absent, a shell-granted run is refused before any API call (measured R2.1, $0); inside the sandbox measured R2.1 (docs/reports/evidence-live-R2.1-sandbox-2026-11-15.txt). R3.1 rerun of every live suite after the Codex R3 fixes: docs/reports/evidence-live-R3.1-2026-11-15.txt.",
+  "entries": {
+    "fs.read": [
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ADVISORY",
+        "granularity": "pattern",
+        "requires": [
+          "bash-sandbox"
+        ],
+        "evidence": "measured",
+        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R2.1 sandbox probe (bubblewrap 0.6.1, socat 1.7.4.1): .env read blocked by sandbox.filesystem.denyRead",
+        "mechanism": "sandbox denyRead blocks listed secret files and the control store; other reads (inside or outside the workspace) are not restricted"
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ADVISORY",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "an allowed shell command (e.g. npm test running repository code) can read anything the OS user can"
+      },
+      {
+        "when": {
+          "scope": "scoped"
+        },
+        "class": "ADVISORY",
+        "granularity": "pattern",
+        "evidence": "documented",
+        "mechanism": "Claude has implicit read permission inside the working directory; a narrow Read(glob) allow is not a closed read scope"
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "dontAsk + Read(./**) allow (workspace-anchored since R1.2; R1.1 measured the unanchored form) + permissions.deny Read(...) for secrets paths. Re-measure before it can certify"
+      }
+    ],
+    "fs.write": [
+      {
+        "when": {
+          "absent": [
+            "fs.write",
+            "shell.run"
+          ]
+        },
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "evidence": "measured",
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
+        "mechanism": "--tools lists no Edit/Write/Bash: the agent cannot write any file"
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ENFORCED",
+        "granularity": "workspace",
+        "evidence": "measured",
+        "requires": [
+          "bash-sandbox"
+        ],
+        "mechanism": "Bash subprocesses in the native OS sandbox can write the workspace but not outside it (/tmp included); per-glob scope is NOT enforced for subprocesses",
+        "holdsFor": [
+          "workspace"
+        ],
+        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R2.1 sandbox probe (bubblewrap 0.6.1, socat 1.7.4.1): allowed/ written, other/ (not granted, inside workspace) ALSO written, outside and /tmp blocked"
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ADVISORY",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "an allowed shell command can write anywhere the OS user can; Edit rules only govern built-in file tools"
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "measured",
+        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R1.2 claude boundary (fix/r1.2-hardening): allowed/ written; forbidden/, .claude/settings.json, outside denied (3 structured Write denials); R2 hooks A: Write through a symlink inside allowed/ to a file outside it was denied by Claude permissions alone (symlink resolved); R2 hooks B: also denied by the Taskquoin hook",
+        "mechanism": "dontAsk + Edit(./<glob>) allow per granted glob; everything else denied. Defense in depth: Taskquoin PreToolUse hook re-checks the physical path (inline --settings, runs under --setting-sources \"\")"
+      }
+    ],
+    "shell.run": [
+      {
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "measured",
+        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt: \"claude bash-operators\" — echo hello * ran (positive control) and did not extend to &&, ;, $(…), backticks, inside the Bash sandbox",
+        "mechanism": "Bash tool only present when shell.run is granted; dontAsk + Bash(<pattern>) allow governs which commands the model may issue. Effects of allowed commands are captured by the shell.run variants of the other capabilities"
+      }
+    ],
+    "net.egress": [
+      {
+        "when": {
+          "absent": [
+            "net.egress",
+            "shell.run"
+          ]
+        },
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "evidence": "measured",
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
+        "mechanism": "--tools lists no WebFetch, WebSearch or Bash: the agent has no network-capable tool"
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "measured",
+        "requires": [
+          "bash-sandbox"
+        ],
+        "mechanism": "Bash subprocesses run in the native OS sandbox with an empty network allowlist (failIfUnavailable, no unsandboxed escape)",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R2.1 sandbox probe (bubblewrap 0.6.1, socat 1.7.4.1): curl to a 127.0.0.1 server: exit 7, 0 hits; curl https://example.com: exit 56"
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ADVISORY",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "subprocess network of allowed shell commands is unconstrained on the host"
+      },
+      {
+        "when": {
+          "scope": "scoped"
+        },
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "documented",
+        "mechanism": "WebFetch(domain:<host>) allow rules"
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "WebFetch/WebSearch absent from --tools and denied; no Bash without shell.run"
+      }
+    ],
+    "vcs.commit": [
+      {
+        "when": {
+          "absent": [
+            "shell.run"
+          ]
+        },
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "evidence": "measured",
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
+        "mechanism": "no Bash tool: the agent cannot invoke git"
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "requires": [
+          "bash-sandbox"
+        ],
+        "evidence": "measured",
+        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R2.1 hooks C: git commit inside the Bash sandbox fails, .git/index.lock Read-only file system (even with .git in allowWrite)",
+        "mechanism": "Claude's Bash sandbox keeps .git read-only: agents cannot commit; commits are made by the orchestrator on the host after verification"
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ADVISORY",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "an allowed script can invoke git internally; Bash(git commit *) deny only covers model-issued spellings"
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "no Bash tool without shell.run ⇒ no git invocation by the model"
+      }
+    ],
+    "vcs.push": [
+      {
+        "when": {
+          "absent": [
+            "shell.run"
+          ]
+        },
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "evidence": "measured",
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
+        "mechanism": "no Bash tool: the agent cannot invoke git"
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "measured",
+        "requires": [
+          "bash-sandbox"
+        ],
+        "mechanism": "no network inside the Bash sandbox and no write outside the workspace ⇒ push reaches neither a network remote nor a local remote outside the workspace (measured)",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt: \"sandbox\" probe push=1 to a local bare remote outside the workspace, remote refs unchanged; loopback 0 hits, internet blocked"
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ADVISORY",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "an allowed script can invoke git push internally (network unconstrained on host)"
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "no Bash tool without shell.run ⇒ no git invocation by the model"
+      }
+    ],
+    "connector.read": [
+      {
+        "when": {
+          "scope": "scoped"
+        },
+        "class": "UNSUPPORTED",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "no reviewed connector mechanism before R6; RunRequest accepts no MCP configuration"
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "measured",
+        "mechanism": "--setting-sources \"\" + --strict-mcp-config with no --mcp-config ⇒ zero MCP servers (init event inventory recorded per run)",
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1: init-event inventory mcp_servers=[] with and without a shell"
+      }
+    ],
+    "connector.write": [
+      {
+        "when": {
+          "scope": "scoped"
+        },
+        "class": "BROKERED",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "requires": [
+          "broker-available"
+        ],
+        "mechanism": "Action Broker executes approved proposals (ADR-0004) — not implemented before R6"
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "measured",
+        "mechanism": "zero MCP servers in agent runs (init event inventory recorded per run)",
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1: init-event inventory mcp_servers=[] with and without a shell"
+      }
+    ],
+    "config.modify": [
+      {
+        "when": {
+          "absent": [
+            "fs.write",
+            "shell.run"
+          ]
+        },
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "holdsFor": [
+          "deny-all"
+        ],
+        "evidence": "measured",
+        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
+        "mechanism": "--tools lists no Edit/Write/Bash: the agent cannot modify any file"
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "measured",
+        "requires": [
+          "bash-sandbox",
+          "landing-gate"
+        ],
+        "mechanism": "write-time: sandbox.filesystem.denyWrite on protected config, .git, the control store and every nested CLAUDE.md/AGENTS.md found by a complete workspace scan (run refused if the scan is incomplete); land-time: the workflow never commits a change to any protected path, including new nested instruction files",
+        "holdsFor": [
+          "deny-all",
+          "scoped",
+          "workspace"
+        ],
+        "evidenceRef": "R2.1 sandbox probe (.claude/settings.json write blocked by denyWrite) + deterministic tests: adapters/runtime-claude/test/executor.test.ts \"workspace scan…\", packages/application/test/workflow.test.ts \"landing gate…\""
+      },
+      {
+        "when": {
+          "granted": [
+            "shell.run"
+          ]
+        },
+        "class": "ADVISORY",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "an allowed shell command can modify configuration files"
+      },
+      {
+        "class": "ENFORCED",
+        "granularity": "pattern",
+        "evidence": "inferred",
+        "mechanism": "permissions.deny Edit(./.claude/**, ./.codex/**, ./.agents/**, ./.git/**, ./taskquoin.yaml, ./CLAUDE.md, ./AGENTS.md, ./.mcp.json, control store) — must hold even under a broad fs.write ** grant"
+      }
+    ]
+  }
+}
