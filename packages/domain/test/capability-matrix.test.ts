@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { CAPABILITIES } from '../src/capabilities.ts';
+import { CAPABILITIES, PRECONDITIONS } from '../src/capabilities.ts';
 import { validateCapabilityMatrix } from '../src/capability-matrix.ts';
 
 for (const rt of ['claude', 'codex']) {
@@ -27,4 +27,10 @@ test('validator rejects bad class, missing evidence ref, conditional fallback, u
   assert.throws(() => validateCapabilityMatrix({ ...base, entries: { 'fs.write': [{ ...v, requires: ['magic'] }] } }), /requires/);
   assert.throws(() => validateCapabilityMatrix({ ...base, entries: { 'fs.write': [{ ...v, holdsFor: ['everything'] }] } }), /holdsFor/);
   assert.throws(() => validateCapabilityMatrix({ runtime: 'gemini', runtimeVersion: '1', measuredOn: '2026-11-15', entries: {} }), /runtime/);
+});
+
+test('opencode is a runtime and the file sandbox a precondition (project B)', () => {
+  const m = validateCapabilityMatrix({ runtime: 'opencode', runtimeVersion: '1.19.5', measuredOn: '2026-11-16', entries: { 'fs.write': [{ class: 'ENFORCED', mechanism: 'bubblewrap', evidence: 'documented', requires: ['file-sandbox'] }] } });
+  assert.equal(m.runtime, 'opencode');
+  assert.ok((PRECONDITIONS as readonly string[]).includes('file-sandbox'));
 });

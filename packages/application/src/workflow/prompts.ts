@@ -63,9 +63,11 @@ export function challengeTask(request: string, plan: string, o: { textOnly?: boo
   ].join('\n\n');
 }
 
-export function implementTask(request: string, plan: string, challenge: string, feedback?: { verifyLog: string; review: string }): string {
+export function implementTask(request: string, plan: string, challenge: string, feedback?: { verifyLog: string; review: string }, o: { noCommands?: boolean } = {}): string {
   return [
-    'Implement the APPROVED plan below with strict TDD: write the failing test first, run it (it must fail for the right reason), make it pass with the simplest change, then refactor. Run the tests with the allowed command.',
+    o.noCommands
+      ? 'Implement the APPROVED plan below with strict TDD, but you CANNOT run any command: write the failing test first, then the simplest code that makes it pass, both in this attempt. Taskquoin runs the project tests itself in a sandbox and checks that your new tests fail without your change; if they fail, you get the log in a rework.'
+      : 'Implement the APPROVED plan below with strict TDD: write the failing test first, run it (it must fail for the right reason), make it pass with the simplest change, then refactor. Run the tests with the allowed command.',
     'Do not commit or push: Taskquoin verifies the result itself and commits after human approval. Do not touch configuration of tools, CI or agents.',
     'Finish with a short report: files changed, tests added, test result.',
     fence('request', request), fence('approved-plan', plan), fence('plan-review', challenge),
@@ -74,7 +76,7 @@ export function implementTask(request: string, plan: string, challenge: string, 
 }
 
 export function reviewTask(request: string, plan: string, diff: string, verifyLog: string, redLog = '', testsOnly?: string[], ignoredFiles = '',
-  o: { textOnly?: boolean; files?: { path: string; text: string }[] } = {}): string {
+  o: { textOnly?: boolean; files?: { path: string; text: string }[]; newProductionFiles?: string[] } = {}): string {
   return [
     `You are an independent code reviewer. Review the diff against the approved plan: correctness, tests (do they test behaviour, would they fail without the change?), security, needless complexity. ${o.textOnly ? `${NO_REPO} The full new text of the changed files is given in <changed-files>.` : 'Read the repository for context. Do not modify files.'}`,
     'Taskquoin already ran the project tests in a sandbox; their log is below.',
@@ -82,6 +84,7 @@ export function reviewTask(request: string, plan: string, diff: string, verifyLo
     testsOnly
       ? `RED PROOF NOT APPLICABLE: every changed file is classified as a test by its path (${testsOnly.join(', ')}). Check that none of them is production code; if one is, REQUEST_CHANGES.`
       : 'Taskquoin also ran the same suite on the base tree + the changed test files only (RED proof, log below): it must fail. Check that the failure is an assertion about the requested behaviour — not an import error, a missing helper/fixture file, a check of source text, or anything else that fails merely because files are absent. If it is not, REQUEST_CHANGES.',
+    ...(!testsOnly && o.newProductionFiles?.length ? [`The change adds these production files, absent from the RED tree by construction: ${o.newProductionFiles.join(', ')}. A RED failure that is the import of one of THEM is the expected RED for new code: accept it when, with the change (verify log), the test asserts the requested behaviour. Any other missing file (a helper, a fixture, another module) is still no proof.`] : []),
     ...(ignoredFiles ? ['The implementer also left IGNORED files in the working directory (listed below): they are not in the diff and not verified. Flag any that could run on the developer\'s machine (scripts, .envrc, hooks, build outputs replacing sources).'] : []),
     VERDICT_RULE, fence('request', request), fence('approved-plan', plan), fence('verify-log', clip(verifyLog, MAX_LOG)), fence('red-proof', clip(redLog, MAX_LOG)),
     ...(ignoredFiles ? [fence('ignored-files', clip(ignoredFiles, MAX_LOG))] : []), fence('diff', diff),

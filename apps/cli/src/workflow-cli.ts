@@ -11,12 +11,13 @@ import { chmodSync, existsSync, lstatSync, mkdtempSync, readdirSync, readFileSyn
 import { basename, join, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { advance, approve, newRun, pendingApproval, resume, type GateResult, type RunState, type WorkflowDeps } from '@taskquoin/application';
-import { inheritGlobs, keyEnvName, workflowOf, type TaskquoinConfig } from '@taskquoin/config';
+import { inheritGlobs, keyEnvName, testCommand, workflowOf, type TaskquoinConfig } from '@taskquoin/config';
 import { ApiExecutor } from '@taskquoin/runtime-api';
 import type { HostReport } from '@taskquoin/host-probe';
-import { appendEvent, ensureTrustedDir, getArtifact, listRuns, loadRunState, putArtifact, saveRunState, type RepoStore } from '@taskquoin/store-fs';
+import { appendEvent, ensureTrustedDir, getArtifact, listRuns, loadRunState, putArtifact, saveRunState, stateBase, type RepoStore } from '@taskquoin/store-fs';
 import { ClaudeExecutor } from '@taskquoin/runtime-claude';
 import { CodexExecutor } from '@taskquoin/runtime-codex';
+import { OpenCodeExecutor, userOpenCodeDirs } from '@taskquoin/runtime-opencode';
 import { ClaudeMemMemory } from '@taskquoin/memory-claude-mem';
 import type { GitWorkspace } from '@taskquoin/git';
 import { defaultMaskDirs, dependencyDigests, fingerprintEntries, runSandboxedTool, scanWorkspace } from '@taskquoin/local-tool';
@@ -48,16 +49,17 @@ function preflight(c: CliContext): string | undefined {
     const bad = FORBIDDEN_FOR_READ_ONLY.filter(k => (c.cfg.agents[r].capabilities[k]?.length ?? 0) > 0);
     if (bad.length) return `agent ${r} must be read-only (it plans or reviews independently) but is granted ${bad.join(', ')}`;
   }
-  return apiJudgesProblem(c);
+  return judgesProblem(c);
 }
 
 /**
- * An api judge that cannot run (e.g. its key is missing) stops `run`, `approve` and `resume` BEFORE anything changes —
- * never after a paid implementation (multi-LLM A, final review). Claude/Codex agents keep their gate where they run.
+ * An api or OpenCode judge that cannot run (a missing key, an unconnected provider) stops `run`, `approve` and `resume`
+ * BEFORE anything changes — never after a paid implementation (multi-LLM A, project B). Claude/Codex keep their gate
+ * where they run.
  */
-function apiJudgesProblem(c: CliContext): string | undefined {
+function judgesProblem(c: CliContext): string | undefined {
   const wf = workflowOf(c.cfg);
-  for (const r of [...new Set([...wf.challengers, ...wf.reviewers])].filter(id => c.cfg.agents[id].runtime === 'api')) {
+  for (const r of [...new Set([...wf.challengers, ...wf.reviewers])].filter(id => c.cfg.agents[id].runtime === 'api' || c.cfg.agents[id].runtime === 'opencode')) {
     const g = c.gate(r);
     if (!g.ok) return `agent ${r} cannot start — ${g.failures.map(f => f.message).join('; ')}`;
   }
@@ -83,19 +85,23 @@ function deps(c: CliContext, state: RunState, git: GitWorkspace): WorkflowDeps {
   const executors = {
     claude: claude?.version ? new ClaudeExecutor({ bin: claude.bin, version: claude.version }, { hook: { nodeBin: process.execPath, entry: c.hookEntry, policyDir: c.store.policies, controlStore: c.store.root } }) : undefined,
     codex: codex?.version ? new CodexExecutor({ bin: codex.bin, version: codex.version }) : undefined,
+    opencode: c.h.runtimes.opencode?.version ? new OpenCodeExecutor({ bin: c.h.runtimes.opencode.bin, version: c.h.runtimes.opencode.version },
+      { userDirs: userOpenCodeDirs(), runBase: join(stateBase(), 'opencode', 'runs'), controlStore: c.store.root }) : undefined,
   };
   const agent = (id: string) => {
     const a = c.cfg.agents[id];
     const p = a.runtime === 'api' ? c.cfg.providers![a.provider!] : undefined;
     const ex = p ? new ApiExecutor({ id: a.provider!, url: p.url, model: p.model, ...(keyEnvName(p) ? { keyEnv: keyEnvName(p) } : {}), maxOutputTokens: p.maxOutputTokens, timeoutSeconds: p.timeoutSeconds, tokenField: p.tokenField })
-      : executors[a.runtime as 'claude' | 'codex'];
+      : executors[a.runtime as 'claude' | 'codex' | 'opencode'];
     if (!ex) throw new Error(`runtime ${a.runtime} for agent ${id} is not installed`);
     const sk = resolveAgentSkills(c.cfg, c.store, id);
     if (sk.errors.length) throw new Error(`agent ${id}: skill(s) not usable — ${sk.errors.join('; ')}`);
-    const label = p ? `api: ${new URL(p.url).host}/${p.model}` : a.runtime;
-    return { spec: { id, description: a.description, prompt: a.prompt + skillsBlock(sk.loaded), capabilities: a.capabilities, model: a.model, maxTurns: a.maxTurns }, executor: ex, label, textOnly: !!p };
+    const label = p ? `api: ${new URL(p.url).host}/${p.model}` : a.runtime === 'opencode' ? `opencode: ${a.model}` : a.runtime;
+    // An implementer without commands (OpenCode, or no shell.run): Taskquoin runs the tests and allows more reworks.
+    const noCommands = id === 'implementer' && !(a.capabilities['shell.run']?.length);
+    return { spec: { id, description: a.description, prompt: a.prompt + skillsBlock(sk.loaded), capabilities: a.capabilities, model: a.model, maxTurns: a.maxTurns }, executor: ex, label, textOnly: !!p, ...(noCommands ? { noCommands } : {}) };
   };
-  const testCmd = c.cfg.agents.implementer.capabilities['shell.run']?.[0];
+  const testCmd = testCommand(c.cfg);
   const base = state.base!, branch = state.branch!;
   return {
     agents: Object.fromEntries([...new Set(['planner', 'implementer', ...workflowOf(c.cfg).challengers, ...workflowOf(c.cfg).reviewers])].map(id => [id, agent(id)])),
@@ -108,7 +114,7 @@ function deps(c: CliContext, state: RunState, git: GitWorkspace): WorkflowDeps {
     verify: async (tree, roots) => {
       const no = (log: string) => ({ passed: false, exitCode: null, conclusive: false, treeChanged: false, log });
       const refuse = (why: string) => ({ ...no(`TASKQUOIN — Verify refused: ${why}`), refusal: why });
-      if (!testCmd) return no('no test command configured (implementer shell.run is empty) — cannot verify, failing closed');
+      if (!testCmd) return no('no test command configured (verify.command, or the implementer\'s shell.run) — cannot verify, failing closed');
       // Clean room (ADR-0014): the tree is materialized OUTSIDE the workspace (control store: agents cannot write it)
       // and mounted at the repository path; only `.git` and the inherited dependency dirs come from the working dir.
       const rooms = ensureTrustedDir(join(c.store.root, 'verify'), c.root);
@@ -226,7 +232,7 @@ const exitFor = (s: RunState) => (s.status === 'completed' || s.status === 'wait
 async function checkRunContext(c: CliContext, git: GitWorkspace, s: RunState): Promise<string | undefined> {
   if ((await git.currentBranch()) !== s.branch) return `switch to ${s.branch} first`;
   if (s.configDigest && s.configDigest !== configDigest(c.root)) return 'taskquoin.yaml changed since the run started — start a new run';
-  return apiJudgesProblem(c);
+  return judgesProblem(c);
 }
 
 /** `onStart` receives the id of the run THIS call creates (the console selects exactly that run). */
@@ -291,6 +297,7 @@ export function cmdStatus(c: CliContext, runId?: string, json = false): number {
   report(c, s);
   // Where the code goes for this run's judges (spec §2 objective 6), from the current configuration.
   const wf = workflowOf(c.cfg); const judge = (id: string) => { const a = c.cfg.agents[id]; if (!a) return `${id} (absent)`;
+    if (a.runtime === 'opencode') return `${id} (opencode: ${a.model})`;
     if (a.runtime !== 'api') return `${id} (${a.runtime})`; const p = c.cfg.providers![a.provider!]; return `${id} (api: ${new URL(p.url).host}/${p.model})`; };
   if (c.cfg.workflow) c.out(`  Juges : ${[...new Set([...wf.challengers, ...wf.reviewers])].map(judge).join(', ')}`); // default projects: unchanged text
   for (const h of s.history) c.out(`  ${h.at}  ${h.node.padEnd(15)} ${h.outcome}`); return 0;

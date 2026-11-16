@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **OpenCode runtime** (`docs/adr/0017`): `runtime: opencode` for planner, implementer and judges, any provider OpenCode supports; the implementer has no command (Taskquoin runs the tests, up to 4 reworks); OpenCode runs in Taskquoin's sandbox (HOME hidden, secrets and the repository's OpenCode config masked, deny-by-default permissions with no `ask`); `taskquoin connect opencode`; `verify.command`; OpenCode 1.19.5 measured and certified live with a ChatGPT sign-in (other sign-ins are refused until measured).
+
+### Fixed
+- Reviewers no longer refuse the RED proof of a feature that lives in a new production file (its import error is the expected RED; any other missing file is still no proof).
+- The test suite leaves nothing in `/tmp`; CI finds `node` outside `/usr/bin` and reports failed tests as annotations.
+
 ## 2026.11.0 — 2026-11-16 — first public release (alpha)
 
 ### Added

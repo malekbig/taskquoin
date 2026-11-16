@@ -29,7 +29,7 @@ export interface TaskquoinConfig {
    * ADR-0014: Verify runs in a clean room; only the stack's dependency directories (see `inheritGlobs`) and these extra
    * ignored paths are carried over from the working directory, read-only, and frozen for agents during the run.
    */
-  verify?: { inherit: string[] };
+  verify?: { inherit: string[]; command?: string };
   providers?: Record<string, ProviderConfig>;
   /** Who challenges the plan and who reviews the diff (every reviewer must APPROVE). Default: the `challenger` agent. */
   workflow?: WorkflowConfig;
@@ -53,18 +53,28 @@ const INHERIT_DEFAULTS: Record<Stack, string[]> = {
   node: ['**/node_modules'], php: ['vendor'], python: ['.venv', 'venv'], go: [], 'java-maven': [], 'java-gradle': [], unknown: [],
 };
 /** Effective inherited paths: the stack's defaults plus the owner's `verify.inherit`. */
+/** The command Verify (and the RED proof) runs: `verify.command`, else the implementer's first `shell.run` (today's configs). */
+export function testCommand(c: TaskquoinConfig): string | undefined { return c.verify?.command ?? c.agents.implementer?.capabilities['shell.run']?.[0]; }
+/** OpenCode agents (project B, step 1) read and write files of the repository — nothing else. */
+export const OPENCODE_CAPABILITIES: readonly Capability[] = ['fs.read', 'fs.write'];
+/** `openai/gpt-6-astra` → `openai` (OpenCode's model ids are `<provider>/<model>`; the model part may contain `/`). */
+export function providerOf(model: string): string { return model.slice(0, model.indexOf('/')); }
+const OPENCODE_MODEL_RE = /^[a-z0-9][a-z0-9._-]*\/\S+$/;
+
 export function inheritGlobs(c: TaskquoinConfig): string[] { return [...new Set([...INHERIT_DEFAULTS[c.stack], ...(c.verify?.inherit ?? [])])]; }
 
 export const DEFAULT_MANDATORY: readonly Capability[] = ['fs.write', 'net.egress', 'config.modify', 'connector.write', 'vcs.commit', 'vcs.push'];
 
 /** Which agent CLIs are installed (from the host probe). Default: both, as before. */
-export interface InstalledTools { claude: boolean; codex: boolean }
+export interface InstalledTools { claude: boolean; codex: boolean; opencode?: boolean }
+/** Suggested by init for an all-OpenCode project: a model a ChatGPT sign-in accepts (measured — opencode-interface-1.19.5.md). */
+export const OPENCODE_DEFAULT_MODEL = 'openai/gpt-6-astra';
 
 export function defaultConfig(stack: Stack, tools: InstalledTools = { claude: true, codex: true }): TaskquoinConfig {
   const tests = TEST_CMDS[stack];
   // Claude Code only: the challenger is a read-only Claude agent (the same model family as the implementer — doctor says so).
   const challengerRuntime: RuntimeName = tools.claude && !tools.codex ? 'claude' : 'codex';
-  return {
+  const c: TaskquoinConfig = {
     version: 1,
     stack,
     agents: {
@@ -97,6 +107,10 @@ export function defaultConfig(stack: Stack, tools: InstalledTools = { claude: tr
     connectors: {},
     memory: { claudeMem: { enabled: true } },
   };
+  // OpenCode only (project B step 1): every role on OpenCode, the implementer without commands — Taskquoin runs the tests.
+  if (tools.claude || !tools.opencode) return c;
+  for (const a of Object.values(c.agents)) { a.runtime = 'opencode'; a.model = OPENCODE_DEFAULT_MODEL; delete a.capabilities['shell.run']; }
+  return { ...c, ...(tests[0] ? { verify: { inherit: [], command: tests[0] } } : {}) };
 }
 
 /** Providers `init` can suggest when their key variable is present (models are examples: check them at the provider). */
@@ -157,7 +171,8 @@ function agent(raw: unknown, path: string): AgentConfig {
   if (!isObj(raw)) fail(path, 'expected a mapping');
   keys(raw, path, ['runtime', 'description', 'prompt', 'capabilities', 'model', 'maxTurns', 'skills', 'provider'], ['runtime', 'description', 'prompt', 'capabilities']);
   if (raw.skills !== undefined && strs(raw.skills, `${path}.skills`).some(n => !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(n))) fail(`${path}.skills`, 'skill names are lowercase letters, digits and single hyphens');
-  if (raw.runtime !== 'claude' && raw.runtime !== 'codex' && raw.runtime !== 'api') fail(`${path}.runtime`, `expected claude|codex|api, got ${JSON.stringify(raw.runtime)}`);
+  if (raw.runtime !== 'claude' && raw.runtime !== 'codex' && raw.runtime !== 'api' && raw.runtime !== 'opencode') fail(`${path}.runtime`, `expected claude|codex|api|opencode, got ${JSON.stringify(raw.runtime)}`);
+  if (raw.runtime === 'opencode' && (typeof raw.model !== 'string' || !OPENCODE_MODEL_RE.test(raw.model))) fail(`${path}.model`, 'required for runtime opencode, as <provider>/<model> (e.g. openai/gpt-6-astra)');
   if (!isObj(raw.capabilities)) fail(`${path}.capabilities`, 'expected a mapping');
   if (raw.runtime === 'api') {
     // A text-only judge: text in, verdict out — it has no capability at all, and no agent loop to bound.
@@ -169,6 +184,8 @@ function agent(raw: unknown, path: string): AgentConfig {
   for (const [k, v] of Object.entries(raw.capabilities)) {
     if (!isCapability(k)) fail(`${path}.capabilities.${k}`, `unknown capability (known: ${CAPABILITIES.join(', ')})`);
     caps[k] = strs(v, `${path}.capabilities.${k}`);
+    if (raw.runtime === 'opencode' && !OPENCODE_CAPABILITIES.includes(k) && caps[k].length)
+      fail(`${path}.capabilities.${k}`, k === 'shell.run' ? 'no commands for OpenCode in this version: Taskquoin runs your tests with verify.command' : 'not available to OpenCode in this version (only fs.read and fs.write)');
   }
   if (raw.maxTurns !== undefined && (!Number.isInteger(raw.maxTurns) || (raw.maxTurns as number) < 1 || (raw.maxTurns as number) > 200)) fail(`${path}.maxTurns`, 'expected an integer 1..200');
   return { runtime: raw.runtime, description: str(raw.description, `${path}.description`), prompt: str(raw.prompt, `${path}.prompt`), capabilities: caps,
@@ -256,8 +273,9 @@ export function parseConfig(text: string): TaskquoinConfig {
   let verify: TaskquoinConfig['verify'];
   if (raw.verify !== undefined) {
     if (!isObj(raw.verify)) fail('.verify', 'expected a mapping');
-    keys(raw.verify, '.verify', ['inherit']);
-    verify = { inherit: strs(raw.verify.inherit, '.verify.inherit').map((g, i) => inheritEntry(g, `.verify.inherit[${i}]`)) };
+    keys(raw.verify, '.verify', ['inherit', 'command'], []);
+    verify = { inherit: raw.verify.inherit === undefined ? [] : strs(raw.verify.inherit, '.verify.inherit').map((g, i) => inheritEntry(g, `.verify.inherit[${i}]`)),
+      ...(raw.verify.command !== undefined ? { command: str(raw.verify.command, '.verify.command') } : {}) };
   }
   let providers: Record<string, ProviderConfig> | undefined;
   if (raw.providers !== undefined) {
@@ -267,9 +285,10 @@ export function parseConfig(text: string): TaskquoinConfig {
   }
   for (const [id, a] of Object.entries(agents)) {
     if (a.runtime !== 'api') continue;
-    if (id === 'planner' || id === 'implementer') fail(`.agents.${id}.runtime`, 'the planner reads the repository and the implementer writes code: they need claude|codex (an api judge has no tools)');
+    if (id === 'planner' || id === 'implementer') fail(`.agents.${id}.runtime`, 'the planner reads the repository and the implementer writes code: they need claude|codex|opencode (an api judge has no tools)');
     if (!providers || !Object.hasOwn(providers, a.provider!)) fail(`.agents.${id}.provider`, `unknown provider "${a.provider}" (list it under providers)`);
   }
+  if (agents.implementer?.runtime === 'opencode' && !verify?.command) fail('.verify.command', 'required — the implementer runs no command, Taskquoin needs your test command (e.g. npm test)');
   const workflow = raw.workflow !== undefined ? workflowSection(raw.workflow, agents) : undefined;
   return { version: 1, stack: raw.stack as Stack, agents, policy: { mandatory }, connectors, memory: { claudeMem: { enabled: raw.memory.claudeMem.enabled } },
     ...(verify ? { verify } : {}), ...(providers ? { providers } : {}), ...(workflow ? { workflow } : {}) };

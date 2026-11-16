@@ -40,16 +40,36 @@ export interface SandboxProfile {
    * directories can be bound back over the room. Masks are decided on this visible path, not on the source.
    */
   mountAt?: string;
+  /** Keep the host network (OpenCode must reach its provider; it has no command tool — project B step 1). */
+  shareNetwork?: boolean;
+  /** Extra writable directories, bound after HOME is hidden (e.g. OpenCode's per-run dirs). */
+  extraWritable?: string[];
+  /** Sources bound read-only at another path (e.g. the plugin SDK installed at connect time into a run's config dir). */
+  readOnlyAt?: { src: string; dst: string }[];
+  /** Directories replaced by an empty tmpfs BEFORE the binds (so a bind inside them, e.g. a per-run dir, stays visible). */
+  hideDirs?: string[];
+}
+
+/**
+ * With the host network, DNS must still work although /run is masked: when resolv.conf really lives under a masked dir
+ * (systemd-resolved: /etc/resolv.conf → /run/systemd/resolve/stub-resolv.conf), bind that file back read-only.
+ */
+export function dnsBinds(masks: string[], resolv = '/etc/resolv.conf'): string[] {
+  let real: string; try { real = realpathSync(resolv); } catch { return []; }
+  return masks.some(d => real === d || real.startsWith(d + '/')) ? ['--ro-bind', real, real] : [];
 }
 
 export function bwrapArgs(o: SandboxProfile & { cwd: string }): string[] {
   // Own PID namespace + --die-with-parent: every descendant (even setsid()) dies with the sandbox (Codex R4 N6).
-  const a = ['--die-with-parent', '--unshare-net', '--unshare-ipc', '--unshare-uts', '--unshare-pid', '--new-session',
+  const a = ['--die-with-parent', ...(o.shareNetwork ? [] : ['--unshare-net']), '--unshare-ipc', '--unshare-uts', '--unshare-pid', '--new-session',
     '--ro-bind', '/', '/', '--dev', '/dev', '--proc', '/proc', '--tmpfs', '/tmp'];
   if (o.hideHome && existsSync(o.home)) a.push('--tmpfs', realpathSync(o.home));
+  for (const d of o.hideDirs ?? []) if (existsSync(d)) a.push('--tmpfs', realpathSync(d));
   const visible = o.mountAt ?? o.writableRoot;
   a.push('--bind', o.writableRoot, visible);
+  for (const w of o.extraWritable ?? []) a.push('--bind', w, w);
   for (const p of o.readOnly ?? []) if (existsSync(p)) a.push('--ro-bind', p, p);
+  for (const { src, dst } of o.readOnlyAt ?? []) if (existsSync(src)) a.push('--ro-bind', src, dst);
   const masks = o.hideHome ? [] : [...new Set([...HOME_SECRET_GLOBS.map(g => g.replace(/\/\*\*$/, '')), ...EXTRA_HOME_MASKS])];
   for (const rel of masks) {
     let p = join(o.home, rel);
@@ -62,10 +82,12 @@ export function bwrapArgs(o: SandboxProfile & { cwd: string }): string[] {
     if (p === visible || visible.startsWith(p + '/')) continue;
     if (statSync(p).isDirectory()) a.push('--tmpfs', p); else a.push('--ro-bind', '/dev/null', p);
   }
-  for (const d of o.maskDirs ?? defaultMaskDirs()) {
+  const maskDirs = o.maskDirs ?? defaultMaskDirs();
+  for (const d of maskDirs) {
     if (d === visible || visible.startsWith(d + '/') || !existsSync(d)) continue;
     a.push('--tmpfs', d);
   }
+  if (o.shareNetwork) a.push(...dnsBinds(maskDirs));
   // hideFiles are VISIBLE paths: under the clean-room mount (and not under a read-only bind from the host) the file
   // lives in the room, so that is where its existence is checked (Codex CR3 #1).
   const under = (f: string, d: string) => f === d || f.startsWith(d + '/');

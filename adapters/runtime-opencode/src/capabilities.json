@@ -1,0 +1,149 @@
+{
+ "runtime": "opencode",
+ "runtimeVersion": "1.19.5",
+ "measuredOn": "2026-11-16",
+ "evidence": "Measured 2026-11-16 on the reference machine with the owner's ChatGPT sign-in (Taskquoin's own OpenCode connection), model openai/gpt-6-astra: docs/reports/evidence-live-opencode-2026-11-16.txt (L1 write + hostile repository ignored, L2 outside write / .env / shell / loopback refused, L3 read-only, L4 hosts = chatgpt.com only); adapters/runtime-opencode/test/executor.test.ts (fake OpenCode in the real sandbox: HOME hidden, secrets and instruction files masked, .git and frozen paths read-only, control store masked); docs/reports/opencode-interface-1.19.5.md (tools disabled by the generated config, project config ignored, ask rejected in run mode). Not measured: runtime honouring of agent.build.steps (maxTurns) — documented only.",
+ "entries": {
+  "fs.read": [
+   {
+    "class": "ENFORCED",
+    "granularity": "workspace",
+    "holdsFor": [
+     "workspace"
+    ],
+    "requires": [
+     "file-sandbox"
+    ],
+    "evidence": "measured",
+    "mechanism": "bubblewrap: HOME hidden, project secret files, instruction files and what secret-named or outward links point to masked, control store masked; OpenCode read rules allow the whole repository and deny secrets — a scoped or deny-all read restriction is NOT enforced (only the whole repository)",
+    "evidenceRef": "docs/reports/evidence-live-opencode-2026-11-16.txt L2: .env read refused, MARKER-LIVE-ENV absent from the result; adapters/runtime-opencode/test/executor.test.ts: HOME hidden, secret and instruction files masked"
+   }
+  ],
+  "fs.write": [
+   {
+    "when": {
+     "absent": [
+      "fs.write"
+     ]
+    },
+    "class": "ENFORCED",
+    "granularity": "workspace",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "requires": [
+     "file-sandbox"
+    ],
+    "evidence": "measured",
+    "mechanism": "read-only agent: the repository is bound read-only and OpenCode's edit/write tools are disabled",
+    "evidenceRef": "docs/reports/evidence-live-opencode-2026-11-16.txt L3: read-only agent wrote nothing (no edit tool); adapters/runtime-opencode/test/executor.test.ts: read-only agent cannot write"
+   },
+   {
+    "class": "ENFORCED",
+    "granularity": "workspace",
+    "holdsFor": [
+     "workspace"
+    ],
+    "requires": [
+     "file-sandbox"
+    ],
+    "evidence": "measured",
+    "mechanism": "bubblewrap: only the repository and the per-run OpenCode dir are writable; .git and frozen dependency dirs read-only",
+    "evidenceRef": "docs/reports/evidence-live-opencode-2026-11-16.txt L1 write ok, L2 outside write refused; adapters/runtime-opencode/test/executor.test.ts: outside, .git and frozen paths unwritable"
+   }
+  ],
+  "shell.run": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no command tool: the generated config denies every action but read/list/glob/grep(/edit) — bash is absent (debug agent build)",
+    "evidenceRef": "docs/reports/evidence-live-opencode-2026-11-16.txt L2: shell marker absent, no shell tool called"
+   }
+  ],
+  "net.egress": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no network tool (webfetch/websearch absent); the OpenCode process itself reaches only the provider's hosts (hosts.json), catalogue and plugin SDK fetched at connect time",
+    "evidenceRef": "docs/reports/evidence-live-opencode-2026-11-16.txt L2: loopback server 0 hits; L4: hosts = chatgpt.com:443 only (no-network sandbox + logging proxy)"
+   }
+  ],
+  "vcs.commit": [
+   {
+    "class": "ENFORCED",
+    "granularity": "workspace",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "requires": [
+     "file-sandbox"
+    ],
+    "evidence": "measured",
+    "mechanism": "no command tool and .git bound read-only",
+    "evidenceRef": "adapters/runtime-opencode/test/executor.test.ts: .git read-only inside the sandbox; docs/reports/evidence-live-opencode-2026-11-16.txt L2: no shell"
+   }
+  ],
+  "vcs.push": [
+   {
+    "class": "ENFORCED",
+    "granularity": "workspace",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "requires": [
+     "file-sandbox"
+    ],
+    "evidence": "measured",
+    "mechanism": "no command tool and .git bound read-only",
+    "evidenceRef": "adapters/runtime-opencode/test/executor.test.ts: .git read-only inside the sandbox; docs/reports/evidence-live-opencode-2026-11-16.txt L2: no shell"
+   }
+  ],
+  "connector.read": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no MCP server (mcp: {}), no external plugin (OPENCODE_PURE)",
+    "evidenceRef": "docs/reports/evidence-live-opencode-2026-11-16.txt L1-L3: only apply_patch/read tools observed; adapters/runtime-opencode/test/config.test.ts: mcp {}, plugin []"
+   }
+  ],
+  "connector.write": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "evidence": "measured",
+    "mechanism": "no MCP server (mcp: {}), no external plugin (OPENCODE_PURE)",
+    "evidenceRef": "docs/reports/evidence-live-opencode-2026-11-16.txt L1-L3: only apply_patch/read tools observed; adapters/runtime-opencode/test/config.test.ts: mcp {}, plugin []"
+   }
+  ],
+  "config.modify": [
+   {
+    "class": "ENFORCED",
+    "granularity": "pattern",
+    "holdsFor": [
+     "deny-all"
+    ],
+    "requires": [
+     "landing-gate"
+    ],
+    "evidence": "measured",
+    "mechanism": "OpenCode edit rules deny protected config; the repository's OpenCode config is masked; a protected change never lands (landing gate)",
+    "evidenceRef": "docs/reports/evidence-live-opencode-2026-11-16.txt L1: hostile opencode.json/.opencode/AGENTS.md ignored (pwned=[]); adapters/runtime-opencode/test/config.test.ts: edits of protected config denied; adapters/runtime-opencode/test/executor.test.ts: repository OpenCode config masked"
+   }
+  ]
+ }
+}

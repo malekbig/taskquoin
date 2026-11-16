@@ -10,7 +10,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateRules, PROTECTED_WRITE_GLOBS, SECRET_READ_GLOBS, type RulePolicy } from '../src/index.ts';
+import { evaluateRules, matchGlob, PROTECTED_WRITE_GLOBS, SECRET_READ_GLOBS, type RulePolicy } from '../src/index.ts';
 
 const policy: RulePolicy = { projectRoot: '/p', home: '/h', writeGlobs: ['src/**', 'tests/**'], vcs: { commit: true, push: false } };
 const ids = (r: ReturnType<typeof evaluateRules>) => r.violations.map(v => v.rule);
@@ -82,4 +82,12 @@ test('selectInheritedRoots (ADR-0014, Codex CR #4): collapsed ignored entries by
   assert.deepEqual(selectInheritedRoots(entries, ['src/lib'], exists), [], 'a tracked (not ignored) path is never inherited: it would shadow the tree');
   assert.deepEqual(selectInheritedRoots(entries, ['build/missing'], exists), [], 'absent');
   assert.deepEqual(selectInheritedRoots(entries, ['build', 'build/deps'], exists), ['build'], 'nested roots collapse to the outer one');
+});
+
+test('OpenCode configuration in the repository is protected config (never writable, never landed)', () => {
+  for (const p of ['opencode.json', 'opencode.jsonc', '.opencode/plugin/x.ts', '.opencode/agent/evil.md']) assert.ok(PROTECTED_WRITE_GLOBS.some(g => matchGlob(g, p)), p);
+});
+
+test('final review: NESTED OpenCode configuration is protected too (OpenCode walks up from where it starts)', () => {
+  for (const p of ['pkg/opencode.json', 'pkg/opencode.jsonc', 'pkg/.opencode/plugin/x.ts']) assert.ok(PROTECTED_WRITE_GLOBS.some(g => matchGlob(g, p)), p);
 });

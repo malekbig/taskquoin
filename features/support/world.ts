@@ -4,7 +4,7 @@
  * npm and bubblewrap verification.
  */
 import { execFileSync, spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -31,6 +31,9 @@ export class World {
     for (const [name, file] of [['claude', 'fake-claude.cjs'], ['codex', 'fake-codex.cjs']]) {
       writeFileSync(join(bin, name), `#!/bin/sh\nexec ${process.execPath} ${FAKES}${file} "$@"\n`); chmodSync(join(bin, name), 0o755);
     }
+    // OpenCode runs inside Taskquoin's sandbox (HOME hidden): its fake lives next to its shim, outside the repository.
+    copyFileSync(`${FAKES}fake-opencode.cjs`, join(bin, 'fake-opencode.cjs'));
+    writeFileSync(join(bin, 'opencode'), `#!/bin/sh\nexec ${process.execPath} ${join(bin, 'fake-opencode.cjs')} "$@"\n`); chmodSync(join(bin, 'opencode'), 0o755);
     // node's own directory too: on CI runners node lives in a tool cache, not in /usr/bin (the launcher runs `node`)
     this.env = { PATH: `${bin}:${dirname(process.execPath)}:/usr/bin:/bin`, HOME: join(this.root, 'home'), XDG_STATE_HOME: join(this.root, 'state'), LANG: 'C.UTF-8' };
   }

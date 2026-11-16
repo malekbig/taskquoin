@@ -11,7 +11,7 @@
  * decided by Verify on the host (sandboxed), never by a model; agents never commit; landing gate on every changed path,
  * case-insensitive; submodules refused; adapter exceptions ⇒ `interrupted` (resumable — N7); every save bumps a revision.
  */
-import { PROTECTED_WRITE_GLOBS, matchGlob } from '@taskquoin/rules';
+import { PROTECTED_WRITE_GLOBS, TEST_PATH_GLOBS, matchGlob } from '@taskquoin/rules';
 import type { GateResult } from '../use-cases/prepare-run.ts';
 import type { AgentSpec, RunResult, RuntimeExecutor } from '../ports/runtime-executor.ts';
 import type { MemoryPort, MemoryRecall } from '../ports/memory.ts';
@@ -34,6 +34,8 @@ export interface RunState {
   verifiedTree?: string; reviewedTree?: string;
   /** Set when the tree changed after a commit approval and was re-verified/re-reviewed. */
   reverified?: boolean;
+  /** Reworks the reviewers asked for (capped at MAX_REVIEW_REWORKS whatever the implementer — project B). */
+  reviewReworks?: number;
   lastVerify?: { passed: boolean; exitCode: number | null; treeChanged?: boolean };
   lastVerdict?: 'APPROVE' | 'CHANGES_REQUESTED';
   /** Outcome of Taskquoin's RED proof for the verified tree (stated in the commit message). */
@@ -69,6 +71,10 @@ function changedPaths(a: Record<string, string>, b: Record<string, string>): { a
 const MAX_LISTED = 200;
 
 export const MAX_ATTEMPTS = 3; // first implementation + 2 reworks
+/** An implementer without commands (OpenCode, project B) cannot see its own tests fail: 2 more reworks, only when
+ *  Taskquoin's tests (Verify, RED proof) fail; reviewer refusals keep the usual 2 reworks (no extra paid judge calls). */
+export const MAX_ATTEMPTS_NO_COMMANDS = 5;
+export const MAX_REVIEW_REWORKS = 2;
 /** Changed files given to a text-only judge without a provider `maxInputChars`. */
 const DEFAULT_FILES_BUDGET = 200_000;
 /** Room kept for the <changed-files> frame and per-file headers. */
@@ -76,7 +82,7 @@ const FILES_FRAME_MARGIN = 2_000;
 
 export interface WorkflowDeps {
   /** By agent id. `label` names where the work goes (e.g. `codex`, `api: api.deepseek.com/deepseek-chat`); `textOnly` = an api judge. */
-  agents: Record<string, { spec: AgentSpec; executor: RuntimeExecutor; label?: string; textOnly?: boolean }>;
+  agents: Record<string, { spec: AgentSpec; executor: RuntimeExecutor; label?: string; textOnly?: boolean; noCommands?: boolean }>;
   /** Judges (multi-LLM A). Default: the `challenger` agent challenges the plan and reviews the diff. */
   workflow?: { challengers: string[]; reviewers: string[] };
   /** A judge's input limit in characters (provider `maxInputChars`), if any. */
@@ -150,6 +156,7 @@ export function resume(state: RunState): RunState {
 
 export async function advance(input: RunState, d: WorkflowDeps): Promise<RunState> {
   let s: RunState = structuredClone(input);
+  const maxAttempts = d.agents.implementer?.noCommands ? MAX_ATTEMPTS_NO_COMMANDS : MAX_ATTEMPTS;
   const save = () => { s = { ...s, revision: (s.revision ?? 0) + 1 }; d.save(s); };
   const step = (next: NodeId, outcome: string, patch: Partial<RunState> = {}) => {
     s = { ...s, ...patch, history: [...s.history, { node: s.current, outcome, at: d.now().toISOString() }], current: next };
@@ -171,7 +178,11 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
     const r = await executor.run({ agent: spec, task, cwd: d.run.cwd, env: d.run.env, timeoutMs: d.run.timeoutMs, maxOutputBytes: d.run.maxOutputBytes, ticket: g.ticket, ...(frozenPaths?.length ? { frozenPaths } : {}) });
     d.event({ type: 'agent.finished', runId: s.runId, agent: role, runtime: r.runtime, label: labelOf(role), status: r.status, costUsd: r.usage?.costUsd ?? null,
       tokens: { prompt: r.usage?.inputTokens ?? null, completion: r.usage?.outputTokens ?? null }, digest: r.effectiveConfigDigest });
-    if (r.status !== 'completed' || !r.terminalMessage?.trim()) { stop('failed', `agent ${role} ended with status ${r.status}${r.stderr ? `: ${r.stderr.slice(0, 300)}` : ''}`); return undefined; }
+    if (r.status !== 'completed' || !r.terminalMessage?.trim()) {
+      // What the runtime said (e.g. OpenCode naming its provider's error) comes first, then stderr (final review I4).
+      const why = r.status !== 'completed' && r.terminalMessage?.trim() ? r.terminalMessage.trim() : r.stderr;
+      stop('failed', `agent ${role} ended with status ${r.status}${why ? `: ${why.slice(0, 300)}` : ''}`); return undefined;
+    }
     return r;
   };
   const text = (name: string) => (s.artifacts[name] ? d.artifacts.get(s.artifacts[name]) : '');
@@ -243,7 +254,7 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
           }
           s = { ...s, attempts: attempt, verifiedTree: undefined, reviewedTree: undefined };
           const frozen = s.inheritedRoots!.map(r => `${d.run.cwd.replace(/\/$/, '')}/${r}`);
-          const r = await runAgent('implementer', implementTask(s.request, text('plan'), text('challenge'), feedback), frozen);
+          const r = await runAgent('implementer', implementTask(s.request, text('plan'), text('challenge'), feedback, { noCommands: !!d.agents.implementer.noCommands }), frozen);
           if (r) step('verify', `implemented:${attempt}`, { artifacts: art(`implement-${attempt}`, r.terminalMessage!) });
           break;
         }
@@ -275,7 +286,7 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
           d.event({ type: 'verify.result', runId: s.runId, attempt: s.attempts, passed, exitCode: v.exitCode, tree: before, ignoredChanges: nIgn });
           const lastVerify = { passed, exitCode: v.exitCode, treeChanged };
           if (passed) step('red-check', 'tests-green', { artifacts: arts, lastVerify, verifiedTree: before });
-          else if (s.attempts < MAX_ATTEMPTS && !s.reverified) step('implement', treeChanged ? 'tree-changed:rework' : 'tests-red:rework', { artifacts: arts, lastVerify });
+          else if (s.attempts < maxAttempts && !s.reverified) step('implement', treeChanged ? 'tree-changed:rework' : 'tests-red:rework', { artifacts: arts, lastVerify });
           else { s = { ...s, artifacts: arts, lastVerify }; stop('needs-human', treeChanged ? `verification modified tracked files (attempt ${s.attempts})` : `tests still failing after ${s.attempts} attempts`); }
           break;
         }
@@ -306,7 +317,7 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
           const arts = art(`red-${s.attempts}`, log);
           d.event({ type: 'red.result', runId: s.runId, attempt: s.attempts, redFailed: !v.passed, tree: red });
           if (!v.passed) step('review', 'red-proven', { artifacts: arts, redProof: 'proven' });
-          else if (s.attempts < MAX_ATTEMPTS && !s.reverified) step('implement', 'red-not-proven:rework', { artifacts: arts, verifiedTree: undefined });
+          else if (s.attempts < maxAttempts && !s.reverified) step('implement', 'red-not-proven:rework', { artifacts: arts, verifiedTree: undefined });
           else { s = { ...s, artifacts: arts }; stop('needs-human', `no failing test demonstrates the change (attempt ${s.attempts})`); }
           break;
         }
@@ -319,7 +330,10 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
           if (diff.length > MAX_REVIEW_DIFF) { stop('needs-human', `diff too large to review completely (${diff.length} chars > ${MAX_REVIEW_DIFF}) — split the task`); break; }
           // Judges never receive secrets or binaries (multi-LLM A3); text-only judges also get the changed files.
           const jdiff = await d.git.judgeDiff(tree);
-          const testsOnly = s.redProof === 'not-applicable' ? (await d.git.changes(tree)).map(c => c.path) : undefined;
+          const changed = await d.git.changes(tree);
+          const testsOnly = s.redProof === 'not-applicable' ? changed.map(c => c.path) : undefined;
+          // New production files are absent from the RED tree by construction: their import failing is the expected RED (live demo, project B).
+          const newProductionFiles = changed.filter(c => c.status === 'A' && !TEST_PATH_GLOBS.some(g => matchGlob(g, c.path))).map(c => c.path);
           const ids = wf.reviewers; const key = `${tree}:${s.attempts}`;
           const answered = s.judged?.node === 'review' && s.judged.key === key ? s.judged.byAgent : {};
           // Every judge's task is built and checked against its budget BEFORE any judge is called (none is paid for
@@ -327,7 +341,7 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
           const tasks: Record<string, string> = {}; let tooBig: string | undefined;
           for (const id of ids.filter(x => !answered[x])) {
             const textOnly = !!d.agents[id].textOnly; const budget = d.judgeBudgetChars?.(id);
-            const build = (files?: { path: string; text: string }[]) => reviewTask(s.request, text('plan'), jdiff, text(`verify-${s.attempts}`), text(`red-${s.attempts}`), testsOnly, text(`ignored-${s.attempts}`), { textOnly, ...(files ? { files } : {}) });
+            const build = (files?: { path: string; text: string }[]) => reviewTask(s.request, text('plan'), jdiff, text(`verify-${s.attempts}`), text(`red-${s.attempts}`), testsOnly, text(`ignored-${s.attempts}`), { textOnly, newProductionFiles, ...(files ? { files } : {}) });
             const bare = build();
             if (budget !== undefined && bare.length > budget) { tooBig = `trop gros pour le relecteur ${id} (${bare.length} caractères > maxInputChars ${budget}) — découpez la tâche ; rien n'a été envoyé`; break; }
             if (!textOnly) { tasks[id] = bare; continue; }
@@ -344,7 +358,7 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
           const verdict = refusing.length ? 'CHANGES_REQUESTED' as const : 'APPROVE' as const;
           const arts = art(`review-${s.attempts}`, combine(ids, byAgent));
           if (verdict === 'APPROVE') step('approve-commit', 'review:APPROVE', { artifacts: arts, lastVerdict: verdict, reviewedTree: tree, judged: undefined });
-          else if (s.attempts < MAX_ATTEMPTS && !s.reverified) step('implement', `review:CHANGES_REQUESTED:rework${ids.length > 1 ? `:${refusing.join(',')}` : ''}`, { artifacts: arts, lastVerdict: verdict, judged: undefined });
+          else if (s.attempts < maxAttempts && (s.reviewReworks ?? 0) < MAX_REVIEW_REWORKS && !s.reverified) step('implement', `review:CHANGES_REQUESTED:rework${ids.length > 1 ? `:${refusing.join(',')}` : ''}`, { artifacts: arts, lastVerdict: verdict, judged: undefined, reviewReworks: (s.reviewReworks ?? 0) + 1 });
           else { s = { ...s, artifacts: arts, lastVerdict: verdict, judged: undefined }; stop('needs-human', `review still requests changes after ${s.attempts} attempts${ids.length > 1 ? ` — ${refusing.join(', ')}` : ''}`); }
           break;
         }

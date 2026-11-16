@@ -14,8 +14,9 @@ export type CapabilityGrants = Partial<Record<Capability, string[]>>;
 
 /** ADR-0002. */
 export type EnforcementClass = 'ENFORCED' | 'BROKERED' | 'ADVISORY' | 'UNSUPPORTED';
-/** `api`: a text-only judge reached through an OpenAI-compatible HTTP API (no tools — multi-LLM project A). */
-export type RuntimeId = 'claude' | 'codex' | 'api';
+/** `api`: a text-only judge reached through an OpenAI-compatible HTTP API (no tools — multi-LLM project A).
+ *  `opencode`: OpenCode in Taskquoin's file sandbox, without commands (project B, step 1). */
+export type RuntimeId = 'claude' | 'codex' | 'api' | 'opencode';
 export type SandboxMode = 'read-only' | 'workspace-write';
 
 /**
@@ -28,7 +29,8 @@ export type EvidenceLevel = 'measured' | 'documented' | 'inferred';
 /** Machine-checkable preconditions, satisfied (or not) by HostFacts gathered by doctor/preflight. */
 /** 'bash-sandbox' = Claude Code native OS sandbox usable (bubblewrap + socat on Linux), checked by doctor. */
 /** 'landing-gate' = the run goes through the Taskquoin workflow, which never commits protected-config changes. */
-export const PRECONDITIONS = ['hooks-trusted', 'container-profile', 'broker-available', 'bash-sandbox', 'landing-gate'] as const;
+/** 'file-sandbox' = Taskquoin's own bubblewrap profile is usable (OpenCode agents run in it), checked by doctor. */
+export const PRECONDITIONS = ['hooks-trusted', 'container-profile', 'broker-available', 'bash-sandbox', 'landing-gate', 'file-sandbox'] as const;
 export type Precondition = (typeof PRECONDITIONS)[number];
 
 /** Derived from grants; never declared by callers. */

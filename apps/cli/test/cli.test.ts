@@ -341,5 +341,70 @@ test('init by installed tools: Claude only → a Claude-only config + detected A
   const codex = sandbox({ codex: 'codex-cli 0.157.1' } as never);
   git(codex.ws, 'init', '-q');
   const c = codex.tq('init');
-  assert.equal(c.status, 0, c.stderr); assert.match(c.stdout, /l'implementer a besoin de Claude Code/);
+  assert.equal(c.status, 0, c.stderr); assert.match(c.stdout, /installez Claude Code ou OpenCode/);
+});
+
+test('connect opencode: missing → 1; a login stores a provider → listed without secret; --remove deletes it; other targets → usage 2', () => {
+  const { root, tq } = sandbox();
+  let r = tq('connect', 'opencode'); assert.equal(r.status, 1); assert.match(r.stderr, /OpenCode n'est pas installé/);
+  const fake = join(root, 'bin', 'opencode');
+  writeFileSync(fake, '#!/bin/sh\n/bin/mkdir -p "$XDG_DATA_HOME/opencode"\nprintf \'{"openai":{"type":"oauth","access":"SECRET-A"}}\' > "$XDG_DATA_HOME/opencode/auth.json"\n'); chmodSync(fake, 0o755);
+  r = tq('connect', 'opencode'); assert.equal(r.status, 0, r.stderr); assert.match(r.stdout, /openai \(oauth\)/); assert.ok(!(r.stdout + r.stderr).includes('SECRET-A'));
+  assert.ok(existsSync(join(root, 'state', 'taskquoin', 'opencode', 'data', 'opencode', 'auth.json')));
+  r = tq('connect', 'opencode', '--remove'); assert.equal(r.status, 0); assert.ok(!existsSync(join(root, 'state', 'taskquoin', 'opencode')));
+  assert.equal(tq('connect', 'claude').status, 2);
+});
+
+test("uninstall --purge-state leaves Taskquoin's OpenCode connection (it belongs to no repository)", () => {
+  const { root, ws, tq } = sandbox(); git(ws, 'init', '-q');
+  assert.equal(tq('init').status, 0);
+  const conn = join(root, 'state', 'taskquoin', 'opencode'); mkdirSync(conn, { recursive: true, mode: 0o700 });
+  assert.equal(tq('uninstall', '--purge-state').status, 0);
+  assert.ok(existsSync(conn));
+});
+
+// ── OpenCode in the CLI (project B) ──────────────────────────────────────────────────────────────────────────────
+function ocProject(connected: boolean) {
+  const sb = sandbox({ opencode: '1.19.5' } as never); git(sb.ws, 'init', '-q');
+  writeFileSync(join(sb.ws, 'package.json'), '{"name":"calc"}');
+  assert.equal(sb.tq('init').status, 0); noMemory(sb.ws);
+  git(sb.ws, '-c', 'user.email=t@t', '-c', 'user.name=t', 'add', '-A'); git(sb.ws, '-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'init');
+  if (connected) { const d = join(sb.root, 'state', 'taskquoin', 'opencode', 'data', 'opencode'); mkdirSync(d, { recursive: true }); writeFileSync(join(d, 'auth.json'), JSON.stringify({ openai: { type: 'oauth', access: 'SECRET' } }), { mode: 0o600 }); }
+  return sb;
+}
+
+test('init with OpenCode only: an all-OpenCode config with verify.command and a hint to choose the model; with nothing: install one', () => {
+  const { ws, tq } = sandbox({ opencode: '1.19.5' } as never); git(ws, 'init', '-q'); writeFileSync(join(ws, 'package.json'), '{}');
+  const r = tq('init'); assert.equal(r.status, 0, r.stderr);
+  const y = readFileSync(join(ws, 'taskquoin.yaml'), 'utf8'); assert.match(y, /runtime: opencode/); assert.match(y, /command: npm test/);
+  assert.match(r.stdout, /choisissez le modèle/);
+  const none = sandbox({} as never); git(none.ws, 'init', '-q');
+  assert.match(none.tq('init').stdout, /installez Claude Code ou OpenCode/);
+});
+
+test('doctor: OpenCode runtime and file sandbox lines; where the code goes, with the measured hosts; not connected → connect hint', () => {
+  const { tq } = ocProject(false);
+  let r = tq('doctor'); assert.equal(r.status, 1);
+  assert.match(r.stdout, /Runtime opencode: 1\.19\.5 .*✔/); assert.match(r.stdout, /File sandbox \(bubblewrap\): /);
+  assert.match(r.stdout, /openai via OpenCode \(openai\/[^)]+\) — hôtes : chatgpt\.com — planner, implementer, challenger/);
+  assert.match(r.stdout, /fournisseur "openai" non connecté pour Taskquoin — lancez : taskquoin connect opencode/);
+  r = ocProject(true).tq('doctor'); assert.doesNotMatch(r.stdout, /non connecté/);
+});
+
+test('run with an OpenCode judge whose provider is not connected is refused before anything changes', () => {
+  const { ws, tq } = ocProject(false);
+  const before = git(ws, 'branch', '--list').toString();
+  const r = tq('run', 'add sum'); assert.equal(r.status, 1); assert.match(r.stderr, /challenger cannot start — .*non connecté/);
+  assert.equal(git(ws, 'branch', '--list').toString(), before);
+});
+
+test('final review (C1): a provider/sign-in mode whose hosts were never measured is refused by doctor and run', () => {
+  const { ws, root, tq } = ocProject(false);
+  writeFileSync(join(ws, 'taskquoin.yaml'), readFileSync(join(ws, 'taskquoin.yaml'), 'utf8').replaceAll('openai/gpt-6-astra', 'openrouter/deepseek/deepseek-chat'));
+  git(ws, '-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qam', 'openrouter');
+  const d = join(root, 'state', 'taskquoin', 'opencode', 'data', 'opencode'); mkdirSync(d, { recursive: true });
+  writeFileSync(join(d, 'auth.json'), JSON.stringify({ openrouter: { type: 'api', key: 'SECRET' } }), { mode: 0o600 });
+  const r = tq('doctor'); assert.equal(r.status, 1);
+  assert.match(r.stdout, /connexion "openrouter" \(api\) non mesurée avec OpenCode 1\.19\.5/);
+  assert.match(tq('run', 'add sum').stderr, /non mesurée/);
 });

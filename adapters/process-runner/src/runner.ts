@@ -30,7 +30,11 @@ export const ALLOWED_ENV_KEYS: readonly string[] = ['PATH', 'HOME', 'USER', 'LOG
   // traffic-reducing switches only (ADR-0010)
   'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC', 'DISABLE_TELEMETRY', 'DISABLE_ERROR_REPORTING', 'DISABLE_AUTOUPDATER', 'BASH_MAX_OUTPUT_LENGTH',
   // set by the orchestrator's git adapter only (temporary index), never passed to agents
-  'GIT_INDEX_FILE'];
+  'GIT_INDEX_FILE',
+  // OpenCode isolation (project B): its own dirs, switches and generated config — paths and switches, never a credential
+  'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME', 'XDG_STATE_HOME',
+  'OPENCODE_DISABLE_AUTOUPDATE', 'OPENCODE_DISABLE_PROJECT_CONFIG', 'OPENCODE_DISABLE_CLAUDE_CODE', 'OPENCODE_DISABLE_MODELS_FETCH',
+  'OPENCODE_DISABLE_LSP_DOWNLOAD', 'OPENCODE_PURE', 'OPENCODE_MODELS_PATH', 'OPENCODE_CONFIG_CONTENT'];
 const TEST_DOUBLE_PREFIX = 'TQ_FAKE_';
 
 function validate(req: ProcessRequest): void {

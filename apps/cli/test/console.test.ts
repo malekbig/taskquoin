@@ -185,3 +185,10 @@ test('squad: api judges get their real line — role from the id, provider shown
   assert.match(text, /\[●\] Reviewer\s+challenger · codex\s+READY \(risque accepté : connector\.write\)/);
   assert.match(text, /\[●\] Tester\s+verify · bubblewrap\s+READY/);
 });
+
+test('squad: an OpenCode agent shows its provider (opencode:openai)', async () => {
+  const { squadOf } = await import('../src/console.ts');
+  const ok = () => ({ ok: true, runtimeFound: true, failures: [], acceptedRisks: [] });
+  const s = squadOf({ implementer: { runtime: 'opencode', model: 'openai/gpt-6-astra' } }, ok, true);
+  assert.equal(s[0].who, 'implementer · opencode:openai');
+});

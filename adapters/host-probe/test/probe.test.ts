@@ -31,3 +31,11 @@ test('probeHost: versions, no sandbox without bwrap/socat, git root', async () =
   if (!PATH.split(':').some(d => { try { return !!findOnPath('bwrap', d) && !!findOnPath('socat', d); } catch { return false; } })) assert.equal(h.bashSandbox, false);
   assert.equal(h.gitRoot, ws);
 });
+
+test('probeHost: OpenCode found with its version; fileSandbox = Taskquoin\'s own bubblewrap profile usable', async () => {
+  fake('opencode', '1.19.5');
+  const h = await probeHost({ cwd: root, PATH: `${bin}:/usr/bin:/bin`, HOME: root });
+  assert.deepEqual(h.runtimes.opencode, { bin: join(bin, 'opencode'), version: '1.19.5' });
+  const { sandboxedToolAvailable } = await import('@taskquoin/local-tool');
+  assert.equal(h.fileSandbox, await sandboxedToolAvailable());
+});

@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import YAML from 'yaml';
-import { parseConfig, defaultConfig, renderConfig, inheritGlobs, keyEnvName, workflowOf, type Stack } from '../src/index.ts';
+import { parseConfig, defaultConfig, renderConfig, inheritGlobs, keyEnvName, workflowOf, type Stack, providerOf, testCommand, OPENCODE_CAPABILITIES } from '../src/index.ts';
 
 test('defaults per stack: test command and certifiable implementer', () => {
   const cases: [Stack, string][] = [['node', 'npm test'], ['php', 'vendor/bin/phpunit'], ['python', 'pytest'], ['go', 'go test ./...'], ['java-maven', 'mvn -q test']];
@@ -160,4 +160,41 @@ test('renderConfig with detected AIs: suggestions are commented out; once uncomm
   assert.equal(localOnly.agents.security.provider, 'local'); assert.equal(localOnly.providers!.local.model, 'llama3.2:3b');
   assert.equal(renderConfig(defaultConfig('node'), { env: [], ollamaModels: [] }), renderConfig(defaultConfig('node')), 'nothing detected → no suggestion');
   assert.equal(renderConfig(defaultConfig('node'), { env: ['UNRELATED_TOKEN'], ollamaModels: [] }), renderConfig(defaultConfig('node')), 'unknown variables are ignored');
+});
+
+// ── OpenCode (project B, step 1) ───────────────────────────────────────────────────────────────────────────────────
+const withImplementer = (impl: Record<string, unknown>, extra: Record<string, unknown> = {}) => {
+  const c = defaultConfig('node') as unknown as Record<string, unknown> & { agents: Record<string, unknown> };
+  return renderConfig({ ...c, ...extra, agents: { ...c.agents, implementer: { description: 'd', prompt: 'p', ...impl } } } as never);
+};
+const oc = { runtime: 'opencode', model: 'openai/gpt-6-astra', capabilities: { 'fs.read': ['**'], 'fs.write': ['**'] } };
+
+test('runtime opencode: model <provider>/<model> required; only fs.read and fs.write; no provider', () => {
+  assert.throws(() => parseConfig(withImplementer({ ...oc, model: undefined }, { verify: { command: 'npm test' } })), /\.agents\.implementer\.model: required for runtime opencode, as <provider>\/<model>/);
+  assert.throws(() => parseConfig(withImplementer({ ...oc, model: 'gpt-6-astra' }, { verify: { command: 'npm test' } })), /<provider>\/<model>/);
+  assert.throws(() => parseConfig(withImplementer({ ...oc, capabilities: { 'fs.write': ['**'], 'shell.run': ['npm test'] } }, { verify: { command: 'npm test' } })),
+    /\.agents\.implementer\.capabilities\.shell\.run: no commands for OpenCode in this version: Taskquoin runs your tests with verify\.command/);
+  assert.throws(() => parseConfig(withImplementer({ ...oc, provider: 'p' }, { verify: { command: 'npm test' } })), /only for runtime api/);
+  const c = parseConfig(withImplementer(oc, { verify: { command: 'npm test' } }));
+  assert.equal(c.agents.implementer.runtime, 'opencode'); assert.equal(providerOf(c.agents.implementer.model!), 'openai');
+  assert.equal(providerOf('openrouter/deepseek/deepseek-chat'), 'openrouter');
+  assert.deepEqual([...OPENCODE_CAPABILITIES], ['fs.read', 'fs.write']);
+});
+
+test('verify.command: required for an OpenCode implementer; testCommand prefers it; round-trip lossless', () => {
+  assert.throws(() => parseConfig(withImplementer(oc)), /\.verify\.command: required — the implementer runs no command/);
+  const c = parseConfig(withImplementer(oc, { verify: { command: 'npm test' } }));
+  assert.equal(testCommand(c), 'npm test'); assert.deepEqual(parseConfig(renderConfig(c)), c);
+  assert.equal(testCommand(parseConfig(renderConfig(defaultConfig('node')))), 'npm test'); // today's configs: implementer shell.run[0]
+  const both = parseConfig(renderConfig({ ...defaultConfig('node'), verify: { inherit: [], command: 'npm run test:unit' } }));
+  assert.equal(testCommand(both), 'npm run test:unit');
+});
+
+test('defaultConfig with OpenCode only: planner, implementer and challenger on OpenCode, verify.command set; Claude stays preferred', () => {
+  const c = defaultConfig('node', { claude: false, codex: false, opencode: true });
+  for (const id of ['planner', 'implementer', 'challenger']) { assert.equal(c.agents[id].runtime, 'opencode', id); assert.match(c.agents[id].model ?? '', /^[a-z0-9]+\/\S+$/); }
+  assert.deepEqual(c.agents.implementer.capabilities, { 'fs.read': ['**'], 'fs.write': ['**'] });
+  assert.equal(c.verify?.command, 'npm test');
+  assert.deepEqual(parseConfig(renderConfig(c)), c);
+  assert.equal(defaultConfig('node', { claude: true, codex: false, opencode: true }).agents.implementer.runtime, 'claude');
 });

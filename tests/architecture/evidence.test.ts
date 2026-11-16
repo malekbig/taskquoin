@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 
 const root = new URL('../../', import.meta.url).pathname;
-for (const rt of ['claude', 'codex']) {
+for (const rt of ['claude', 'codex', 'opencode']) {
   test(`every measured variant cites an existing evidence file: ${rt}`, () => {
     const m = JSON.parse(readFileSync(`${root}adapters/runtime-${rt}/src/capabilities.json`, 'utf8'));
     for (const [cap, variants] of Object.entries(m.entries as Record<string, { evidence: string; evidenceRef?: string }[]>)) {

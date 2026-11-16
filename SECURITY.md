@@ -16,3 +16,4 @@ See `docs/security/threat-model.md`. **Out of scope:** a hostile process already
 - Repository commit hooks are not run by Taskquoin.
 - Codex's `connector.write` cannot be measured; only the owner can accept that risk (`accept-risk`, dated, stored outside the repository).
 - A `taskquoin.yaml` approved by a human can send any environment variable named in `key: env:NAME` to the provider host it lists — review `providers` like code.
+- OpenCode agents (`docs/adr/0017`): no command and no network tool (measured), but the OpenCode process keeps the host network to reach its provider (hosts measured per version); its in-process rules keep its read tool off the per-run credential of its own provider; the plugin SDK it loads is installed at connect time.

@@ -7,15 +7,22 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runProcess } from '@taskquoin/process-runner';
-import { runSandboxedTool, sandboxedToolAvailable } from '../src/index.ts';
+import { bwrapArgs, dnsBinds, runSandboxedTool, sandboxedToolAvailable } from '../src/index.ts';
 
 /** Fixtures that must live OUTSIDE /tmp (the sandbox's private tmpfs) and be writable both on the host and inside the
  * verification sandbox (where only the repository is writable): a gitignored dir inside the repository. */
-const outsideTmp = () => { const b = join(new URL('../../../', import.meta.url).pathname, '.tq-test-tmp'); mkdirSync(b, { recursive: true }); return realpathSync(b); };
+// Outside /tmp (the sandbox masks it): one directory per test process under <repo>/.tq-test-tmp, removed at exit.
+let outsideRoot: string | undefined;
+const outsideTmp = () => outsideRoot ??= (() => {
+  const b = join(new URL('../../../', import.meta.url).pathname, '.tq-test-tmp'); mkdirSync(b, { recursive: true });
+  const d = mkdtempSync(join(realpathSync(b), 'run-'));
+  process.on('exit', () => { try { rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } });
+  return d;
+})();
 
 let server: Server; let port = 0; let hits = 0;
 before(async () => { server = createServer((_q, s) => { hits++; s.end('ok'); }); await new Promise<void>(r => server.listen(0, '127.0.0.1', () => r())); port = (server.address() as { port: number }).port; });
@@ -139,4 +146,34 @@ test('clean room (ADR-0014): the room is mounted AT the repository path; inherit
   assert.match(r.stdout, new RegExp(`cwd ${realRepo}`), 'tests see the repository path');
   assert.ok(existsSync(join(room, 'out.txt')) && !existsSync(join(realRepo, 'out.txt')), 'writes land in the room, never in the working dir');
   assert.equal(readdirSync(join(realRepo, 'node_modules', 'dep')).join(), 'i.js');
+});
+
+// ── Shared-network profile (OpenCode, project B) ──────────────────────────────────────────────────────────────────
+test('shareNetwork keeps the host network but still its own PID namespace, dying with its parent; default unchanged', () => {
+  const ws = realpathSync(mkdtempSync(join(tmpdir(), 'tq-share-')));
+  const a = bwrapArgs({ writableRoot: ws, home: ws, cwd: ws, maskDirs: [], shareNetwork: true });
+  assert.ok(!a.includes('--unshare-net')); assert.ok(a.includes('--unshare-pid')); assert.ok(a.includes('--die-with-parent'));
+  assert.ok(bwrapArgs({ writableRoot: ws, home: ws, cwd: ws, maskDirs: [] }).includes('--unshare-net'));
+});
+
+test('extraWritable is bound AFTER the hidden HOME, so it stays visible and writable', () => {
+  const home = realpathSync(mkdtempSync(join(tmpdir(), 'tq-home-'))); const ws = realpathSync(mkdtempSync(join(tmpdir(), 'tq-ws-')));
+  const extra = join(home, 'state'); mkdirSync(extra);
+  const a = bwrapArgs({ writableRoot: ws, home, hideHome: true, extraWritable: [extra], cwd: ws, maskDirs: [] });
+  const iHome = a.findIndex((x, i) => x === '--tmpfs' && a[i + 1] === home); const iBind = a.findIndex((x, i) => x === '--bind' && a[i + 1] === extra && a[i + 2] === extra);
+  assert.ok(iHome >= 0 && iBind > iHome, a.join(' '));
+});
+
+test('dnsBinds: a resolv.conf pointing into a masked dir (systemd-resolved) is bound back read-only; otherwise nothing', () => {
+  const run = realpathSync(mkdtempSync(join(tmpdir(), 'tq-run-'))); const etc = realpathSync(mkdtempSync(join(tmpdir(), 'tq-etc-')));
+  writeFileSync(join(run, 'stub-resolv.conf'), 'nameserver 127.0.0.53\n'); symlinkSync(join(run, 'stub-resolv.conf'), join(etc, 'resolv.conf'));
+  assert.deepEqual(dnsBinds([run], join(etc, 'resolv.conf')), ['--ro-bind', join(run, 'stub-resolv.conf'), join(run, 'stub-resolv.conf')]);
+  writeFileSync(join(etc, 'plain.conf'), 'nameserver 1.1.1.1\n'); assert.deepEqual(dnsBinds([run], join(etc, 'plain.conf')), []);
+  assert.deepEqual(dnsBinds([run], join(etc, 'missing.conf')), []);
+});
+
+test('readOnlyAt binds a source read-only at another path (OpenCode: the plugin SDK installed at connect time)', () => {
+  const ws = realpathSync(mkdtempSync(join(tmpdir(), 'tq-roat-'))); const src = join(ws, 'src'); mkdirSync(src);
+  const a = bwrapArgs({ writableRoot: ws, home: ws, cwd: ws, maskDirs: [], readOnlyAt: [{ src, dst: join(ws, 'dst') }, { src: join(ws, 'missing'), dst: join(ws, 'x') }] }).join(' ');
+  assert.ok(a.includes(`--ro-bind ${src} ${join(ws, 'dst')}`)); assert.ok(!a.includes(join(ws, 'missing')));
 });

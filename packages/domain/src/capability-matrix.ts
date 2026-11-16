@@ -4,7 +4,7 @@ import {
 } from './capabilities.ts';
 
 const CLASSES: readonly EnforcementClass[] = ['ENFORCED', 'BROKERED', 'ADVISORY', 'UNSUPPORTED'];
-const RUNTIMES: readonly RuntimeId[] = ['claude', 'codex', 'api'];
+const RUNTIMES: readonly RuntimeId[] = ['claude', 'codex', 'api', 'opencode'];
 const EVIDENCE: readonly EvidenceLevel[] = ['measured', 'documented', 'inferred'];
 
 function fail(path: string, msg: string): never { throw new Error(`capabilities${path}: ${msg}`); }

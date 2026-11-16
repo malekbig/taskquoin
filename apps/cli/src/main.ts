@@ -5,14 +5,16 @@
  */
 import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { homedir, tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { validateCapabilityMatrix, type CapabilityMatrix, type HostFacts, type RuntimeId } from '@taskquoin/domain';
 import { API_RUNTIME_VERSION } from '@taskquoin/runtime-api';
 import { failureDigest, isRealDate, pendingApproval, prepareRun, type GateResult, type OwnerException, type RunState } from '@taskquoin/application';
-import { defaultConfig, keyEnvName, KNOWN_KEY_VARS, MAX_CONFIG_BYTES, parseConfig, renderConfig, workflowOf, type Stack, type TaskquoinConfig } from '@taskquoin/config';
-import { probeHost, probeOllama, type HostReport } from '@taskquoin/host-probe';
+import { defaultConfig, keyEnvName, KNOWN_KEY_VARS, MAX_CONFIG_BYTES, parseConfig, providerOf, renderConfig, workflowOf, type Stack, type TaskquoinConfig } from '@taskquoin/config';
+import { findOnPath, probeHost, probeOllama, type HostReport } from '@taskquoin/host-probe';
+import { connectedProviders, connectEnv, LOCAL_PROVIDERS, LOGIN_ARGS, MEASURED_CONNECTIONS, measuredHosts, OPENCODE_VERSION, userOpenCodeDirs, userOpenCodePaths } from '@taskquoin/runtime-opencode';
 import { ensureTrustedDir, listRuns, loadRiskAcceptances, loadRunState, repoStore, saveRiskAcceptance, stateBase } from '@taskquoin/store-fs';
 import { codexSandboxFor } from '@taskquoin/runtime-codex';
 import { ClaudeMemMemory } from '@taskquoin/memory-claude-mem';
@@ -75,11 +77,20 @@ function gate(cfg: TaskquoinConfig, h: HostReport, agentId: string): GateResult 
   const facts: HostFacts = {
     runtimeVersion: probe?.version ?? 'not-installed',
     // landing-gate: the only execution path is the Taskquoin workflow, which enforces it.
-    satisfied: [...(a.runtime === 'claude' && h.bashSandbox ? ['bash-sandbox' as const] : []), 'landing-gate' as const],
+    satisfied: [...(a.runtime === 'claude' && h.bashSandbox ? ['bash-sandbox' as const] : []), ...(a.runtime === 'opencode' && h.fileSandbox ? ['file-sandbox' as const] : []), 'landing-gate' as const],
     ...(a.runtime === 'codex' ? { sandbox: codexSandboxFor(a.capabilities) } : {}),
   };
   const exceptions = loadRiskAcceptances(repoStore(h.gitRoot!)) as OwnerException[];
-  return { ...prepareRun({ agentId, agent: a, mandatory: cfg.policy.mandatory, exceptions, matrix, facts, now: new Date() }), runtimeFound: !!probe };
+  const g = { ...prepareRun({ agentId, agent: a, mandatory: cfg.policy.mandatory, exceptions, matrix, facts, now: new Date() }), runtimeFound: !!probe };
+  if (a.runtime === 'opencode') {
+    // Taskquoin's own OpenCode connection (spec §5.2) must hold the model's provider — checked without reading any secret.
+    const provider = providerOf(a.model!); const conn = connectedProviders(userOpenCodePaths()).find(p => p.id === provider);
+    const refuse = (message: string) => ({ ...g, ok: false, ticket: undefined, failures: [...g.failures, { capability: 'net.egress' as const, class: 'UNSUPPORTED' as const, message }] });
+    if (!conn) return refuse(`fournisseur "${provider}" non connecté pour Taskquoin — lancez : taskquoin connect opencode`);
+    // Only measured provider/sign-in pairs are certified: their hosts are known (spec §5.4, final review C1).
+    if (!measuredHosts(provider, conn.type)) return refuse(`connexion "${provider}" (${conn.type}) non mesurée avec OpenCode ${OPENCODE_VERSION} — Taskquoin n'y envoie pas de code (mesurées : ${MEASURED_CONNECTIONS.join(', ')})`);
+  }
+  return g;
 }
 
 async function cmdInit(): Promise<number> {
@@ -87,7 +98,7 @@ async function cmdInit(): Promise<number> {
   const p = join(root, CONFIG);
   if (existsSync(p)) { err(`taskquoin: ${CONFIG} already exists — edit it, or remove it yourself to start over (never overwritten)`); return 1; }
   const stack = detectStack(root);
-  const tools = { claude: !!h.runtimes.claude, codex: !!h.runtimes.codex };
+  const tools = { claude: !!h.runtimes.claude, codex: !!h.runtimes.codex, opencode: !!h.runtimes.opencode };
   const cfg0 = defaultConfig(stack, tools);
   // Detection is LOCAL only: which key variables exist (their values are never read into the file), and a local Ollama.
   const detected = { env: KNOWN_KEY_VARS.filter(n => !!process.env[n]), ollamaModels: (await probeOllama()) ?? [] };
@@ -100,7 +111,10 @@ async function cmdInit(): Promise<number> {
   out(`✔ ${CONFIG} created (stack: ${stack}) — agents: ${Object.entries(cfg0.agents).map(([id, a]) => `${id} (${a.runtime})`).join(', ')}`);
   out(`✔ control store: ${store.root} (outside the repository)`);
   if (detected.env.length || detected.ollamaModels.length) out(`ℹ IA détectées : ${[...detected.env, ...(detected.ollamaModels.length ? [`Ollama local (${detected.ollamaModels.join(', ')})`] : [])].join(', ')} — proposées en commentaire dans ${CONFIG} ; décommentez-les pour les utiliser (le code de ce projet leur sera alors envoyé)`);
-  if (!tools.claude) out(`⚠ l'implementer a besoin de Claude Code (OpenCode, prévu ensuite, élargira ce choix) : installez Claude Code pour lancer des runs`);
+  if (!tools.claude && tools.opencode) {
+    const ps = connectedProviders(userOpenCodePaths()).map(p => p.id);
+    out(`ℹ OpenCode seul : choisissez le modèle dans ${CONFIG} (agents.*.model, au format fournisseur/modèle) — fournisseurs connectés : ${ps.length ? ps.join(', ') : 'aucun, lancez : taskquoin connect opencode'}`);
+  } else if (!tools.claude) out(`⚠ l'implémenteur a besoin de Claude Code ou d'OpenCode : installez Claude Code ou OpenCode pour lancer des runs`);
   else if (!tools.codex) out(`ℹ Claude Code seul : le relecteur est aussi Claude (même modèle que l'implémenteur) — un juge indépendant est proposé en commentaire si une IA a été détectée`);
   out('Next: taskquoin doctor');
   return 0;
@@ -113,22 +127,26 @@ function printGate(id: string, cfg: TaskquoinConfig, g: GateResult & { runtimeFo
     const p = cfg.providers![a.provider!]; const name = keyEnvName(p);
     out(`  Provider ${a.provider}: ${p.url} (${p.model}) — ${name ? `clé ${name} ${process.env[name]?.trim() ? 'présente' : 'ABSENTE'}` : 'sans clé'}`);
   }
+  const shown = new Set<unknown>();
   for (const r of g.resolved) {
     const f = g.failures.find(x => x.capability === r.capability); const a = g.acceptedRisks.find(x => x.capability === r.capability);
     if (r.certified) out(`  ✔ ${r.capability} ${r.class} — ${r.mechanism}`);
     else if (a) out(`  ⚠ ${r.capability} accepted risk (approved by ${a.approvedBy} until ${a.expires}: ${a.reason}) — ${a.message}`);
-    else out(`  ✖ ${r.capability} — ${f?.message ?? r.mechanism}`);
+    else { out(`  ✖ ${r.capability} — ${f?.message ?? r.mechanism}`); if (f) shown.add(f); }
   }
+  // Failures added outside the capability matrix (a missing api key, an unconnected OpenCode provider) are shown too.
+  for (const f of g.failures) if (!shown.has(f)) out(`  ✖ ${f.message}`);
 }
 
 async function cmdDoctor(): Promise<number> {
   const h = await host(); const root = requireRepo(h); const cfg = loadConfig(root);
   out(`Taskquoin doctor — ${root}`);
-  for (const rt of ['claude', 'codex'] as const) {
+  for (const rt of ['claude', 'codex', 'opencode'] as const) {
     const p = h.runtimes[rt]; const m = loadMatrix(rt);
     out(p ? `Runtime ${rt}: ${p.version ?? '?'} (${p.bin}) ${p.version === m.runtimeVersion ? '✔' : `✖ matrix measured for ${m.runtimeVersion}`}` : `Runtime ${rt}: ✖ not found on PATH`);
   }
   out(`Bash sandbox (bubblewrap + socat): ${h.bashSandbox ? '✔' : '✖ not available — agents with a shell are refused (apt install bubblewrap socat)'}`);
+  out(`File sandbox (bubblewrap): ${h.fileSandbox ? '✔' : '✖ not available — Verify and OpenCode agents are refused (apt install bubblewrap)'}`);
   out(`Local tool isolation (unshare -rn): ${h.localIsolation ? '✔' : '✖ local tools will not run'}`);
   out(`PreToolUse hook entry: ${existsSync(HOOK_ENTRY) ? '✔' : '✖ missing'} (${HOOK_ENTRY})`);
   const conns = Object.entries(cfg.connectors);
@@ -138,6 +156,11 @@ async function cmdDoctor(): Promise<number> {
   for (const id of used) {
     const a = cfg.agents[id]; let where: string;
     if (a.runtime === 'claude') where = 'Anthropic (Claude Code)'; else if (a.runtime === 'codex') where = 'OpenAI (Codex)';
+    else if (a.runtime === 'opencode') {
+      const provider = providerOf(a.model!); const type = connectedProviders(userOpenCodePaths()).find(p => p.id === provider)?.type;
+      const hosts = measuredHosts(provider, type)?.code ?? [];
+      where = `${provider} via OpenCode (${a.model})${LOCAL_PROVIDERS.includes(provider) ? ' — reste sur cette machine' : hosts.length ? ` — hôtes : ${hosts.join(', ')}` : ' — hôtes non mesurés'}`;
+    }
     else { const p = cfg.providers![a.provider!]; const u = new URL(p.url); where = `${u.host} (${p.model})${['localhost', '127.0.0.1', '[::1]'].includes(u.hostname) ? ' — reste sur cette machine' : ''}`; }
     dest.set(where, [...(dest.get(where) ?? []), id]);
   }
@@ -193,6 +216,24 @@ async function cmdAcceptRisk(agentId: string | undefined, capability: string | u
   out(`  ${f.message}`);
   out('  It stops applying if the failure changes (other mechanism, other runtime version) or after the expiry date.');
   return 0;
+}
+
+/** `connect opencode` (spec §5.2): OpenCode's own sign-in, on Taskquoin's OpenCode directory; secrets are never printed. */
+function cmdConnect(target: string | undefined, remove: boolean): number {
+  if (target !== 'opencode') { err('usage: taskquoin connect opencode [--remove]'); return 2; }
+  const dir = join(stateBase(), 'opencode');
+  if (remove) { rmSync(dir, { recursive: true, force: true }); out(`✔ connexion OpenCode de Taskquoin supprimée (${dir})`); return 0; }
+  const bin = findOnPath('opencode', process.env.PATH ?? '');
+  if (!bin) { err("taskquoin: OpenCode n'est pas installé (introuvable sur le PATH) — installez-le, puis relancez : taskquoin connect opencode"); return 1; }
+  const d = userOpenCodeDirs();
+  out(`Connexion d'OpenCode pour Taskquoin (${dirname(d.config)}) — votre OpenCode personnel n'est pas touché.`);
+  const r = spawnSync(bin, [...LOGIN_ARGS], { stdio: 'inherit', cwd: tmpdir(),
+    env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? homedir(), LANG: process.env.LANG ?? 'C.UTF-8', ...connectEnv(d) } });
+  const ps = connectedProviders(d);
+  if (r.status !== 0) err('taskquoin: la connexion OpenCode a échoué ou a été annulée');
+  if (!ps.length) { err('taskquoin: aucun fournisseur connecté pour Taskquoin'); return 1; }
+  out(`✔ Fournisseurs connectés pour Taskquoin : ${ps.map(p => `${p.id} (${p.type})`).join(', ')}`);
+  return r.status === 0 ? 0 : 1;
 }
 
 async function cmdUninstall(purge: boolean): Promise<number> {
@@ -253,6 +294,7 @@ Skills (local import only — Taskquoin never downloads)
   skills approve <name> --as <name> [--accept-findings]   YOUR approval; re-hashed at every use
   skills revoke <name> --as <name>
 Shortcut
+  connect opencode [--remove]   connect Taskquoin's own OpenCode to your AI provider (ChatGPT, Copilot, a key…) — never your personal OpenCode
   setup [--remove]              put \`taskquoin\` on your PATH (~/.local/bin/taskquoin; done automatically at first launch)
 Removal
   uninstall [--purge-state]     remove what Taskquoin created and you did not modify
@@ -349,6 +391,7 @@ async function main(): Promise<number> {
     case 'doctor': return cmdDoctor();
     case 'check': return cmdCheck(arg, !!values.json);
     case 'console': return cmdConsole();
+    case 'connect': return cmdConnect(arg, !!values.remove);
     case 'setup': {
       if (values.remove) { const r = removeShortcut(shortcutEnv()); out(r.message); return 0; }
       const r = installShortcut(shortcutEnv(), { auto: false }); (r.status === 'conflict' ? err : out)(r.message); return r.status === 'conflict' ? 1 : 0;

@@ -1,5 +1,7 @@
 # Taskquoin
 
+![Taskquoin console: the squad, the / menu and /help](docs/assets/console.gif)
+
 **Governed execution for coding agents.** Taskquoin runs a software-engineering workflow over **Claude Code**, **OpenAI Codex** and **any OpenAI-compatible AI**, where every file write, shell command and "it's done" claim is either *enforced by a mechanism we can name and test*, *approved by a human who is bound to the exact hash they read*, or *explicitly labeled advisory*.
 
 > **Status: 2026.11.0 — first public release (alpha).** Tested on Linux (WSL2, ext4) with Claude Code 2.1.325 and Codex 0.157.1; macOS and Windows are not verified yet. Everything runs on your machine: only the AI providers you configure receive code.
@@ -22,7 +24,8 @@ taskquoin run "Add a sum function"
 - **Measured enforcement**: a capability matrix per runtime version (`adapters/*/src/capabilities.json`), printed by `taskquoin doctor`; a mandatory restriction that is only advisory on your runtime refuses to compile.
 - **Clean-room Verify** and a mechanical **RED proof** recorded in the commit (`RED-Proof:` trailer, `docs/adr/0014`).
 - **Judges by API** (`docs/adr/0016`): any OpenAI-compatible provider — OpenRouter, Mistral, DeepSeek, Gemini, OpenAI, a local Ollama… — can critique the plan and review the diff. Text only: judges never receive secret files, binaries or your keys, and `taskquoin doctor` lists every destination of your code.
-- **Console**: `taskquoin` alone opens an interactive shell (`/run`, `/status`, `/show`, `/approve`, Tab completion).
+- **OpenCode for planning and coding** (`docs/adr/0017`): with only a ChatGPT subscription, OpenCode can plan, implement and review (other sign-ins — API keys, Copilot, local models — are refused until their hosts are measured) — in Taskquoin's sandbox, **without any command** (Taskquoin runs your tests), with its own connection (`taskquoin connect opencode`).
+- **Console** (above): `taskquoin` alone opens an interactive shell (`/run`, `/status`, `/show`, `/approve`, Tab completion).
 - **Skills**: pinned first-party skills (planning contract, TDD, code review, security review). Third-party skills are imported from a local directory into quarantine, audited, and approved by you — Taskquoin never downloads.
 - **Memory** (optional): a structured summary of each finished run goes to your local [claude-mem](https://github.com/thedotmack/claude-mem) worker.
 - **Clean removal**: `taskquoin uninstall` removes only what Taskquoin created and you did not modify.
@@ -30,8 +33,8 @@ taskquoin run "Add a sum function"
 ## Requirements
 - Node ≥ 22.18 (runs TypeScript natively) and git
 - Linux: `bubblewrap` and `socat` (command sandbox)
-- Claude Code, signed in (`claude auth login`) — planner and implementer
-- Optional: Codex CLI (signed in); API keys for the judges you add, as environment variables
+- Claude Code, signed in (`claude auth login`) — planner and implementer (or OpenCode, below)
+- Optional: Codex CLI (signed in); OpenCode 1.19.5 (`npm install -g opencode-ai@1.19.5`, then `taskquoin connect opencode`) — it can replace Claude Code; API keys for the judges you add, as environment variables
 
 ## Install
 ```bash

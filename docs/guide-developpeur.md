@@ -107,6 +107,25 @@ workflow:
 La clé reste dans votre environnement (`export DEEPSEEK_API_KEY=…`), jamais dans le dépôt. Sans elle, le run ne
 démarre pas. `taskquoin doctor` affiche à qui le code est envoyé. Attention : une clé d'API est payée à l'usage.
 
+### Planifier et coder avec n'importe quelle IA : OpenCode (sans Claude Code)
+OpenCode est un agent de code open source qui parle à de nombreux fournisseurs (abonnement ChatGPT, GitHub Copilot,
+clés OpenRouter / Mistral…, Ollama local). Taskquoin l'enferme dans sa propre sandbox et **ne lui donne aucune
+commande** : il lit et écrit des fichiers, c'est Taskquoin qui lance vos tests.
+```bash
+npm install -g opencode-ai@1.19.5          # la version mesurée par Taskquoin (installation au niveau utilisateur)
+taskquoin connect opencode                 # la connexion de Taskquoin (pas votre OpenCode personnel) : ChatGPT, clé…
+taskquoin init                             # sans Claude Code : configuration tout-OpenCode, avec verify.command
+taskquoin doctor                           # dit à qui part le code : « openai via OpenCode (…) — hôtes : chatgpt.com »
+```
+Choisissez le modèle dans `taskquoin.yaml` (`agents.*.model`, format `fournisseur/modèle`). **Seules les connexions
+mesurées sont certifiées** (les hôtes contactés sont connus) : aujourd'hui la connexion ChatGPT (`openai`, type
+`oauth`) ; une autre connexion (clé OpenRouter, Copilot, Ollama…) est refusée par `doctor` tant qu'elle n'a pas été
+mesurée. Avec une connexion ChatGPT, seuls certains modèles sont acceptés (mesuré : `openai/gpt-6-astra`).
+Observé une fois : après la connexion ChatGPT d'OpenCode, la session Codex existante a été invalidée — si Codex
+répond « invalidated oauth token », relancez `codex login` ; les deux connexions coexistent ensuite. Un implémenteur OpenCode a jusqu'à
+4 reprises quand vos tests échouent (2 quand les relecteurs refusent). Chaque run reçoit uniquement l'identifiant du
+fournisseur utilisé ; `taskquoin connect opencode --remove` efface la connexion.
+
 ## 4. Quand ça ne se passe pas comme prévu
 | Ce que vous voyez | Ce que ça veut dire | Quoi faire |
 |---|---|---|
@@ -134,7 +153,7 @@ démarre pas. `taskquoin doctor` affiche à qui le code est envoyé. Attention :
 - **Mesuré sur la machine de référence** (`taskquoin doctor`, tests live coopératifs) : pas de réseau pour les commandes des agents ; pas d'écriture hors du projet ; aucun serveur MCP ; les agents ne commitent pas.
 - **Garanti par construction et testé** : le commit est exactement l'arbre vérifié, relu et approuvé (`commit-tree`) ; les tests tournent en salle blanche sur cet arbre, dépendances en lecture seule et gelées pour l'agent (ADR-0014) ; Taskquoin vérifie lui-même que les tests modifiés échouent sans le reste du changement (preuve RED, écrite dans le commit : `RED-Proof:`) — il ne juge pas s'ils testent *le bon* comportement : c'est le rôle de la revue et le vôtre, `red-N` en main ; aucun hook du dépôt n'est exécuté par Taskquoin ; une modification de config protégée n'est jamais commitée ; les tests tournent sans réseau, `.git` en lecture seule, HOME masqué.
 - **Hooks de commit du projet** : Taskquoin ne les exécute pas (ils pourraient contenir du code modifié par l'agent) — lancez-les vous-même au merge.
-- **Seules les IA** reçoivent du code — par définition : Anthropic (Claude Code), OpenAI (Codex) et les fournisseurs que vous listez sous `providers` (`taskquoin doctor` les affiche).
+- **Seules les IA** reçoivent du code — par définition : Anthropic (Claude Code), OpenAI (Codex), les fournisseurs que vous listez sous `providers` et le fournisseur du modèle de vos agents OpenCode (`taskquoin doctor` les affiche, avec les hôtes mesurés).
 - **Pas encore** : pas de push ni de PR automatiques (R6), pas de Jira (Phase B), pas d'interface graphique (Phase B), pas de reprise automatique d'un run `needs-human`.
 - Vous pouvez **continuer à utiliser Claude Code et Codex normalement** à côté : Taskquoin ne touche pas à vos sessions interactives ; votre claude-mem reçoit seulement un résumé structuré de chaque run terminé.
 

@@ -101,14 +101,14 @@ const ROLE_LABEL: Record<string, string> = { planner: 'Architect', implementer: 
  * The squad as it really is: every agent with its gate verdict (a judge's provider shown), then Taskquoin's own
  * sandboxed Verify as the tester. A refusal shows its short reason (the text before " — ").
  */
-export function squadOf(agents: Record<string, { runtime: string; provider?: string }>,
+export function squadOf(agents: Record<string, { runtime: string; provider?: string; model?: string }>,
   gateOf: (id: string) => { ok: boolean; runtimeFound: boolean; failures: { message: string }[]; acceptedRisks: { capability: string }[] },
   testerReady: boolean): SquadMember[] {
   const squad: SquadMember[] = Object.entries(agents).map(([id, a]) => {
     const g = gateOf(id);
     const state = !g.ok ? 'blocked' as const : g.acceptedRisks.length ? 'risk' as const : 'ready' as const;
     const note = !g.ok ? (g.runtimeFound ? g.failures[0]?.message.split(' — ')[0].slice(0, 70) : `${a.runtime} absent`) : g.acceptedRisks.map(r => r.capability).join(', ') || undefined;
-    return { role: ROLE_LABEL[id] ?? id[0].toUpperCase() + id.slice(1), who: `${id} · ${a.runtime === 'api' ? `api:${a.provider}` : a.runtime}`, state, ...(note ? { note } : {}) };
+    return { role: ROLE_LABEL[id] ?? id[0].toUpperCase() + id.slice(1), who: `${id} · ${a.runtime === 'api' ? `api:${a.provider}` : a.runtime === 'opencode' ? `opencode:${(a.model ?? '').split('/')[0]}` : a.runtime}`, state, ...(note ? { note } : {}) };
   });
   squad.push(testerReady ? { role: 'Tester', who: 'verify · bubblewrap', state: 'ready' } : { role: 'Tester', who: 'verify · bubblewrap', state: 'blocked', note: 'bubblewrap indisponible' });
   return squad;

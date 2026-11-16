@@ -5,7 +5,7 @@
 import { accessSync, constants, existsSync, realpathSync, statSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { runProcess } from '@taskquoin/process-runner';
-import { localToolIsolationAvailable } from '@taskquoin/local-tool';
+import { localToolIsolationAvailable, sandboxedToolAvailable } from '@taskquoin/local-tool';
 
 export function findOnPath(name: string, PATH: string): string | undefined {
   for (const dir of PATH.split(delimiter)) {
@@ -32,13 +32,15 @@ export async function bashSandboxAvailable(PATH: string): Promise<boolean> {
 
 export interface RuntimeProbe { bin: string; version?: string }
 export interface HostReport {
-  runtimes: { claude?: RuntimeProbe; codex?: RuntimeProbe };
+  runtimes: { claude?: RuntimeProbe; codex?: RuntimeProbe; opencode?: RuntimeProbe };
   bashSandbox: boolean; localIsolation: boolean; node: string; git?: string; gitRoot?: string;
+  /** Taskquoin's own bubblewrap profile is usable (Verify, OpenCode agents). */
+  fileSandbox: boolean;
 }
 
 export async function probeHost(o: { cwd: string; PATH: string; HOME: string }): Promise<HostReport> {
   const runtimes: HostReport['runtimes'] = {};
-  for (const name of ['claude', 'codex'] as const) {
+  for (const name of ['claude', 'codex', 'opencode'] as const) {
     const bin = findOnPath(name, o.PATH);
     if (bin) runtimes[name] = { bin, version: await binaryVersion(bin, o.PATH, o.HOME) };
   }
@@ -48,5 +50,5 @@ export async function probeHost(o: { cwd: string; PATH: string; HOME: string }):
     const r = await runProcess({ bin: git, args: ['rev-parse', '--show-toplevel'], cwd: o.cwd, env: { PATH: o.PATH, HOME: o.HOME }, timeoutMs: 10_000, maxOutputBytes: 10_000 });
     if (r.status === 'completed') { const t = r.stdout.trim(); if (t && existsSync(t)) gitRoot = realpathSync(t); }
   }
-  return { runtimes, bashSandbox: await bashSandboxAvailable(o.PATH), localIsolation: await localToolIsolationAvailable(), node: process.execPath, git, gitRoot };
+  return { runtimes, bashSandbox: await bashSandboxAvailable(o.PATH), localIsolation: await localToolIsolationAvailable(), fileSandbox: await sandboxedToolAvailable(), node: process.execPath, git, gitRoot };
 }

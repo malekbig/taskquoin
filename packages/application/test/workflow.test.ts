@@ -14,7 +14,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { advance, approve, newRun, pendingApproval, resume, type RunState, type WorkflowDeps } from '../src/workflow/feature-governed.ts';
+import { advance, approve, MAX_ATTEMPTS, MAX_ATTEMPTS_NO_COMMANDS, MAX_REVIEW_REWORKS, newRun, pendingApproval, resume, type RunState, type WorkflowDeps } from '../src/workflow/feature-governed.ts';
 import { parseVerdict } from '../src/workflow/prompts.ts';
 import type { RunRequest, RunResult, RuntimeExecutor } from '../src/ports/runtime-executor.ts';
 import type { MemoryPort } from '../src/ports/memory.ts';
@@ -34,7 +34,7 @@ type Judge = { replies: (string | RunResult | Error)[]; textOnly?: boolean; labe
 
 type Snap = { roots: string[]; deps: Record<string, string>; ignored: Record<string, string>; refusal?: string };
 const SNAP: Snap = { roots: ['node_modules'], deps: { node_modules: 'r', 'node_modules/yaml': 'h1' }, ignored: {} };
-function harness(o: { fileText?: string; judges?: Record<string, Judge>; workflow?: { challengers: string[]; reviewers: string[] }; budgets?: Record<string, number>; claude: (string | RunResult)[]; codex: (string | RunResult)[]; verify: (boolean | 'inconclusive' | { passed: boolean; log?: string; treeChanged?: boolean; refusal?: string })[]; snapshots?: Snap[]; trees?: string[]; refuse?: string; memory?: MemoryPort; changes?: { status: string; path: string }[]; diffSize?: number; redTree?: (t: string) => string }) {
+function harness(o: { noCommands?: boolean; fileText?: string; judges?: Record<string, Judge>; workflow?: { challengers: string[]; reviewers: string[] }; budgets?: Record<string, number>; claude: (string | RunResult)[]; codex: (string | RunResult)[]; verify: (boolean | 'inconclusive' | { passed: boolean; log?: string; treeChanged?: boolean; refusal?: string })[]; snapshots?: Snap[]; trees?: string[]; refuse?: string; memory?: MemoryPort; changes?: { status: string; path: string }[]; diffSize?: number; redTree?: (t: string) => string }) {
   const store = new Map<string, string>(); const saved: string[] = []; const events: { type: string }[] = [];
   const claude = new Scripted('claude', o.claude); const codex = new Scripted('codex', o.codex);
   const trees = [...(o.trees ?? [])]; let treeNow = T1;
@@ -42,7 +42,7 @@ function harness(o: { fileText?: string; judges?: Record<string, Judge>; workflo
   const spec = (id: string) => ({ id, description: id, prompt: `role ${id}`, capabilities: {} });
   const judgeExec: Record<string, Scripted> = {}; const budgetsAsked: number[] = [];
   const deps: WorkflowDeps = {
-    agents: { planner: { spec: spec('planner'), executor: claude }, implementer: { spec: spec('implementer'), executor: claude }, challenger: { spec: spec('challenger'), executor: codex, label: 'codex' },
+    agents: { planner: { spec: spec('planner'), executor: claude }, implementer: { spec: spec('implementer'), executor: claude, ...(o.noCommands ? { noCommands: true } : {}) }, challenger: { spec: spec('challenger'), executor: codex, label: 'codex' },
       ...Object.fromEntries(Object.entries(o.judges ?? {}).map(([id, j]) => [id, { spec: spec(id), executor: (judgeExec[id] = new Scripted('api', j.replies)), textOnly: !!j.textOnly, label: j.label ?? `api: fake/${id}` }])) },
     ...(o.workflow ? { workflow: o.workflow } : {}),
     judgeBudgetChars: (id) => o.budgets?.[id],
@@ -435,4 +435,40 @@ test('final review: changed files get only the budget LEFT after the task itself
   const s2 = await advance(yes(await advance(newRun('run-39', 'x'), big.deps), 'approve-plan'), big.deps);
   assert.equal(s2.current, 'approve-commit', 'files that do not fit are left out (marker), the review still happens');
   assert.match(big.judgeExec.security.calls[0].task, /budget atteint/);
+});
+
+// ── Implementer without commands (OpenCode, project B step 1) ────────────────────────────────────────────────────
+test('implementer without commands: up to 4 reworks for red tests, then needs-human', async () => {
+  const h = harness({ noCommands: true, claude: ['PLAN', 'i1', 'i2', 'i3', 'i4', 'i5'], codex: ['VERDICT: APPROVE'], verify: [false, false, false, false, false] });
+  const s = await advance(yes(await advance(newRun('run-oc1', 'x'), h.deps), 'approve-plan'), h.deps);
+  assert.equal(s.status, 'needs-human'); assert.equal(s.attempts, 5); assert.match(s.reason ?? '', /tests still failing after 5 attempts/);
+  assert.match(h.claude.calls[1].task, /you CANNOT run any command/);
+});
+
+test('implementer without commands: reviewer refusals hand back after 2 reworks', async () => {
+  const h = harness({ noCommands: true, claude: ['PLAN', 'i1', 'i2', 'i3', 'i4'], codex: ['VERDICT: APPROVE', 'no\nVERDICT: CHANGES_REQUESTED', 'no\nVERDICT: CHANGES_REQUESTED', 'no\nVERDICT: CHANGES_REQUESTED'],
+    verify: [true, false, true, false, true, false] });
+  const s = await advance(yes(await advance(newRun('run-oc2', 'x'), h.deps), 'approve-plan'), h.deps);
+  assert.equal(s.status, 'needs-human'); assert.equal(s.attempts, 3); assert.equal(s.reviewReworks, 2);
+  assert.match(s.reason ?? '', /review still requests changes after 3 attempts/);
+});
+
+test('with commands nothing changes: 3 attempts in all', () => {
+  assert.equal(MAX_ATTEMPTS, 3); assert.equal(MAX_ATTEMPTS_NO_COMMANDS, 5); assert.equal(MAX_REVIEW_REWORKS, 2);
+});
+
+test('review: the production files the change ADDS are named to the reviewers (their absence is the expected RED)', async () => {
+  const h = harness({ claude: ['PLAN', 'impl'], codex: ['VERDICT: APPROVE', APPROVE], verify: [true, false],
+    changes: [{ status: 'A', path: 'src/new.ts' }, { status: 'A', path: 'test/new.test.ts' }, { status: 'M', path: 'src/old.ts' }] });
+  await advance(yes(await advance(newRun('run-red-new', 'x'), h.deps), 'approve-plan'), h.deps);
+  const review = h.codex.calls.find(c => /independent code reviewer/.test(c.task))!.task;
+  assert.match(review, /adds these production files[^\n]*src\/new\.ts/);
+  assert.doesNotMatch(review, /adds these production files[^\n]*(test\/new\.test\.ts|src\/old\.ts)/);
+});
+
+test('final review (I4): an agent failure names what the runtime said (e.g. the provider error), not only the status', async () => {
+  const fail: RunResult = { status: 'failed', runtime: 'claude', runtimeVersion: 'x', exitCode: 1, terminalMessage: 'OpenCode (openai): APIError 429: quota exhausted', command: { bin: '/x', args: [], cwd: '/' }, effectiveConfigDigest: 'sha256:0', unsupported: [], stdoutTruncated: false, stderr: '', durationMs: 1 };
+  const h = harness({ claude: [fail], codex: [] , verify: [] });
+  const s = await advance(newRun('run-i4', 'x'), h.deps);
+  assert.equal(s.status, 'failed'); assert.match(s.reason ?? '', /agent planner ended with status failed: OpenCode \(openai\): APIError 429: quota exhausted/);
 });

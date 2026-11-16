@@ -9,6 +9,8 @@ export const PROTECTED_WRITE_GLOBS: readonly string[] = [
   '.github/workflows/**', '.gitlab-ci.yml', '.husky/**', '.pre-commit-config.yaml', 'lefthook.yml',
   // git behaviour switches (filters, LFS, submodules) — Codex R4 N5
   '.gitattributes', '**/.gitattributes', '.gitmodules',
+  // OpenCode's own configuration (project B): never loaded from the repository, never written, never landed
+  'opencode.json', 'opencode.jsonc', '.opencode/**', '**/opencode.json', '**/opencode.jsonc', '**/.opencode/**',
 ];
 /** Project-relative: never read by an agent. */
 export const SECRET_READ_GLOBS: readonly string[] = ['.env', '.env.*', '**/.env', '**/.env.*', '**/*.pem', '**/*.key'];
