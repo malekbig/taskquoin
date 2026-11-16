@@ -2,7 +2,7 @@
   "name": "taskquoin-monorepo",
   "private": true,
   "type": "module",
-  "version": "2026.11.0",
+  "version": "2026.11.1",
   "description": "Taskquoin — governed execution for coding agents (Claude Code, Codex)",
   "license": "Apache-2.0",
   "engines": {

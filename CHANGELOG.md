@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2026.11.1 — 2026-11-17
 
 ### Added
 - **OpenCode runtime** (`docs/adr/0017`): `runtime: opencode` for planner, implementer and judges, any provider OpenCode supports; the implementer has no command (Taskquoin runs the tests, up to 4 reworks); OpenCode runs in Taskquoin's sandbox (HOME hidden, secrets and the repository's OpenCode config masked, deny-by-default permissions with no `ask`); `taskquoin connect opencode`; `verify.command`; OpenCode 1.19.5 measured and certified live with a ChatGPT sign-in (other sign-ins are refused until measured).
