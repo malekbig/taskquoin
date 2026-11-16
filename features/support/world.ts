@@ -6,7 +6,7 @@
 import { execFileSync, spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 const CLI = new URL('../../apps/cli/src/main.ts', import.meta.url).pathname;
 const LAUNCHER = new URL('../../bin/taskquoin', import.meta.url).pathname;
@@ -31,7 +31,8 @@ export class World {
     for (const [name, file] of [['claude', 'fake-claude.cjs'], ['codex', 'fake-codex.cjs']]) {
       writeFileSync(join(bin, name), `#!/bin/sh\nexec ${process.execPath} ${FAKES}${file} "$@"\n`); chmodSync(join(bin, name), 0o755);
     }
-    this.env = { PATH: `${bin}:/usr/bin:/bin`, HOME: join(this.root, 'home'), XDG_STATE_HOME: join(this.root, 'state'), LANG: 'C.UTF-8' };
+    // node's own directory too: on CI runners node lives in a tool cache, not in /usr/bin (the launcher runs `node`)
+    this.env = { PATH: `${bin}:${dirname(process.execPath)}:/usr/bin:/bin`, HOME: join(this.root, 'home'), XDG_STATE_HOME: join(this.root, 'state'), LANG: 'C.UTF-8' };
   }
   git(...a: string[]) { return execFileSync('git', a, { cwd: this.repo, encoding: 'utf8', env: this.env }); }
   tq(args: string[], input?: string) {
