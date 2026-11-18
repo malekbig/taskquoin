@@ -1,0 +1,3 @@
+# SSH public keys allowed to sign release tags — read from main by .github/workflows/release.yml (git verify-tag).
+# One line per key:   maintainer namespaces="git" ssh-ed25519 AAAA…
+# No key listed: every release is refused.

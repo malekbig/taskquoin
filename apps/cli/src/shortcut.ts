@@ -6,6 +6,7 @@
  */
 import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { t } from './i18n/index.ts';
 
 export interface ShortcutEnv { home: string; launcher: string; pathEnv: string; stateDir: string }
 export interface ShortcutResult { status: 'installed' | 'already' | 'conflict' | 'opted-out'; link: string; pathAdded: boolean; message: string }
@@ -22,10 +23,10 @@ const ours = (e: ShortcutEnv) => { try { return lstatSync(linkOf(e)).isSymbolicL
 /** `auto`: the silent first-run setup — it respects a previous `setup --remove`. */
 export function installShortcut(e: ShortcutEnv, o: { auto: boolean }): ShortcutResult {
   const link = linkOf(e); const m = read(e);
-  if (o.auto && m.optedOut) return { status: 'opted-out', link, pathAdded: false, message: 'raccourci retiré à votre demande (taskquoin setup pour le remettre)' };
-  if (ours(e)) return { status: 'already', link, pathAdded: false, message: `raccourci déjà en place : ${link}` };
+  if (o.auto && m.optedOut) return { status: 'opted-out', link, pathAdded: false, message: t('shortcut.optedOut') };
+  if (ours(e)) return { status: 'already', link, pathAdded: false, message: t('shortcut.already', { link }) };
   let exists = false; try { lstatSync(link); exists = true; } catch { /* free */ }
-  if (exists) return { status: 'conflict', link, pathAdded: false, message: `${link} existe et ce n'est pas celui de Taskquoin : laissé intact` };
+  if (exists) return { status: 'conflict', link, pathAdded: false, message: t('shortcut.conflict', { link }) };
   mkdirSync(dirname(link), { recursive: true });
   symlinkSync(e.launcher, link);
   const binDir = dirname(link);
@@ -36,18 +37,18 @@ export function installShortcut(e: ShortcutEnv, o: { auto: boolean }): ShortcutR
   }
   write(e, { shortcut: link, launcher: e.launcher, bashrcBlock: pathAdded || !!m.bashrcBlock, optedOut: false });
   return { status: 'installed', link, pathAdded,
-    message: `raccourci installé : tapez taskquoin (lien ${link}${pathAdded ? ' ; ~/.local/bin ajouté au PATH dans ~/.bashrc — ouvrez un nouveau terminal' : ''}). Retirer : taskquoin setup --remove` };
+    message: t('shortcut.installed', { link, path: pathAdded ? t('shortcut.pathAdded') : '' }) };
 }
 
 export function removeShortcut(e: ShortcutEnv): { removed: boolean; message: string } {
   const m = read(e); let removed = false; const notes: string[] = [];
-  if (ours(e)) { unlinkSync(linkOf(e)); removed = true; notes.push(`lien ${linkOf(e)} retiré`); }
-  else if (existsSync(linkOf(e))) notes.push(`${linkOf(e)} n'est pas celui de Taskquoin : laissé intact`);
+  if (ours(e)) { unlinkSync(linkOf(e)); removed = true; notes.push(t('shortcut.linkRemoved', { link: linkOf(e) })); }
+  else if (existsSync(linkOf(e))) notes.push(t('shortcut.notOurs', { link: linkOf(e) }));
   const rc = join(e.home, '.bashrc');
   if (m.bashrcBlock && existsSync(rc)) {
     const cur = readFileSync(rc, 'utf8'); const i = cur.indexOf(BEGIN), j = cur.indexOf(END);
-    if (i >= 0 && j > i) { writeFileSync(rc, cur.slice(0, i) + cur.slice(j + END.length).replace(/^\n/, '')); notes.push('bloc retiré de ~/.bashrc'); }
+    if (i >= 0 && j > i) { writeFileSync(rc, cur.slice(0, i) + cur.slice(j + END.length).replace(/^\n/, '')); notes.push(t('shortcut.blockRemoved')); }
   }
   write(e, { optedOut: true });
-  return { removed, message: notes.join(' ; ') || 'rien à retirer' };
+  return { removed, message: notes.join(t('shortcut.sep')) || t('shortcut.nothing') };
 }

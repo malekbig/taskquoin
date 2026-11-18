@@ -2,6 +2,8 @@
 // Regenerate: node scripts/console-gif/frames.mjs && python3 scripts/console-gif/render.py scripts/console-gif/frames.json docs/assets/console.gif (needs Pillow)
 import { writeFileSync } from 'node:fs';
 const C = await import(new URL('../../apps/cli/src/console.ts', import.meta.url).href);
+const { setLanguage } = await import(new URL('../../apps/cli/src/i18n/index.ts', import.meta.url).href);
+setLanguage('fr'); // the README GIF is French
 const ok = () => ({ ok: true, runtimeFound: true, failures: [], acceptedRisks: [] });
 const agents = Object.fromEntries(['planner', 'implementer', 'challenger'].map(id => [id, { runtime: 'opencode', model: 'openai/gpt-6-astra' }]));
 const squad = C.squadOf(agents, ok, true);
@@ -20,6 +22,6 @@ frames.push({ ansi: typed('/h', C.slashMenu('/h').map(dim)), ms: 250 });
 frames.push({ ansi: typed('/he', C.slashMenu('/he').map(dim)), ms: 250 });
 frames.push({ ansi: typed('/hel', C.slashMenu('/hel').map(dim)), ms: 250 });
 frames.push({ ansi: typed('/help', C.slashMenu('/help').map(dim)), ms: 700 });
-frames.push({ ansi: screen + '\n' + PROMPT + '/help\n' + C.CONSOLE_HELP + '\n' + PROMPT + CUR, ms: 4500 });
+frames.push({ ansi: screen + '\n' + PROMPT + '/help\n' + C.consoleHelp() + '\n' + PROMPT + CUR, ms: 4500 });
 writeFileSync(new URL('./frames.json', import.meta.url), JSON.stringify(frames));
 console.log(`${frames.length} frames, ${frames.reduce((a, f) => a + f.ms, 0) / 1000} s, max rows ${Math.max(...frames.map(f => f.ansi.split('\n').length))}`);

@@ -24,6 +24,8 @@ export interface Approval { approvedBy: string; at: string; binding: string }
 
 export interface RunState {
   runId: string; workflow: 'feature-governed'; request: string;
+  /** English name of the language the agents write their prose in (e.g. `French`); absent for English. Saved so a resume keeps it. */
+  proseLanguage?: string;
   status: WorkflowStatus; current: NodeId;
   /** Incremented on every save; the CLI uses it for compare-and-swap. */
   revision: number;
@@ -223,13 +225,13 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
           break;
         }
         case 'plan': {
-          const r = await runAgent('planner', planTask(s.request, text('memory')));
+          const r = await runAgent('planner', planTask(s.request, text('memory'), s.proseLanguage));
           if (r) step('challenge', 'planned', { artifacts: art('plan', r.terminalMessage!) });
           break;
         }
         case 'challenge': {
           const ids = wf.challengers;
-          const tasks = Object.fromEntries(ids.map(id => [id, challengeTask(s.request, text('plan'), { textOnly: !!d.agents[id].textOnly })]));
+          const tasks = Object.fromEntries(ids.map(id => [id, challengeTask(s.request, text('plan'), { textOnly: !!d.agents[id].textOnly }, s.proseLanguage)]));
           const tooBig = ids.find(id => { const b = d.judgeBudgetChars?.(id); return b !== undefined && tasks[id].length > b; });
           if (tooBig) { stop('needs-human', `trop gros pour le critique ${tooBig} (${tasks[tooBig].length} caractères > maxInputChars ${d.judgeBudgetChars!(tooBig)}) — raccourcissez la demande ; rien n'a été envoyé`); break; }
           const byAgent = await askJudges('challenge', s.artifacts.plan, ids, (id) => `challenge-${id}`, async (id) => tasks[id]);
@@ -341,7 +343,7 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
           const tasks: Record<string, string> = {}; let tooBig: string | undefined;
           for (const id of ids.filter(x => !answered[x])) {
             const textOnly = !!d.agents[id].textOnly; const budget = d.judgeBudgetChars?.(id);
-            const build = (files?: { path: string; text: string }[]) => reviewTask(s.request, text('plan'), jdiff, text(`verify-${s.attempts}`), text(`red-${s.attempts}`), testsOnly, text(`ignored-${s.attempts}`), { textOnly, newProductionFiles, ...(files ? { files } : {}) });
+            const build = (files?: { path: string; text: string }[]) => reviewTask(s.request, text('plan'), jdiff, text(`verify-${s.attempts}`), text(`red-${s.attempts}`), testsOnly, text(`ignored-${s.attempts}`), { textOnly, newProductionFiles, ...(files ? { files } : {}) }, s.proseLanguage);
             const bare = build();
             if (budget !== undefined && bare.length > budget) { tooBig = `trop gros pour le relecteur ${id} (${bare.length} caractères > maxInputChars ${budget}) — découpez la tâche ; rien n'a été envoyé`; break; }
             if (!textOnly) { tasks[id] = bare; continue; }

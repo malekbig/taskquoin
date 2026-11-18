@@ -21,6 +21,9 @@ import { OpenCodeExecutor, userOpenCodeDirs } from '@taskquoin/runtime-opencode'
 import { ClaudeMemMemory } from '@taskquoin/memory-claude-mem';
 import type { GitWorkspace } from '@taskquoin/git';
 import { defaultMaskDirs, dependencyDigests, fingerprintEntries, runSandboxedTool, scanWorkspace } from '@taskquoin/local-tool';
+import { currentLanguage, t } from './i18n/index.ts';
+import { displayWidth, padEndDisplay } from './i18n/width.ts';
+import { LANGUAGES } from './i18n/languages.ts';
 import { resolveAgentSkills, skillsBlock } from './skills-cli.ts';
 import { matchGlob, SECRET_READ_GLOBS, selectInheritedRoots, TEST_PATH_GLOBS } from '@taskquoin/rules';
 /** Never sent to any judge (multi-LLM A3): the same names Taskquoin masks and denies elsewhere. */
@@ -41,13 +44,13 @@ const safe = (t: string) => t.replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, '').replac
 function preflight(c: CliContext): string | undefined {
   const wf = workflowOf(c.cfg);
   for (const r of [...new Set([...ROLES, ...wf.challengers, ...wf.reviewers])]) {
-    if (!Object.hasOwn(c.cfg.agents, r)) return `taskquoin.yaml must define agent "${r}"`;
+    if (!Object.hasOwn(c.cfg.agents, r)) return t('workflow.missingAgent', { agent: r });
     const sk = resolveAgentSkills(c.cfg, c.store, r);
-    if (sk.errors.length) return `agent ${r} cannot start — skill(s) not usable: ${sk.errors.join('; ')}`;
+    if (sk.errors.length) return t('workflow.skillsUnusableStart', { agent: r, errors: sk.errors.join('; ') });
   }
   for (const r of [...new Set([...READ_ONLY_ROLES, ...wf.challengers, ...wf.reviewers])]) {
     const bad = FORBIDDEN_FOR_READ_ONLY.filter(k => (c.cfg.agents[r].capabilities[k]?.length ?? 0) > 0);
-    if (bad.length) return `agent ${r} must be read-only (it plans or reviews independently) but is granted ${bad.join(', ')}`;
+    if (bad.length) return t('workflow.mustBeReadOnly', { agent: r, granted: bad.join(', ') });
   }
   return judgesProblem(c);
 }
@@ -61,7 +64,7 @@ function judgesProblem(c: CliContext): string | undefined {
   const wf = workflowOf(c.cfg);
   for (const r of [...new Set([...wf.challengers, ...wf.reviewers])].filter(id => c.cfg.agents[id].runtime === 'api' || c.cfg.agents[id].runtime === 'opencode')) {
     const g = c.gate(r);
-    if (!g.ok) return `agent ${r} cannot start — ${g.failures.map(f => f.message).join('; ')}`;
+    if (!g.ok) return t('workflow.judgeCannotStart', { agent: r, reasons: g.failures.map(f => f.message).join('; ') });
   }
   return undefined;
 }
@@ -73,7 +76,7 @@ async function withRunLock<T>(c: CliContext, runId: string, fn: () => Promise<T>
   catch {
     const pid = Number(readFileSync(lock, 'utf8'));
     let alive = false; try { if (pid > 0) { process.kill(pid, 0); alive = true; } } catch { alive = false; }
-    if (alive) throw new Error(`run ${runId} is busy (another taskquoin process, pid ${pid})`);
+    if (alive) throw new Error(t('workflow.busy', { run: runId, pid }));
     writeFileSync(lock, String(process.pid), { mode: 0o600 });
   }
   try { return await fn(); } finally { rmSync(lock, { force: true }); }
@@ -93,9 +96,9 @@ function deps(c: CliContext, state: RunState, git: GitWorkspace): WorkflowDeps {
     const p = a.runtime === 'api' ? c.cfg.providers![a.provider!] : undefined;
     const ex = p ? new ApiExecutor({ id: a.provider!, url: p.url, model: p.model, ...(keyEnvName(p) ? { keyEnv: keyEnvName(p) } : {}), maxOutputTokens: p.maxOutputTokens, timeoutSeconds: p.timeoutSeconds, tokenField: p.tokenField })
       : executors[a.runtime as 'claude' | 'codex' | 'opencode'];
-    if (!ex) throw new Error(`runtime ${a.runtime} for agent ${id} is not installed`);
+    if (!ex) throw new Error(t('workflow.runtimeMissing', { runtime: a.runtime, agent: id }));
     const sk = resolveAgentSkills(c.cfg, c.store, id);
-    if (sk.errors.length) throw new Error(`agent ${id}: skill(s) not usable — ${sk.errors.join('; ')}`);
+    if (sk.errors.length) throw new Error(t('workflow.skillsUnusable', { agent: id, errors: sk.errors.join('; ') }));
     const label = p ? `api: ${new URL(p.url).host}/${p.model}` : a.runtime === 'opencode' ? `opencode: ${a.model}` : a.runtime;
     // An implementer without commands (OpenCode, or no shell.run): Taskquoin runs the tests and allows more reworks.
     const noCommands = id === 'implementer' && !(a.capabilities['shell.run']?.length);
@@ -214,36 +217,46 @@ const LINK_PROBE = 'cd "$1" && find . -path ./.git -prune -o -type l -print0 > /
 const gateWord = (node: string) => (node === GATE.plan ? 'plan' : 'commit');
 
 function report(c: CliContext, s: RunState) {
-  c.out(`Run ${s.runId} — ${s.status} at ${s.current} (attempt ${s.attempts}, branch ${s.branch})`);
+  c.out(t('workflow.report.head', { run: s.runId, status: s.status, node: s.current, attempt: s.attempts, branch: s.branch ?? '' }));
   if (s.reason) c.out(`  ${s.reason}`);
   const p = pendingApproval(s);
+  // Labels share one column whatever the language (display width, so CJK aligns too).
+  const names = [t('workflow.report.reviewLabel'), t('workflow.report.approveLabel'), t('workflow.report.resumeLabel')];
+  const width = Math.max(...names.map(displayWidth)) + 2;
+  const labels = names.map(x => padEndDisplay(x, width));
   if (p) {
     const gate = gateWord(p.node);
-    const what = gate === 'plan' ? `plan  (and: challenge)` : `diff-${s.attempts}  (and: verify-${s.attempts}, red-${s.attempts}, review-${s.attempts}${s.artifacts[`ignored-${s.attempts}`] ? `, ignored-${s.attempts} — files left OUTSIDE the diff` : ''})`;
-    c.out(`  Review it:   taskquoin show ${s.runId} ${what}`);
-    c.out(`  Approve it:  taskquoin approve ${s.runId} ${gate} --expect ${p.binding.slice(0, 12)} --as <your name>`);
-    c.out(`               (${gate === 'plan' ? 'plan sha256' : 'git tree'} ${p.binding})`);
+    const n = s.attempts;
+    const ignored = s.artifacts[`ignored-${n}`] ? t('workflow.report.ignoredNote', { n }) : '';
+    const what = gate === 'plan' ? t('workflow.report.planArtifacts') : t('workflow.report.diffArtifacts', { n, ignored });
+    c.out(`  ${labels[0]}taskquoin show ${s.runId} ${what}`); // i18n-ok: command line to type
+    c.out(`  ${labels[1]}${t('workflow.report.approveCmd', { run: s.runId, gate, hash: p.binding.slice(0, 12) })}`);
+    c.out(`  ${' '.repeat(width)}${gate === 'plan' ? t('workflow.report.bindingPlan', { hash: p.binding }) : t('workflow.report.bindingTree', { hash: p.binding })}`);
   }
-  if (s.status === 'interrupted') c.out(`  Resume it:   taskquoin resume ${s.runId}`);
-  if (s.status === 'completed') c.out(`  Committed ${s.commit} on ${s.branch} — merge it yourself when ready (nothing was pushed).`);
+  if (s.status === 'interrupted') c.out(`  ${labels[2]}taskquoin resume ${s.runId}`); // i18n-ok: command line to type
+  if (s.status === 'completed') c.out(t('workflow.report.committed', { commit: s.commit ?? '', branch: s.branch ?? '' }));
 }
 const exitFor = (s: RunState) => (s.status === 'completed' || s.status === 'waiting-approval' ? 0 : 1);
 
 async function checkRunContext(c: CliContext, git: GitWorkspace, s: RunState): Promise<string | undefined> {
-  if ((await git.currentBranch()) !== s.branch) return `switch to ${s.branch} first`;
-  if (s.configDigest && s.configDigest !== configDigest(c.root)) return 'taskquoin.yaml changed since the run started — start a new run';
+  if ((await git.currentBranch()) !== s.branch) return t('workflow.switchBranch', { branch: s.branch ?? '' });
+  if (s.configDigest && s.configDigest !== configDigest(c.root)) return t('workflow.configChanged');
   return judgesProblem(c);
 }
 
+/** The language agents write their prose in for a run started in `lang`: the English name, or undefined for English. */
+export const proseLanguageFor = (lang: string): string | undefined => (lang === 'en' ? undefined : LANGUAGES.find(l => l.code === lang)?.englishName);
+
 /** `onStart` receives the id of the run THIS call creates (the console selects exactly that run). */
 export async function cmdRun(c: CliContext, git: GitWorkspace, request: string | undefined, onStart?: (runId: string) => void): Promise<number> {
-  if (!request?.trim()) { c.err('usage: taskquoin run "<request>"'); return 2; }
-  const pf = preflight(c); if (pf) { c.err(`taskquoin run: ${pf}`); return 1; }
-  if (!(await git.isClean())) { c.err('taskquoin run: the working tree has uncommitted changes — commit or stash them first (Taskquoin never mixes its changes with yours)'); return 1; }
+  if (!request?.trim()) { c.err(t('workflow.usage.run')); return 2; }
+  const pf = preflight(c); if (pf) { c.err(t('workflow.cmdError', { command: 'run', message: pf })); return 1; }
+  if (!(await git.isClean())) { c.err(t('workflow.cmdError', { command: 'run', message: t('workflow.dirtyTree') })); return 1; }
   const runId = `run-${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}-${randomBytes(3).toString('hex')}`;
   const branch = `taskquoin/${runId}`;
   const base = await git.startRunBranch(branch);
-  const s0: RunState = { ...newRun(runId, request), branch, base, configDigest: configDigest(c.root) };
+  const proseLanguage = proseLanguageFor(currentLanguage());
+  const s0: RunState = { ...newRun(runId, request), branch, base, configDigest: configDigest(c.root), ...(proseLanguage ? { proseLanguage } : {}) };
   onStart?.(runId);
   const s = await withRunLock(c, runId, () => advance(s0, deps(c, s0, git)));
   report(c, s);
@@ -251,8 +264,8 @@ export async function cmdRun(c: CliContext, git: GitWorkspace, request: string |
 }
 
 export async function cmdApprove(c: CliContext, git: GitWorkspace, runId: string | undefined, gate: string | undefined, expect: string | undefined, as: string | undefined): Promise<number> {
-  if (!runId || (gate !== 'plan' && gate !== 'commit') || !expect || !as?.trim()) { c.err('usage: taskquoin approve <run> <plan|commit> --expect <hash shown by status> --as <name>'); return 2; }
-  if (!loadRunState<RunState>(c.store, runId)) { c.err(`taskquoin: unknown run ${runId}`); return 1; }
+  if (!runId || (gate !== 'plan' && gate !== 'commit') || !expect || !as?.trim()) { c.err(t('workflow.usage.approve')); return 2; }
+  if (!loadRunState<RunState>(c.store, runId)) { c.err(t('workflow.unknownRun', { run: runId })); return 1; }
   try {
     const s = await withRunLock(c, runId, async () => {
       const s0 = loadRunState<RunState>(c.store, runId)!;
@@ -263,12 +276,12 @@ export async function cmdApprove(c: CliContext, git: GitWorkspace, runId: string
       return advance(s1, deps(c, s1, git));
     });
     report(c, s); return exitFor(s);
-  } catch (e) { c.err(`taskquoin approve: ${(e as Error).message}`); return 1; }
+  } catch (e) { c.err(t('workflow.cmdError', { command: 'approve', message: (e as Error).message })); return 1; }
 }
 
 export async function cmdResume(c: CliContext, git: GitWorkspace, runId: string | undefined): Promise<number> {
-  if (!runId) { c.err('usage: taskquoin resume <run>'); return 2; }
-  if (!loadRunState<RunState>(c.store, runId)) { c.err(`taskquoin: unknown run ${runId}`); return 1; }
+  if (!runId) { c.err(t('workflow.usage.resume')); return 2; }
+  if (!loadRunState<RunState>(c.store, runId)) { c.err(t('workflow.unknownRun', { run: runId })); return 1; }
   try {
     const s = await withRunLock(c, runId, async () => {
       const s0 = loadRunState<RunState>(c.store, runId)!;
@@ -277,7 +290,7 @@ export async function cmdResume(c: CliContext, git: GitWorkspace, runId: string 
       return advance(s1, deps(c, s1, git));
     });
     report(c, s); return exitFor(s);
-  } catch (e) { c.err(`taskquoin resume: ${(e as Error).message}`); return 1; }
+  } catch (e) { c.err(t('workflow.cmdError', { command: 'resume', message: (e as Error).message })); return 1; }
 }
 
 /** Fields shared by `status --json` and `status <run> --json`; every key is always present (null when unset). */
@@ -288,7 +301,7 @@ const runSummary = (s: RunState) => ({ runId: s.runId, status: s.status, current
 export function cmdStatus(c: CliContext, runId?: string, json = false): number {
   if (!runId && json) { c.out(JSON.stringify(listRuns(c.store).map(id => runSummary(loadRunState<RunState>(c.store, id)!)), null, 2)); return 0; }
   if (!runId) { for (const id of listRuns(c.store)) { const s = loadRunState<RunState>(c.store, id)!; c.out(`${id}  ${s.status.padEnd(16)} ${s.current.padEnd(15)} ${safe(s.request.split('\n')[0].slice(0, 60))}`); } return 0; }
-  const s = loadRunState<RunState>(c.store, runId); if (!s) { c.err(`taskquoin: unknown run ${runId}`); return 1; }
+  const s = loadRunState<RunState>(c.store, runId); if (!s) { c.err(t('workflow.unknownRun', { run: runId })); return 1; }
   if (json) {
     const p = pendingApproval(s);
     c.out(JSON.stringify({ ...runSummary(s), history: s.history, pendingApproval: p ? { gate: gateWord(p.node), expectedHash: p.binding } : null }, null, 2));
@@ -296,17 +309,18 @@ export function cmdStatus(c: CliContext, runId?: string, json = false): number {
   }
   report(c, s);
   // Where the code goes for this run's judges (spec §2 objective 6), from the current configuration.
-  const wf = workflowOf(c.cfg); const judge = (id: string) => { const a = c.cfg.agents[id]; if (!a) return `${id} (absent)`;
+  const wf = workflowOf(c.cfg); const judge = (id: string) => { const a = c.cfg.agents[id]; if (!a) return t('workflow.judgeAbsent', { id });
     if (a.runtime === 'opencode') return `${id} (opencode: ${a.model})`;
     if (a.runtime !== 'api') return `${id} (${a.runtime})`; const p = c.cfg.providers![a.provider!]; return `${id} (api: ${new URL(p.url).host}/${p.model})`; };
-  if (c.cfg.workflow) c.out(`  Juges : ${[...new Set([...wf.challengers, ...wf.reviewers])].map(judge).join(', ')}`); // default projects: unchanged text
+  const judges = [...new Set([...wf.challengers, ...wf.reviewers])].map(judge).join(', ');
+  if (c.cfg.workflow) c.out(`  ${t('workflow.judges', { list: judges })}`); // default projects: no line
   for (const h of s.history) c.out(`  ${h.at}  ${h.node.padEnd(15)} ${h.outcome}`); return 0;
 }
 
 export function cmdShow(c: CliContext, runId: string | undefined, artifact: string | undefined): number {
-  if (!runId) { c.err('usage: taskquoin show <run> [plan|challenge|diff-N|review-N|verify-N|red-N|ignored-N|implement-N|memory]'); return 2; }
-  const s = loadRunState<RunState>(c.store, runId); if (!s) { c.err(`taskquoin: unknown run ${runId}`); return 1; }
+  if (!runId) { c.err(t('workflow.usage.show')); return 2; }
+  const s = loadRunState<RunState>(c.store, runId); if (!s) { c.err(t('workflow.unknownRun', { run: runId })); return 1; }
   if (!artifact) { for (const name of Object.keys(s.artifacts).sort()) c.out(`${safe(name)}  ${getArtifact(c.store, s.artifacts[name]).length}`); return 0; }
-  const h = s.artifacts[artifact]; if (!h) { c.err(`no artifact "${artifact}" (available: ${Object.keys(s.artifacts).join(', ')})`); return 1; }
+  const h = s.artifacts[artifact]; if (!h) { c.err(t('workflow.noArtifact', { artifact, available: Object.keys(s.artifacts).join(', ') })); return 1; }
   c.out(safe(getArtifact(c.store, h).toString('utf8'))); return 0;
 }

@@ -43,9 +43,9 @@ Fonctionnalité: OpenCode — n'importe quelle IA écrit le code, sans commandes
   Scénario: Sans connexion du fournisseur, doctor refuse l'agent OpenCode et le run ne démarre pas
     Quand le propriétaire exécute "doctor"
     Alors la commande échoue avec le code 1
-    Et la sortie contient "fournisseur \"openai\" non connecté pour Taskquoin — lancez : taskquoin connect opencode"
+    Et la sortie contient "provider \"openai\" is not connected for Taskquoin — run: taskquoin connect opencode"
     Quand le propriétaire lance la demande "Ajouter une fonction sum"
-    Alors la commande échoue avec un message contenant "non connecté"
+    Alors la commande échoue avec un message contenant "is not connected"
     Et le dépôt est resté sur la branche initiale
 
   @sandbox
@@ -53,4 +53,4 @@ Fonctionnalité: OpenCode — n'importe quelle IA écrit le code, sans commandes
     Soit le fournisseur "openai" connecté pour OpenCode
     Quand le propriétaire exécute "doctor"
     Alors la commande réussit
-    Et la sortie contient "openai via OpenCode (openai/gpt-6-astra) — hôtes : chatgpt.com — planner, implementer, challenger"
+    Et la sortie contient "openai via OpenCode (openai/gpt-6-astra) — hosts: chatgpt.com — planner, implementer, challenger"

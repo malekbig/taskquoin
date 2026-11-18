@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": false, "rootDir": ".", "declaration": false, "sourceMap": false },
+  "include": ["packages/*/src/**/*.ts", "adapters/*/src/**/*.ts", "apps/*/src/**/*.ts"]
+}

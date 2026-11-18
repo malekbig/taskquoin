@@ -16,6 +16,7 @@
   "scripts": {
     "test": "node --test --import ./tests/support/tmp-cleanup.mjs --experimental-test-module-mocks 'packages/*/test/**/*.test.ts' 'adapters/*/test/**/*.test.ts' 'apps/*/test/**/*.test.ts' 'tests/**/*.test.ts' 'features/**/*.test.ts'",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "package": "node scripts/package/main.ts dist/package",
     "features": "node --test --test-reporter=spec features/features.test.ts",
     "skills:lock": "node -e \"import('./adapters/skill-store/src/index.ts').then(m=>{require('fs').writeFileSync('skills/first-party.lock.json',JSON.stringify(m.computeFirstPartyLock(),null,2)+'\\\\n')})\"",
     "test:ci": "node --test --import ./tests/support/tmp-cleanup.mjs --experimental-test-module-mocks --test-reporter=tap --test-reporter-destination=stdout --test-reporter=./.github/node-test-annotations.mjs --test-reporter-destination=stdout 'packages/*/test/**/*.test.ts' 'adapters/*/test/**/*.test.ts' 'apps/*/test/**/*.test.ts' 'tests/**/*.test.ts' 'features/**/*.test.ts'"

@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setLanguage } from '../src/i18n/index.ts';
 import { installShortcut, removeShortcut } from '../src/shortcut.ts';
 
 function env(onPath = true) {
@@ -32,8 +33,9 @@ test('automatic install: a symlink to the launcher, idempotent; nothing added to
 test('a file Taskquoin did not create is never overwritten', () => {
   const e = env(); mkdirSync(join(e.home, '.local', 'bin'), { recursive: true }); writeFileSync(link(e.home), 'someone else');
   const r = installShortcut(e, { auto: false });
-  assert.equal(r.status, 'conflict'); assert.match(r.message, /pas celui de Taskquoin/);
+  assert.equal(r.status, 'conflict'); assert.match(r.message, /is not Taskquoin's: left untouched/);
   assert.equal(readFileSync(link(e.home), 'utf8'), 'someone else');
+  try { setLanguage('fr'); assert.match(installShortcut(e, { auto: false }).message, /pas celui de Taskquoin/); } finally { setLanguage('en'); }
 });
 
 test('~/.local/bin not on PATH: one marked ~/.bashrc block, added once, removed by setup --remove', () => {

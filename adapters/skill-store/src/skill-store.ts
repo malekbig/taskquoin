@@ -7,6 +7,7 @@
  */
 import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { auditSkill, treeHash, validateSkill, type Finding, type SkillFile } from '@taskquoin/skills';
 import { ensureTrustedDir, type RepoStore } from '@taskquoin/store-fs';
 
@@ -118,7 +119,7 @@ export function listSkills(s: RepoStore): { name: string; status: SkillStatus; t
 }
 
 // ── first-party skills (shipped with Taskquoin, pinned) ──────────────────────────────────────────────────────────────
-const FP_ROOT = new URL('../../../skills/', import.meta.url).pathname;
+const FP_ROOT = fileURLToPath(new URL('../../../skills/', import.meta.url));
 export function firstPartyLock(): Record<string, string> { return JSON.parse(readFileSync(join(FP_ROOT, 'first-party.lock.json'), 'utf8')); }
 export function computeFirstPartyLock(): Record<string, string> {
   const out: Record<string, string> = {};

@@ -4,6 +4,8 @@
  * human retypes the pending hash. It is never installed as slash commands INSIDE Claude Code or Codex, where a model
  * could type them. The real boundary stays the control store: agents cannot write it, so they cannot approve at all.
  */
+import { t, tn, type MessageKey } from './i18n/index.ts';
+import { alignColumns, displayWidth, padEndDisplay } from './i18n/width.ts';
 export interface ConsoleIO {
   /** Show `question` and return the next line typed, or undefined at end of input. */
   ask(question: string): Promise<string | undefined>;
@@ -37,7 +39,7 @@ export function lineReader(src: { on(ev: 'line', fn: (l: string) => void): unkno
   src.on('close', () => { closed = true; if (waiting) { const w = waiting; waiting = undefined; w(undefined); } });
   return {
     ask(question: string): Promise<string | undefined> {
-      if (o.discardTypeAhead && queue.length) { write(`(${queue.length} ligne(s) tapée(s) avant l'invite ignorée(s))\n`); queue.length = 0; }
+      if (o.discardTypeAhead && queue.length) { write(tn('console.typeAhead', queue.length) + '\n'); queue.length = 0; }
       (o.showPrompt ?? write)(question);
       if (queue.length) return Promise.resolve(queue.shift());
       if (closed) return Promise.resolve(undefined);
@@ -46,30 +48,37 @@ export function lineReader(src: { on(ev: 'line', fn: (l: string) => void): unkno
   };
 }
 
-/** Single source for /help, Tab completion and the "/" menu: [command, arguments, description]. */
-const COMMAND_DOCS: readonly [string, string, string][] = [
-  ['/run', '<demande>', 'lancer un run gouverné (s\'arrête à chaque approbation)'],
-  ['/runs', '', 'lister les runs'],
-  ['/use', '<run>', 'choisir le run courant'],
-  ['/status', '', 'historique du run courant'],
-  ['/show', '[<artefact>]', 'lister les artefacts, ou en afficher un (plan, diff-N, verify-N, red-N…)'],
-  ['/approve', '<plan|commit>', 'approuver : affiche le hash en attente, vous le retapez'],
-  ['/resume', '', 'reprendre le run courant s\'il a été interrompu'],
-  ['/agents', '', 'les agents et leurs droits'],
-  ['/doctor', '', 'état de la machine et certification des agents'],
-  ['/skills', '', 'skills installés et leur statut'],
-  ['/help', '', 'cette aide'],
-  ['/quit', '', 'quitter la console'],
+type DocKey = Extract<MessageKey, `console.doc.${string}`>;
+/** Single source for /help, Tab completion and the "/" menu: [command, arguments key, description key] (names are not translated). */
+const COMMAND_TABLE: readonly [string, DocKey | '', DocKey][] = [
+  ['/run', 'console.doc.run.args', 'console.doc.run'],
+  ['/runs', '', 'console.doc.runs'],
+  ['/use', '', 'console.doc.use'],
+  ['/status', '', 'console.doc.status'],
+  ['/show', 'console.doc.show.args', 'console.doc.show'],
+  ['/approve', '', 'console.doc.approve'],
+  ['/resume', '', 'console.doc.resume'],
+  ['/agents', '', 'console.doc.agents'],
+  ['/doctor', '', 'console.doc.doctor'],
+  ['/skills', '', 'console.doc.skills'],
+  ['/help', '', 'console.doc.help'],
+  ['/quit', '', 'console.doc.quit'],
 ];
+const BARE_ARGS: Record<string, string> = { '/use': '<run>', '/approve': '<plan|commit>' };
+/** [command, arguments, description] in the current language. Computed at call time: nothing translated at module load. */
+export function commandDocs(): readonly [string, string, string][] {
+  return COMMAND_TABLE.map(([c, a, d]) => [c, a ? t(a) : (BARE_ARGS[c] ?? ''), t(d)] as [string, string, string]);
+}
 const usage = (c: string, a: string) => (a ? `${c} ${a}` : c);
-const USAGE_W = Math.max(...COMMAND_DOCS.map(([c, a]) => usage(c, a).length)) + 2;
-export const CONSOLE_HELP = `Commandes (tout le reste est ignoré : rien ne se lance sans /) :\n` +
-  COMMAND_DOCS.map(([c, a, d]) => `  ${usage(c, a).padEnd(USAGE_W)}${d}`).join('\n') + '\nTab complète une commande ; taper / affiche ce menu.';
+const docLines = () => alignColumns(commandDocs().map(([c, a, d]) => [usage(c, a), d] as const));
+export function consoleHelp(): string {
+  return t('console.help.title') + '\n' + docLines().map(l => `  ${l}`).join('\n') + '\n' + t('console.help.footer');
+}
 
 /** The "/" menu for what is typed so far: every matching command with its description, while no argument is typed. */
 export function slashMenu(line: string): string[] {
   if (!line.startsWith('/') || line.includes(' ')) return [];
-  return COMMAND_DOCS.filter(([c]) => c.startsWith(line)).map(([c, a, d]) => `${usage(c, a).padEnd(USAGE_W)}${d}`);
+  return docLines().filter((_, i) => COMMAND_TABLE[i][0].startsWith(line));
 }
 
 /**
@@ -83,10 +92,10 @@ export function drawSlashMenu(o: { promptWidth: number; line: string; cursor: nu
   return s + `\x1b[${o.promptWidth + o.cursor + 1}G`;
 }
 
-const GATE_READS = { plan: 'plan  (et : challenge)', commit: 'diff-N, verify-N, red-N, review-N (et ignored-N s\'il existe)' } as const;
+const gateReads = (gate: 'plan' | 'commit') => t(gate === 'plan' ? 'console.gate.plan' : 'console.gate.commit');
 const promptFor = (current?: string) => (current ? `taskquoin [${current.slice(-6)}] › ` : 'taskquoin › ');
 
-export const CONSOLE_COMMANDS = COMMAND_DOCS.map(([c]) => c);
+export const CONSOLE_COMMANDS = COMMAND_TABLE.map(([c]) => c);
 /** readline completer: `/ap` → `/approve `. Free text gets no completion. */
 export function completeCommand(line: string): [string[], string] {
   if (!line.startsWith('/') || line.includes(' ')) return [[], line];
@@ -96,7 +105,7 @@ export function completeCommand(line: string): [string[], string] {
 // ── banner ───────────────────────────────────────────────────────────────────────────────────────────────────────
 export interface SquadMember { role: string; who: string; state: 'ready' | 'risk' | 'blocked'; note?: string }
 
-const ROLE_LABEL: Record<string, string> = { planner: 'Architect', implementer: 'Developer', challenger: 'Reviewer', security: 'Security' };
+const roleLabel = (id: string): string => (id === 'planner' ? t('console.role.planner') : id === 'implementer' ? t('console.role.implementer') : id === 'challenger' ? t('console.role.challenger') : id === 'security' ? t('console.role.security') : id[0].toUpperCase() + id.slice(1));
 /**
  * The squad as it really is: every agent with its gate verdict (a judge's provider shown), then Taskquoin's own
  * sandboxed Verify as the tester. A refusal shows its short reason (the text before " — ").
@@ -107,10 +116,10 @@ export function squadOf(agents: Record<string, { runtime: string; provider?: str
   const squad: SquadMember[] = Object.entries(agents).map(([id, a]) => {
     const g = gateOf(id);
     const state = !g.ok ? 'blocked' as const : g.acceptedRisks.length ? 'risk' as const : 'ready' as const;
-    const note = !g.ok ? (g.runtimeFound ? g.failures[0]?.message.split(' — ')[0].slice(0, 70) : `${a.runtime} absent`) : g.acceptedRisks.map(r => r.capability).join(', ') || undefined;
-    return { role: ROLE_LABEL[id] ?? id[0].toUpperCase() + id.slice(1), who: `${id} · ${a.runtime === 'api' ? `api:${a.provider}` : a.runtime === 'opencode' ? `opencode:${(a.model ?? '').split('/')[0]}` : a.runtime}`, state, ...(note ? { note } : {}) };
+    const note = !g.ok ? (g.runtimeFound ? g.failures[0]?.message.split(' — ')[0].slice(0, 70) : t('console.squad.absent', { runtime: a.runtime })) : g.acceptedRisks.map(r => r.capability).join(', ') || undefined;
+    return { role: roleLabel(id), who: `${id} · ${a.runtime === 'api' ? `api:${a.provider}` : a.runtime === 'opencode' ? `opencode:${(a.model ?? '').split('/')[0]}` : a.runtime}`, state, ...(note ? { note } : {}) };
   });
-  squad.push(testerReady ? { role: 'Tester', who: 'verify · bubblewrap', state: 'ready' } : { role: 'Tester', who: 'verify · bubblewrap', state: 'blocked', note: 'bubblewrap indisponible' });
+  squad.push(testerReady ? { role: t('console.role.tester'), who: 'verify · bubblewrap', state: 'ready' } : { role: t('console.role.tester'), who: 'verify · bubblewrap', state: 'blocked', note: t('console.squad.testerUnavailable') });
   return squad;
 }
 const TASK_ART = [
@@ -175,14 +184,16 @@ export async function animateLogo(write: (s: string) => void, sleep: (ms: number
  */
 export function renderBanner(squad: SquadMember[], o: { color: boolean; logo?: boolean }): string {
   const paint = paintWith(o.color);
-  const width = Math.max(...squad.map(m => m.role.length)) + 2, whoW = Math.max(...squad.map(m => m.who.length)) + 2;
+  const width = Math.max(...squad.map(m => displayWidth(m.role))) + 2, whoW = Math.max(...squad.map(m => displayWidth(m.who))) + 2;
   const rows = squad.map(m => {
-    const status = m.state === 'blocked' ? paint(`NOT READY${m.note ? ` — ${m.note}` : ''}`, C.red)
-      : paint(`READY${m.state === 'risk' ? ` (risque accepté${m.note ? ` : ${m.note}` : ''})` : ''}`, m.state === 'risk' ? C.amber : C.green);
-    return ` ${paint(m.state === 'blocked' ? '[○]' : '[●]', m.state === 'blocked' ? C.red : C.mint)} ${paint(m.role.padEnd(width), C.mint)}${paint(m.who.padEnd(whoW), C.muted)}${status}`;
+    const notReady = t('console.banner.notReady'), ready = t('console.banner.ready');
+    const status = m.state === 'blocked' ? paint(m.note ? t('console.banner.notReadyNote', { label: notReady, note: m.note }) : notReady, C.red)
+      : m.state === 'risk' ? paint(m.note ? t('console.banner.riskNote', { label: ready, note: m.note }) : t('console.banner.risk', { label: ready }), C.amber)
+      : paint(ready, C.green);
+    return ` ${paint(m.state === 'blocked' ? '[○]' : '[●]', m.state === 'blocked' ? C.red : C.mint)} ${paint(padEndDisplay(m.role, width), C.mint)}${paint(padEndDisplay(m.who, whoW), C.muted)}${status}`;
   });
-  return [...(o.logo === false ? [] : ['', renderLogo(o.color)]), '', ` ${paint('✦ YOUR AI DEV SQUAD ✦', C.muted)}`, ` ${paint('─'.repeat(34), C.line)}`, '', ...rows, '',
-    ` ${paint("> Let's build something awesome_", C.orange)}`, ''].join('\n');
+  return [...(o.logo === false ? [] : ['', renderLogo(o.color)]), '', ` ${paint(t('console.banner.tagline'), C.muted)}`, ` ${paint('─'.repeat(34), C.line)}`, '', ...rows, '',
+    ` ${paint(t('console.banner.slogan'), C.orange)}`, ''].join('\n');
 }
 
 export async function runConsole(io: ConsoleIO, cmd: ConsoleCommands, banner?: string): Promise<number> {
@@ -192,29 +203,29 @@ export async function runConsole(io: ConsoleIO, cmd: ConsoleCommands, banner?: s
   const fail = (msg: string) => { failed = true; io.err(msg); };
   const track = (code: number) => { if (code !== 0) failed = true; };
   if (banner) io.out(banner);
-  io.out('Taskquoin console — /help pour les commandes, Tab pour compléter, /quit pour sortir.');
+  io.out(t('console.welcome'));
   for (;;) {
     const line = await io.ask(promptFor(current));
     if (line === undefined) return failed ? 1 : 0;
     const text = line.trim();
     if (!text) continue;
-    if (!text.startsWith('/')) { io.out('Rien n\'est lancé sans commande : tapez /run <demande> pour démarrer un run, ou /help.'); continue; }
+    if (!text.startsWith('/')) { io.out(t('console.noCommand')); continue; }
     const [name, ...rest] = text.slice(1).split(/\s+/); const arg = text.slice(1 + name.length).trim();
-    const needRun = (): string | undefined => { if (!current) fail('aucun run sélectionné : /run <demande> ou /use <run>'); return current; };
+    const needRun = (): string | undefined => { if (!current) fail(t('console.noRun')); return current; };
     switch (name) {
       case 'quit': case 'exit': return failed ? 1 : 0;
-      case 'help': io.out(CONSOLE_HELP); break;
+      case 'help': io.out(consoleHelp()); break;
       case 'run': {
-        if (!arg) { fail('usage : /run <demande>'); break; }
+        if (!arg) { fail(t('console.usage.run')); break; }
         current = undefined; // never fall back silently to the previously selected run (Codex console review HIGH 2)
         const r = await cmd.run(arg); track(r.code);
-        if (r.runId) { current = r.runId; io.out(`(run courant : ${current})`); } else io.out('(aucun run courant)');
+        if (r.runId) { current = r.runId; io.out(t('console.currentRun', { run: current })); } else io.out(t('console.noCurrentRun'));
         break;
       }
       case 'runs': track(await cmd.status()); break;
       case 'use': {
-        if (!cmd.runs().includes(arg)) { fail(`run inconnu : ${arg || '(vide)'} — /runs pour la liste`); break; }
-        current = arg; io.out(`(run courant : ${current})`); break;
+        if (!cmd.runs().includes(arg)) { fail(t('console.unknownRun', { run: arg || t('console.empty') })); break; }
+        current = arg; io.out(t('console.currentRun', { run: current })); break;
       }
       case 'status': { const r = needRun(); if (r) track(await cmd.status(r)); break; }
       case 'show': { const r = needRun(); if (r) track(await cmd.show(r, rest[0])); break; }
@@ -225,29 +236,29 @@ export async function runConsole(io: ConsoleIO, cmd: ConsoleCommands, banner?: s
       case 'approve': {
         const r = needRun(); if (!r) break;
         const gate = rest[0];
-        if (gate !== 'plan' && gate !== 'commit') { fail('usage : /approve <plan|commit>'); break; }
-        if (!cmd.pending(r) || cmd.pending(r)!.gate !== gate) { const p = cmd.pending(r); fail(`le run ${r} n'attend pas l'approbation ${gate}${p ? ` (il attend : ${p.gate})` : ''}`); break; }
+        if (gate !== 'plan' && gate !== 'commit') { fail(t('console.usage.approve')); break; }
+        if (!cmd.pending(r) || cmd.pending(r)!.gate !== gate) { const p = cmd.pending(r); fail(p ? t('console.notWaitingWaits', { run: r, gate, waits: p.gate }) : t('console.notWaiting', { run: r, gate })); break; }
         // The name FIRST, so the last thing typed before approving is the hash; a `/…` line is never a name (HIGH 1).
         let cancelled = false;
         while (!approver) {
-          const n = (await io.ask('Votre nom (enregistré dans l\'approbation) : '))?.trim();
+          const n = (await io.ask(t('console.askName')))?.trim();
           if (n === undefined) return failed ? 1 : 0;
           if (n.startsWith('/')) { cancelled = true; break; }
           if (n) approver = n;
         }
-        if (cancelled) { fail('annulé : une commande n\'est pas un nom — rien n\'est approuvé.'); break; }
+        if (cancelled) { fail(t('console.cancelledCommand')); break; }
         const p = cmd.pending(r); // re-read right before showing it: what is shown is what can be approved
-        if (!p || p.gate !== gate) { fail(`le run ${r} n'attend plus l'approbation ${gate}`); break; }
+        if (!p || p.gate !== gate) { fail(t('console.notWaitingAnymore', { run: r, gate })); break; }
         const short = p.binding.slice(0, 12);
-        io.out(`À approuver : ${gate} du run ${r} — hash ${short}`);
-        io.out(`Relisez d'abord : /show ${GATE_READS[gate]}`);
-        const typed = (await io.ask(`Retapez ${short} pour approuver (Entrée pour annuler) : `))?.trim();
-        if (!typed) { io.out('annulé : rien n\'est approuvé.'); break; }
-        if (typed !== short) { fail('le hash ne correspond pas : rien n\'est approuvé.'); break; }
+        io.out(t('console.toApprove', { gate, run: r, hash: short }));
+        io.out(t('console.readFirst', { reads: gateReads(gate) }));
+        const typed = (await io.ask(t('console.retype', { hash: short })))?.trim();
+        if (!typed) { io.out(t('console.cancelled')); break; }
+        if (typed !== short) { fail(t('console.hashMismatch')); break; }
         track(await cmd.approve(r, gate, typed, `${approver} (via taskquoin console)`));
         break;
       }
-      default: fail(`commande inconnue : /${name} — /help pour la liste`);
+      default: fail(t('console.unknownCommand', { name }));
     }
   }
 }

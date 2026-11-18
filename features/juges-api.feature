@@ -34,7 +34,7 @@ Fonctionnalité: Juges par API — n'importe quelle IA compatible OpenAI relit l
     Soit un juge de sécurité "security" servi par un fournisseur local qui approuve
     Et la clé du fournisseur est absente
     Quand le propriétaire lance la demande "Ajouter une fonction sum"
-    Alors la commande échoue avec un message contenant "FAKE_PROVIDER_KEY absente"
+    Alors la commande échoue avec un message contenant "FAKE_PROVIDER_KEY is missing"
     Et le fournisseur local a reçu 0 requête
 
   @sandbox
@@ -67,7 +67,7 @@ Fonctionnalité: Juges par API — n'importe quelle IA compatible OpenAI relit l
     Alors le run attend l'approbation "approve-plan"
     Soit la clé du fournisseur est absente
     Quand le propriétaire approuve le plan sans vérifier le résultat
-    Alors la sortie d'erreur contient "FAKE_PROVIDER_KEY absente"
+    Alors la sortie d'erreur contient "FAKE_PROVIDER_KEY is missing"
     Et le run attend l'approbation "approve-plan"
     Et le fournisseur local a reçu 0 requête
 
@@ -80,4 +80,4 @@ Fonctionnalité: Juges par API — n'importe quelle IA compatible OpenAI relit l
     Alors le run attend l'approbation "approve-commit"
     Et le fournisseur local a reçu 2 requêtes
     Quand le propriétaire consulte le run
-    Alors la sortie contient "Juges : security (api: 127.0.0.1"
+    Alors la sortie contient "Judges: security (api: 127.0.0.1"
