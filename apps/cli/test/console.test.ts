@@ -209,7 +209,7 @@ test('squad: api judges get their real line — role from the id, provider shown
     const text = renderBanner(squadOf(agents, gateOf, true), { color: false });
     assert.match(text, /\[○\] Security\s+security · api:deepseek\s+NOT READY — DEEPSEEK_API_KEY absente\s*$/m);
     assert.match(text, /\[●\] Reviewer\s+challenger · codex\s+READY \(risque accepté : connector\.write\)/);
-    assert.match(text, /\[●\] Testeur\s+verify · bubblewrap\s+READY/);
+    assert.match(text, /\[●\] Tester\s+verify · bubblewrap\s+READY/);
   });
 });
 

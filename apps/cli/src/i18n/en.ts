@@ -225,3 +225,10 @@ export const en = {
 
 /** Keys whose text lands in `check --json` (byte-identical in every language): English only, absent from every locale. */
 export const ENGLISH_ONLY = ['cli.opencode.notConnected', 'cli.opencode.unmeasured', 'cli.apiKeyMissing'] as const;
+
+/** The banner's brand (tagline, slogan, squad role names, READY / NOT READY): English in every language (owner's
+ * decision), absent from every locale. The notes after a status (accepted risk, why not ready) stay translated. */
+export const BRAND = [
+  'console.banner.tagline', 'console.banner.slogan', 'console.role.planner', 'console.role.implementer',
+  'console.role.challenger', 'console.role.security', 'console.role.tester', 'console.banner.ready', 'console.banner.notReady',
+] as const;

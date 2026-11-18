@@ -131,7 +131,8 @@ La console et la CLI parlent la langue choisie dans cet ordre : `TASKQUOIN_LANG`
 (`preferences.json` dans le dossier d'état, `${XDG_STATE_HOME:-~/.local/state}/taskquoin/`, ex. `{"language":"fr"}`), puis
 `LC_ALL` / `LC_MESSAGES` / `LANG` (`C` et `POSIX` donnent l'anglais), et l'anglais par défaut. Pour forcer une langue :
 `TASKQUOIN_LANG=fr taskquoin`. Les sorties `--json`, le journal du run, les artefacts et les trailers de commit restent
-toujours en anglais.
+toujours en anglais, comme la marque de la bannière (« ✦ YOUR AI DEV SQUAD ✦ », le slogan, les noms de rôles —
+Architect, Developer, Reviewer, Security, Tester — et READY / NOT READY ; les notes qui suivent restent traduites).
 
 ## 4. Quand ça ne se passe pas comme prévu
 Les messages de Taskquoin suivent votre langue (voir « Langue ») : le tableau cite le texte **anglais**, et les

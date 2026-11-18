@@ -39,7 +39,7 @@ English, Français, Español, Português (Brasil), Deutsch, Italiano, Nederlands
 - **Choice**: `TASKQUOIN_LANG`, otherwise your system locale (`LC_ALL`, `LC_MESSAGES`, `LANG`), otherwise English. Example: `TASKQUOIN_LANG=ja taskquoin`.
 - **Quality**: English and French are written by hand. The other 20 are machine translations, checked by tests: every placeholder and `/command` is kept, and plurals follow each language's rules.
 - **Layout**: columns stay aligned with Chinese, Japanese and Korean characters.
-- **What stays English**: every `--json` output (byte-identical in every language), the run journal, artifacts, commit trailers and the agents' `VERDICT:` line.
+- **What stays English**: every `--json` output (byte-identical in every language), the run journal, artifacts, commit trailers, the agents' `VERDICT:` line, and the brand: the banner's tagline, slogan, role names and READY / NOT READY.
 
 ## Requirements
 - Node ≥ 22.18 (runs TypeScript natively) and git
