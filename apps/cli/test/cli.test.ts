@@ -6,6 +6,7 @@
  *    capability and the reason (missing bash-sandbox, version mismatch…); owner exceptions are shown as accepted risks;
  *  - uninstall removes only files Taskquoin created and that are unchanged; a user-edited file is kept and reported;
  *    --purge-state removes the control store.
+   --json outputs are non-empty and byte-identical in English and French.
  * DOES NOT PROVE: real runtime behaviour (live suites).
  */
 import { test } from 'node:test';
@@ -43,6 +44,32 @@ test('version: prints "taskquoin <package.json version>", exits 0, works outside
   assert.equal(r.stdout, `taskquoin ${version}\n`);
   assert.equal(r.stderr, '');
   assert.match(tq('help').stdout, /^\s+version\s+\S/m);
+});
+
+test('help: follows the language (TASKQUOIN_LANG=fr is French); TASKQUOIN_LANG=de is German', () => {
+  const { tq, env } = sandbox();
+  const en = tq('help').stdout;
+  assert.match(en, /create taskquoin\.yaml for the detected stack/);
+  const run = (lang: string) => spawnSync(process.execPath, [main, 'help'], { env: { ...env, TASKQUOIN_LANG: lang }, encoding: 'utf8' }).stdout;
+  assert.match(run('fr'), /crée taskquoin\.yaml pour la pile détectée/);
+  assert.notEqual(run('fr'), en);
+  const de = run('de');
+  assert.match(de, /gesteuerte Ausführung für Coding-Agenten/);
+  assert.notEqual(de, en);
+});
+
+test('accept-risk made in English still shows as an accepted risk under TASKQUOIN_LANG=fr (French frame, same capability), exit code unchanged', () => {
+  const { ws, env, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  assert.equal(tq('accept-risk', 'challenger', 'connector.write', '--reason', 'x', '--expires', '2099-01-01', '--as', 'owner').status, 0);
+  const en = tq('doctor');
+  const fr = spawnSync(process.execPath, [main, 'doctor'], { cwd: ws, env: { ...env, TASKQUOIN_LANG: 'fr' }, encoding: 'utf8' });
+  assert.equal(fr.status, en.status);
+  assert.match(fr.stdout, /⚠ connector\.write risque accepté \(approuvé par owner/);
+  assert.match(en.stdout, /⚠ connector\.write accepted risk \(approved by owner/);
+  const j = (lang: string) => JSON.parse(spawnSync(process.execPath, [main, 'check', 'challenger', '--json'], { cwd: ws, env: { ...env, TASKQUOIN_LANG: lang }, encoding: 'utf8' }).stdout);
+  assert.ok(Object.keys(j('en')).length > 0, '--json output is a non-empty object');
+  assert.deepEqual(j('fr'), j('en'), '--json is byte-identical whatever the language');
 });
 
 test('init: stack detection, manifest outside the repo, no overwrite, git required', () => {
@@ -206,6 +233,24 @@ test('status text output is unchanged', () => {
   ].join('\n') + '\n');
 });
 
+test('status and check --json are byte-identical whatever the language; the text output is translated', () => {
+  const { ws, env, tq } = seededRepo();
+  const run = (lang: string, ...a: string[]) => spawnSync(process.execPath, [main, ...a], { cwd: ws, env: { ...env, TASKQUOIN_LANG: lang }, encoding: 'utf8' });
+  for (const args of [['status', '--json'], ['status', 'run-a', '--json'], ['check', 'challenger', '--json']]) {
+    const en = run('en', ...args), fr = run('fr', ...args);
+    assert.ok(JSON.parse(en.stdout) !== undefined && en.stdout.trim().length > 2, `${args.join(' ')}: not empty`);
+    assert.equal(fr.stdout, en.stdout, args.join(' ')); assert.equal(fr.status, en.status);
+  }
+  const t = run('fr', 'status', 'run-a').stdout;
+  assert.match(t, /Run run-a — waiting-approval à approve-plan \(tentative 0, branche taskquoin\/run-a\)/);
+  assert.match(t, /^  Relire :\s+taskquoin show run-a plan  \(et : challenge\)$/m);
+  assert.match(t, /^  Approuver :\s+taskquoin approve run-a plan --expect/m);
+  assert.match(run('fr', 'show').stderr, /usage : taskquoin show/);
+  assert.match(run('fr', 'status', 'run-zzz').stderr, /taskquoin : run inconnu run-zzz/);
+  assert.match(run('fr', 'skills', 'revoke').stderr, /usage : taskquoin skills revoke/);
+  assert.match(run('en', 'skills', 'revoke').stderr, /usage: taskquoin skills revoke/);
+});
+
 test('uninstall never follows a tampered manifest outside the repository', () => {
   const { ws, root, tq } = sandbox();
   git(ws, 'init', '-q'); assert.equal(tq('init').status, 0);
@@ -278,11 +323,11 @@ test('setup: the taskquoin shortcut in the user HOME (symlink to the launcher), 
   assert.equal(tq('help').status, 0);
   assert.equal(existsSync(join(root, '.local', 'bin', 'taskquoin')), false, 'no automatic setup when not in a terminal');
   const r = tq('setup');
-  assert.equal(r.status, 0, r.stderr); assert.match(r.stdout, /raccourci installé/);
+  assert.equal(r.status, 0, r.stderr); assert.match(r.stdout, /shortcut installed/);
   const link = join(root, '.local', 'bin', 'taskquoin');
   assert.ok(lstatSync(link).isSymbolicLink()); assert.equal(readlinkSync(link), realpathSync(new URL('../../../bin/taskquoin', import.meta.url).pathname));
   assert.match(readFileSync(join(root, '.bashrc'), 'utf8'), /# >>> taskquoin >>>/, 'this sandbox PATH lacks ~/.local/bin: block added');
-  assert.match(tq('setup').stdout, /déjà en place/);
+  assert.match(tq('setup').stdout, /already in place/);
   const rm = tq('setup', '--remove');
   assert.equal(rm.status, 0); assert.equal(existsSync(link), false); assert.doesNotMatch(readFileSync(join(root, '.bashrc'), 'utf8'), /taskquoin/);
 });
@@ -303,7 +348,7 @@ test('api judges: doctor says where the code goes (no network call); check certi
   git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); withJudge(ws);
   (env as Record<string, string>).DEEPSEEK_API_KEY = 'sk-test';
   const d = tq('doctor');
-  assert.match(d.stdout, /Le code de ce projet est envoyé à :/);
+  assert.match(d.stdout, /This project's code is sent to:/);
   assert.match(d.stdout, /Anthropic \(Claude Code\) — planner, implementer/);
   assert.match(d.stdout, /OpenAI \(Codex\) — challenger/);
   assert.match(d.stdout, /api\.deepseek\.com \(deepseek-chat\) — security/);
@@ -313,17 +358,27 @@ test('api judges: doctor says where the code goes (no network call); check certi
   assert.doesNotMatch(d.stdout + d.stderr, /sk-test/, 'the key is never printed');
 });
 
+test('check --json for an api judge with a missing key is byte-identical in English and French (failure messages stay English)', () => {
+  const { ws, env } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(spawnSync(process.execPath, [main, 'init'], { cwd: ws, env, encoding: 'utf8' }).status, 0); withJudge(ws);
+  const run = (lang: string) => spawnSync(process.execPath, [main, 'check', 'security', '--json'], { cwd: ws, env: { ...env, TASKQUOIN_LANG: lang }, encoding: 'utf8' });
+  const [en, fr] = [run('en'), run('fr')];
+  assert.match(en.stdout, /DEEPSEEK_API_KEY is missing/);
+  assert.ok(JSON.parse(en.stdout).failures.length > 0, 'non-empty JSON');
+  assert.equal(fr.stdout, en.stdout);
+});
+
 test('api judges: run refuses to start when the key is missing or EMPTY — nothing created, the variable is named (Review Focus)', () => {
   const { ws, env, tq } = sandbox();
   git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); withJudge(ws);
   for (const v of [undefined, '']) {
     if (v === undefined) delete (env as Record<string, string>).DEEPSEEK_API_KEY; else (env as Record<string, string>).DEEPSEEK_API_KEY = v;
     const r = tq('run', 'Ajouter une fonction sum');
-    assert.equal(r.status, 1, r.stdout + r.stderr); assert.match(r.stderr, /security/); assert.match(r.stderr, /DEEPSEEK_API_KEY absente/);
+    assert.equal(r.status, 1, r.stdout + r.stderr); assert.match(r.stderr, /security/); assert.match(r.stderr, /DEEPSEEK_API_KEY is missing/);
     assert.equal(git(ws, 'branch', '--list', 'taskquoin/*').toString().trim(), '', 'no run branch');
   }
   const c = JSON.parse(tq('check', 'security', '--json').stdout);
-  assert.equal(c.ok, false); assert.match(c.failures[0].message, /DEEPSEEK_API_KEY absente/);
+  assert.equal(c.ok, false); assert.match(c.failures[0].message, /DEEPSEEK_API_KEY is missing/);
   assert.equal(tq('accept-risk', 'security', 'net.egress', '--reason', 'x', '--expires', '2099-01-01', '--as', 'o').status, 1, 'nothing to accept for an api judge');
 });
 
@@ -334,19 +389,19 @@ test('init by installed tools: Claude only → a Claude-only config + detected A
   assert.equal(r.status, 0, r.stderr);
   const text = readFileSync(join(only.ws, 'taskquoin.yaml'), 'utf8');
   assert.match(text, /# .*api\.deepseek\.com/); assert.doesNotMatch(text, /sk-never-written/);
-  assert.match(r.stdout, /DEEPSEEK_API_KEY/); assert.match(r.stdout, /décommentez/);
+  assert.match(r.stdout, /DEEPSEEK_API_KEY/); assert.match(r.stdout, /uncomment them/);
   const YAML = require('yaml'); const cfg = YAML.parse(text);
   assert.equal(cfg.agents.challenger.runtime, 'claude'); assert.equal(cfg.providers, undefined, 'nothing active');
-  assert.match(only.tq('doctor').stdout, /même modèle que l'implémenteur/);
+  assert.match(only.tq('doctor').stdout, /same model as the implementer/);
   const codex = sandbox({ codex: 'codex-cli 0.157.1' } as never);
   git(codex.ws, 'init', '-q');
   const c = codex.tq('init');
-  assert.equal(c.status, 0, c.stderr); assert.match(c.stdout, /installez Claude Code ou OpenCode/);
+  assert.equal(c.status, 0, c.stderr); assert.match(c.stdout, /install Claude Code or OpenCode/);
 });
 
 test('connect opencode: missing → 1; a login stores a provider → listed without secret; --remove deletes it; other targets → usage 2', () => {
   const { root, tq } = sandbox();
-  let r = tq('connect', 'opencode'); assert.equal(r.status, 1); assert.match(r.stderr, /OpenCode n'est pas installé/);
+  let r = tq('connect', 'opencode'); assert.equal(r.status, 1); assert.match(r.stderr, /OpenCode is not installed/);
   const fake = join(root, 'bin', 'opencode');
   writeFileSync(fake, '#!/bin/sh\n/bin/mkdir -p "$XDG_DATA_HOME/opencode"\nprintf \'{"openai":{"type":"oauth","access":"SECRET-A"}}\' > "$XDG_DATA_HOME/opencode/auth.json"\n'); chmodSync(fake, 0o755);
   r = tq('connect', 'opencode'); assert.equal(r.status, 0, r.stderr); assert.match(r.stdout, /openai \(oauth\)/); assert.ok(!(r.stdout + r.stderr).includes('SECRET-A'));
@@ -377,24 +432,24 @@ test('init with OpenCode only: an all-OpenCode config with verify.command and a 
   const { ws, tq } = sandbox({ opencode: '1.19.5' } as never); git(ws, 'init', '-q'); writeFileSync(join(ws, 'package.json'), '{}');
   const r = tq('init'); assert.equal(r.status, 0, r.stderr);
   const y = readFileSync(join(ws, 'taskquoin.yaml'), 'utf8'); assert.match(y, /runtime: opencode/); assert.match(y, /command: npm test/);
-  assert.match(r.stdout, /choisissez le modèle/);
+  assert.match(r.stdout, /choose the model/);
   const none = sandbox({} as never); git(none.ws, 'init', '-q');
-  assert.match(none.tq('init').stdout, /installez Claude Code ou OpenCode/);
+  assert.match(none.tq('init').stdout, /install Claude Code or OpenCode/);
 });
 
 test('doctor: OpenCode runtime and file sandbox lines; where the code goes, with the measured hosts; not connected → connect hint', () => {
   const { tq } = ocProject(false);
   let r = tq('doctor'); assert.equal(r.status, 1);
   assert.match(r.stdout, /Runtime opencode: 1\.19\.5 .*✔/); assert.match(r.stdout, /File sandbox \(bubblewrap\): /);
-  assert.match(r.stdout, /openai via OpenCode \(openai\/[^)]+\) — hôtes : chatgpt\.com — planner, implementer, challenger/);
-  assert.match(r.stdout, /fournisseur "openai" non connecté pour Taskquoin — lancez : taskquoin connect opencode/);
-  r = ocProject(true).tq('doctor'); assert.doesNotMatch(r.stdout, /non connecté/);
+  assert.match(r.stdout, /openai via OpenCode \(openai\/[^)]+\) — hosts: chatgpt\.com — planner, implementer, challenger/);
+  assert.match(r.stdout, /provider "openai" is not connected for Taskquoin — run: taskquoin connect opencode/);
+  r = ocProject(true).tq('doctor'); assert.doesNotMatch(r.stdout, /is not connected/);
 });
 
 test('run with an OpenCode judge whose provider is not connected is refused before anything changes', () => {
   const { ws, tq } = ocProject(false);
   const before = git(ws, 'branch', '--list').toString();
-  const r = tq('run', 'add sum'); assert.equal(r.status, 1); assert.match(r.stderr, /challenger cannot start — .*non connecté/);
+  const r = tq('run', 'add sum'); assert.equal(r.status, 1); assert.match(r.stderr, /challenger cannot start — .*is not connected/);
   assert.equal(git(ws, 'branch', '--list').toString(), before);
 });
 
@@ -405,6 +460,6 @@ test('final review (C1): a provider/sign-in mode whose hosts were never measured
   const d = join(root, 'state', 'taskquoin', 'opencode', 'data', 'opencode'); mkdirSync(d, { recursive: true });
   writeFileSync(join(d, 'auth.json'), JSON.stringify({ openrouter: { type: 'api', key: 'SECRET' } }), { mode: 0o600 });
   const r = tq('doctor'); assert.equal(r.status, 1);
-  assert.match(r.stdout, /connexion "openrouter" \(api\) non mesurée avec OpenCode 1\.19\.5/);
-  assert.match(tq('run', 'add sum').stderr, /non mesurée/);
+  assert.match(r.stdout, /connection "openrouter" \(api\) is not measured with OpenCode 1\.19\.5/);
+  assert.match(tq('run', 'add sum').stderr, /is not measured/);
 });

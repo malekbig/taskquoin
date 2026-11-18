@@ -26,9 +26,20 @@ taskquoin run "Add a sum function"
 - **Judges by API** (`docs/adr/0016`): any OpenAI-compatible provider — OpenRouter, Mistral, DeepSeek, Gemini, OpenAI, a local Ollama… — can critique the plan and review the diff. Text only: judges never receive secret files, binaries or your keys, and `taskquoin doctor` lists every destination of your code.
 - **OpenCode for planning and coding** (`docs/adr/0017`): with only a ChatGPT subscription, OpenCode can plan, implement and review (other sign-ins — API keys, Copilot, local models — are refused until their hosts are measured) — in Taskquoin's sandbox, **without any command** (Taskquoin runs your tests), with its own connection (`taskquoin connect opencode`).
 - **Console** (above): `taskquoin` alone opens an interactive shell (`/run`, `/status`, `/show`, `/approve`, Tab completion).
+- **22 languages** (below): the console and the CLI speak your language, and the agents write the plan, the critique and the review in it.
 - **Skills**: pinned first-party skills (planning contract, TDD, code review, security review). Third-party skills are imported from a local directory into quarantine, audited, and approved by you — Taskquoin never downloads.
 - **Memory** (optional): a structured summary of each finished run goes to your local [claude-mem](https://github.com/thedotmack/claude-mem) worker.
 - **Clean removal**: `taskquoin uninstall` removes only what Taskquoin created and you did not modify.
+
+## Languages
+![The Taskquoin console in English, French, Spanish, German, Russian, Japanese, Chinese and Korean](docs/assets/languages.gif)
+
+English, Français, Español, Português (Brasil), Deutsch, Italiano, Nederlands, Polski, Русский, Українська, Türkçe, العربية, فارسی, עברית, हिन्दी, Bahasa Indonesia, Tiếng Việt, ไทย, 简体中文, 繁體中文, 日本語, 한국어.
+
+- **Choice**: `TASKQUOIN_LANG`, otherwise your system locale (`LC_ALL`, `LC_MESSAGES`, `LANG`), otherwise English. Example: `TASKQUOIN_LANG=ja taskquoin`.
+- **Quality**: English and French are written by hand. The other 20 are machine translations, checked by tests: every placeholder and `/command` is kept, and plurals follow each language's rules.
+- **Layout**: columns stay aligned with Chinese, Japanese and Korean characters.
+- **What stays English**: every `--json` output (byte-identical in every language), the run journal, artifacts, commit trailers and the agents' `VERDICT:` line.
 
 ## Requirements
 - Node ≥ 22.18 (runs TypeScript natively) and git
@@ -62,6 +73,7 @@ taskquoin status [<run>]
 ```bash
 npm install --ignore-scripts
 npm run typecheck && npm test       # offline; live tests: TQ_E2E=1 npm test (uses your Claude / Codex sign-in)
+npm run package                     # the npm package, in dist/package
 ```
 Nothing is written outside the repository. Taskquoin never modifies `~/.claude` or `~/.codex`.
 

@@ -115,7 +115,7 @@ commande** : il lit et écrit des fichiers, c'est Taskquoin qui lance vos tests.
 npm install -g opencode-ai@1.19.5          # la version mesurée par Taskquoin (installation au niveau utilisateur)
 taskquoin connect opencode                 # la connexion de Taskquoin (pas votre OpenCode personnel) : ChatGPT, clé…
 taskquoin init                             # sans Claude Code : configuration tout-OpenCode, avec verify.command
-taskquoin doctor                           # dit à qui part le code : « openai via OpenCode (…) — hôtes : chatgpt.com »
+taskquoin doctor                           # dit à qui part le code : « openai via OpenCode (…) — hosts: chatgpt.com » (en anglais ; `hôtes :` en français)
 ```
 Choisissez le modèle dans `taskquoin.yaml` (`agents.*.model`, format `fournisseur/modèle`). **Seules les connexions
 mesurées sont certifiées** (les hôtes contactés sont connus) : aujourd'hui la connexion ChatGPT (`openai`, type
@@ -126,7 +126,18 @@ répond « invalidated oauth token », relancez `codex login` ; les deux connexi
 4 reprises quand vos tests échouent (2 quand les relecteurs refusent). Chaque run reçoit uniquement l'identifiant du
 fournisseur utilisé ; `taskquoin connect opencode --remove` efface la connexion.
 
+### Langue
+La console et la CLI parlent la langue choisie dans cet ordre : `TASKQUOIN_LANG`, puis la préférence enregistrée
+(`preferences.json` dans le dossier d'état, `${XDG_STATE_HOME:-~/.local/state}/taskquoin/`, ex. `{"language":"fr"}`), puis
+`LC_ALL` / `LC_MESSAGES` / `LANG` (`C` et `POSIX` donnent l'anglais), et l'anglais par défaut. Pour forcer une langue :
+`TASKQUOIN_LANG=fr taskquoin`. Les sorties `--json`, le journal du run, les artefacts et les trailers de commit restent
+toujours en anglais.
+
 ## 4. Quand ça ne se passe pas comme prévu
+Les messages de Taskquoin suivent votre langue (voir « Langue ») : le tableau cite le texte **anglais**, et les
+erreurs de run (`failed`, `needs-human`, `interrupted`) viennent du moteur : elles ne sont jamais traduites (anglais, et
+quelques-unes en français) quelle que soit la langue.
+
 | Ce que vous voyez | Ce que ça veut dire | Quoi faire |
 |---|---|---|
 | `uncommitted changes` au `run` | Taskquoin ne mélange jamais ses changements aux vôtres | commitez ou mettez de côté vos modifications |
@@ -137,7 +148,7 @@ fournisseur utilisé ; `taskquoin connect opencode --remove` efface la connexion
 | `needs-human … dependencies changed during the run` | `node_modules` (ou `vendor`, `.venv`…) a changé pendant le run : rien n'est vérifié avec | réinstallez les dépendances (`npm ci`…) et relancez un run |
 | `needs-human … Verify refused: … links outside the repository` | un lien symbolique (dans l'arbre ou dans `node_modules`, ex. `npm link`) pointe hors du dépôt : Taskquoin ne peut pas geler ce qu'il cible | remplacez le lien par une vraie copie (`npm install`), ou retirez-le |
 | les tests passent chez vous mais échouent dans Taskquoin | ils utilisent un fichier ignoré absent de la salle blanche | ajoutez-le à `verify.inherit` dans `taskquoin.yaml` |
-| `agent security cannot start — … absente` | la clé du fournisseur d'un juge par API n'est pas définie | `export NOM_DE_LA_CLE=…` puis relancez |
+| `failed … gate refused agent security: NOM_DE_LA_CLE is missing — define it in your environment (…)` | la clé du fournisseur d'un juge par API n'est pas définie (ce message reste en anglais dans toutes les langues) | `export NOM_DE_LA_CLE=…` puis relancez |
 | `interrupted … HTTP 503` (ou 429, délai) | le fournisseur d'un juge est indisponible (déjà réessayé 2 fois) | `taskquoin resume <run>` plus tard : seuls les juges sans réponse sont rappelés |
 | `needs-human … trop gros pour le relecteur …` | le diff dépasse `maxInputChars` de ce fournisseur | découpez la tâche, ou augmentez `maxInputChars` |
 | `needs-human … protected configuration changed` | l'agent a touché à la config protégée (CI, `.claude/`, `AGENTS.md`…) | rien n'a été commité ; inspectez la branche |

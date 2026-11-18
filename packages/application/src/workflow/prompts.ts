@@ -44,23 +44,27 @@ export function strictVerdict(text: string): 'APPROVE' | 'CHANGES_REQUESTED' | u
   return mentions[0] === 'VERDICT: APPROVE' ? 'APPROVE' : mentions[0] === 'VERDICT: CHANGES_REQUESTED' ? 'CHANGES_REQUESTED' : undefined;
 }
 
-export function planTask(request: string, memory: string): string {
+/** The human-facing prose follows the run's language; code, commit messages and the VERDICT line stay English. */
+export const languageRule = (englishName: string | undefined): string => englishName
+  ? `Write your prose for the human in ${englishName}. Code, identifiers, code comments, commit messages and the VERDICT line stay exactly as specified, in English.` : '';
+
+export function planTask(request: string, memory: string, language?: string): string {
   return [
     'Produce an implementation plan for the request below. Do not modify any file.',
     'Plan format (Markdown): Goal · Files to change · Tests to write FIRST (they must fail before the change) · Steps · Risks · Out of scope.',
     'Keep it minimal: the simplest change that satisfies the request (YAGNI). Use the repository as it is.',
-    memory, fence('request', request),
+    languageRule(language), memory, fence('request', request),
   ].filter(Boolean).join('\n\n');
 }
 
 /** Text-only judges (runtime api) cannot open the repository: they judge what they are given (multi-LLM A3). */
 const NO_REPO = 'You cannot read the repository: judge only from what is provided below, and do not request changes merely because context is missing — mention it as a remark instead.';
 
-export function challengeTask(request: string, plan: string, o: { textOnly?: boolean } = {}): string {
+export function challengeTask(request: string, plan: string, o: { textOnly?: boolean } = {}, language?: string): string {
   return [
     `You are an independent reviewer. Challenge the plan below: missing requirements, wrong assumptions about the code, missing or weak tests, security issues, over-engineering. ${o.textOnly ? NO_REPO : 'Read the repository to check claims. Do not modify files.'}`,
-    VERDICT_RULE, fence('request', request), fence('plan', plan),
-  ].join('\n\n');
+    VERDICT_RULE, languageRule(language), fence('request', request), fence('plan', plan),
+  ].filter(Boolean).join('\n\n');
 }
 
 export function implementTask(request: string, plan: string, challenge: string, feedback?: { verifyLog: string; review: string }, o: { noCommands?: boolean } = {}): string {
@@ -76,7 +80,7 @@ export function implementTask(request: string, plan: string, challenge: string, 
 }
 
 export function reviewTask(request: string, plan: string, diff: string, verifyLog: string, redLog = '', testsOnly?: string[], ignoredFiles = '',
-  o: { textOnly?: boolean; files?: { path: string; text: string }[]; newProductionFiles?: string[] } = {}): string {
+  o: { textOnly?: boolean; files?: { path: string; text: string }[]; newProductionFiles?: string[] } = {}, language?: string): string {
   return [
     `You are an independent code reviewer. Review the diff against the approved plan: correctness, tests (do they test behaviour, would they fail without the change?), security, needless complexity. ${o.textOnly ? `${NO_REPO} The full new text of the changed files is given in <changed-files>.` : 'Read the repository for context. Do not modify files.'}`,
     'Taskquoin already ran the project tests in a sandbox; their log is below.',
@@ -86,8 +90,8 @@ export function reviewTask(request: string, plan: string, diff: string, verifyLo
       : 'Taskquoin also ran the same suite on the base tree + the changed test files only (RED proof, log below): it must fail. Check that the failure is an assertion about the requested behaviour — not an import error, a missing helper/fixture file, a check of source text, or anything else that fails merely because files are absent. If it is not, REQUEST_CHANGES.',
     ...(!testsOnly && o.newProductionFiles?.length ? [`The change adds these production files, absent from the RED tree by construction: ${o.newProductionFiles.join(', ')}. A RED failure that is the import of one of THEM is the expected RED for new code: accept it when, with the change (verify log), the test asserts the requested behaviour. Any other missing file (a helper, a fixture, another module) is still no proof.`] : []),
     ...(ignoredFiles ? ['The implementer also left IGNORED files in the working directory (listed below): they are not in the diff and not verified. Flag any that could run on the developer\'s machine (scripts, .envrc, hooks, build outputs replacing sources).'] : []),
-    VERDICT_RULE, fence('request', request), fence('approved-plan', plan), fence('verify-log', clip(verifyLog, MAX_LOG)), fence('red-proof', clip(redLog, MAX_LOG)),
+    VERDICT_RULE, languageRule(language), fence('request', request), fence('approved-plan', plan), fence('verify-log', clip(verifyLog, MAX_LOG)), fence('red-proof', clip(redLog, MAX_LOG)),
     ...(ignoredFiles ? [fence('ignored-files', clip(ignoredFiles, MAX_LOG))] : []), fence('diff', diff),
     ...(o.files?.length ? [fence('changed-files', o.files.map(f => `=== ${f.path} ===\n${f.text}`).join('\n\n'))] : []),
-  ].join('\n\n');
+  ].filter(Boolean).join('\n\n');
 }

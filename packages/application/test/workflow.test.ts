@@ -8,7 +8,8 @@
  *  - strict verdict: exactly one VERDICT line, and it is the last line (Codex R4 N8);
  *  - oversized diffs are never approved by a reviewer that could not read them;
  *  - ≤ 2 reworks then needs-human; gate refusal; runtime failure; adapter exceptions ⇒ `interrupted` (resumable, N7);
- *  - memory recall/record, never blocking; events carry no prompt/output.
+ *  - memory recall/record, never blocking; events carry no prompt/output;
+ *  - the run's prose language is saved in the state: a resumed run still sends it to plan, challenge and review.
  * DOES NOT PROVE: real model behaviour (pilot) or git adapter correctness (adapters/git tests).
  */
 import { test } from 'node:test';
@@ -371,6 +372,22 @@ test('judges: a provider outage → interrupted; resume calls ONLY the judges th
   assert.equal(s.current, 'approve-commit');
   assert.equal(h.codex.calls.length, 2, 'codex reviewed once (its answer was kept), plus the plan challenge');
   assert.equal(h.judgeExec.security.calls.length, 2, 'security: the failed call, then the resumed one');
+});
+
+test('proseLanguage lives in the run state: a resume after a restart still sends the rule to the review prompt', async () => {
+  const outage = Object.assign(new Error('security: HTTP 503 (after 3 attempts)'), { name: 'TransientProviderError' });
+  const h = harness({ judges: { security: { replies: [outage, SEC], textOnly: true } }, workflow: twoReviewers,
+    claude: ['PLAN', 'impl'], codex: ['VERDICT: APPROVE', APPROVE], verify: [true, false] });
+  const es = 'Write your prose for the human in Spanish. Code, identifiers, code comments, commit messages and the VERDICT line stay exactly as specified, in English.';
+  let s = await advance(yes(await advance({ ...newRun('run-33', 'x'), proseLanguage: 'Spanish' }, h.deps), 'approve-plan'), h.deps);
+  assert.equal(s.status, 'interrupted');
+  const persisted = JSON.parse(h.saved.at(-1)!) as RunState; // the process "restarts": only the saved JSON survives
+  assert.equal(persisted.proseLanguage, 'Spanish');
+  s = await advance(resume(persisted), h.deps);
+  assert.equal(s.current, 'approve-commit');
+  assert.ok(h.claude.calls[0].task.includes(es), 'plan'); assert.ok(h.codex.calls[0].task.includes(es), 'challenge');
+  assert.ok(h.judgeExec.security.calls[1].task.includes(es), 'resumed review');
+  assert.doesNotMatch(h.claude.calls[1].task, /Write your prose for the human/);
 });
 
 test('judges: a verdict that is not a strict line counts as CHANGES_REQUESTED and the review says so (Review Focus)', async () => {

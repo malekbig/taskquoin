@@ -1,0 +1,11 @@
+# gitleaks configuration (CI job `supply-chain`): the default rules, plus one exception.
+[extend]
+useDefault = true
+
+# Canary values planted on purpose by the tests that prove secrets never leave the sandbox
+# (features/support/fakes/fake-claude.cjs, tests/live-contract.e2e.test.ts). They are not credentials.
+# Allowed by VALUE, not by path: a real secret added to those files is still reported.
+[[allowlists]]
+description = "test canaries"
+regexTarget = "secret"
+regexes = ['''^CANARY-[0-9A-Za-z-]+$''']

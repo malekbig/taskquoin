@@ -119,6 +119,7 @@ export const steps: StepDef<World>[] = [
     w.git('add', '.gitignore'); w.git('commit', '-q', '-m', 'ignore ' + pattern);
     w.commitsAtStart = Number(w.git('rev-list', '--count', 'HEAD').trim()); // the owner's commit, before any run
   } },
+  { re: s(`la langue est "(.+)"`), fn: (w, code) => { w.env.TASKQUOIN_LANG = code; } },
   { re: s(`le propriétaire tape dans la console : (.+)`), fn: (w, script) => {
     // `<run>` = the current run id; `<hash>` = the 12 chars a human reads in `taskquoin status <run>` (--expect …)
     const hash = () => { const st = w.tq(['status', w.runId!]); const m = /--expect ([0-9a-f]{12})/.exec(st.stdout); assert.ok(m, `no pending hash:\n${st.stdout}`); return m[1]; };
@@ -171,7 +172,7 @@ export const steps: StepDef<World>[] = [
   { re: s(`la sortie contient "(.+)"`), fn: (w, text) => assert.ok(w.last?.stdout.includes(text), `stdout:\n${w.last?.stdout}`) },
   { re: s(`la sortie d'erreur contient "(.+)"`), fn: (w, text) => assert.ok(w.last?.stderr.includes(text), `stderr:\n${w.last?.stderr}`) },
   // ── Vérifications : run ─────────────────────────────────────────────────────────────────────────────────────────
-  { re: s(`le run attend l'approbation "(.+)"`), fn: (w, node) => assert.match(status(w), new RegExp(`— waiting-approval at ${node}`)) },
+  { re: s(`le run attend l'approbation "(.+)"`), fn: (w, node) => assert.match(status(w), new RegExp(`— waiting-approval (?:at|à) ${node}`)) },
   { re: s(`le run est "([\\w-]+)"`), fn: (w, st) => assert.match(status(w), new RegExp(`— ${st} at`)) },
   { re: s(`le run est "([\\w-]+)" avec la raison contenant "(.+)"`), fn: (w, st, reason) => { const o = status(w); assert.match(o, new RegExp(`— ${st} at`)); assert.ok(o.includes(reason), o); } },
   { re: s(`l'artefact "(.+)" ne contient pas "(.+)"`), fn: (w, a, text) => { const r = w.tq(['show', w.runId!, a]); ok(w, `show ${a}`); assert.ok(!r.stdout.includes(text), `${a} leaks ${text}`); } },

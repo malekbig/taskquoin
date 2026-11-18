@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **npm package** `taskquoin`, built by `npm run package`: compiled JavaScript keeping the repository layout, tested once installed under `node_modules` and under a path with a space. Not on npm yet: the first publish waits for the maintainer's signing key and the npm/GitHub settings (`SECURITY.md`, "Verifying a release").
+- **Release provenance**: `.github/workflows/release.yml` publishes to npm with provenance from a tag signed by a key that main's `.github/allowed_signers` lists and that is the commit built, through the protected environment `npm-publish`; the publishing job runs no repository code.
+- **CI supply-chain gates**: `npm audit`, registry signatures, gitleaks over the whole history; the npm package installed for real and run.
+
+### Changed
+- `taskquoin setup` creates no shortcut for an npm install: npm already put `taskquoin` on the PATH.
+
+### Fixed
+- An install path containing a space: the Claude hook entry and the first-party skills were looked up with `%20`.
+
 ## 2026.11.1 — 2026-11-17
 
 ### Added

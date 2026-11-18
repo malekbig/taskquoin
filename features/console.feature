@@ -9,6 +9,7 @@ Fonctionnalité: Console interactive — les mêmes commandes, approuvées par u
     Et le propriétaire de test a accepté le risque "connector.write" pour l'agent "challenger"
 
   Scénario: L'aide de la console, et un texte libre ne lance rien
+    Soit la langue est "fr"
     Quand le propriétaire tape dans la console : /help ; ajoute une fonction sum ; /quit
     Alors la sortie contient "/approve <plan|commit>"
     Et la sortie contient "Rien n'est lancé sans commande"
@@ -29,6 +30,7 @@ Fonctionnalité: Console interactive — les mêmes commandes, approuvées par u
 
   @sandbox
   Scénario: Un hash mal retapé n'approuve rien
+    Soit la langue est "fr"
     Quand le propriétaire tape dans la console : /run Ajouter une fonction sum ; /quit
     Et le propriétaire tape dans la console : /use <run> ; /approve plan ; alice ; 000000000000 ; /quit
     Alors la sortie d'erreur contient "ne correspond pas"
