@@ -69,7 +69,7 @@ Canonical capabilities: `fs.read(globs)`, `fs.write(globs)`, `shell.run(patterns
 
 Each runtime adapter publishes a **measured mapping** (`capabilities.json`, versioned):
 
-| Capability | Claude Code 2.1.325 | Codex 0.157.1 |
+| Capability | Claude Code 2.1.327 | Codex 0.157.1 |
 |---|---|---|
 | `fs.write` outside globs | PreToolUse hook deny (ENFORCED, exit 2) + `permissions.deny` `Edit(path)` rules | Sandbox `workspace-write` = workspace only (ENFORCED by OS sandbox); finer globs via PreToolUse hook (ENFORCED if hooks trusted, else UNSUPPORTED) |
 | `shell.run` patterns | `permissions.allow/deny Bash(...)` (ENFORCED for model-issued commands; **ADVISORY for what the command itself does**) | Sandbox governs effects (ENFORCED), `approval_policy=never` in headless |

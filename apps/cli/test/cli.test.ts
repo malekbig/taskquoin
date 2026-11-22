@@ -23,7 +23,7 @@ import { putArtifact, repoStore, saveRunState } from '@taskquoin/store-fs';
 const main = new URL('../src/main.ts', import.meta.url).pathname;
 const gitBin = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim();
 
-function sandbox(versions = { claude: '2.1.325 (Claude Code)', codex: 'codex-cli 0.157.1' }) {
+function sandbox(versions = { claude: '2.1.327 (Claude Code)', codex: 'codex-cli 0.157.1' }) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'tq-cli-')));
   const bin = join(root, 'bin'); mkdirSync(bin);
   for (const [n, out] of Object.entries(versions)) { writeFileSync(join(bin, n), `#!/bin/sh\necho "${out}"\n`); chmodSync(join(bin, n), 0o755); }
@@ -102,7 +102,7 @@ test('doctor: refuses agents that cannot be certified and says why', () => {
 });
 
 test('check --json and version mismatch', () => {
-  const { ws, tq } = sandbox({ claude: '2.1.325 (Claude Code)', codex: 'codex-cli 0.999.0' });
+  const { ws, tq } = sandbox({ claude: '2.1.327 (Claude Code)', codex: 'codex-cli 0.999.0' });
   git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
   const r = tq('check', 'challenger', '--json');
   assert.equal(r.status, 1);
@@ -383,7 +383,7 @@ test('api judges: run refuses to start when the key is missing or EMPTY — noth
 });
 
 test('init by installed tools: Claude only → a Claude-only config + detected AIs as commented suggestions; Codex only → says why', () => {
-  const only = sandbox({ claude: '2.1.325 (Claude Code)' } as never);
+  const only = sandbox({ claude: '2.1.327 (Claude Code)' } as never);
   git(only.ws, 'init', '-q'); (only.env as Record<string, string>).DEEPSEEK_API_KEY = 'sk-never-written';
   const r = only.tq('init');
   assert.equal(r.status, 0, r.stderr);

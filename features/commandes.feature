@@ -40,7 +40,7 @@ Fonctionnalité: Les commandes de la CLI taskquoin
     Soit Taskquoin initialisé dans ce dépôt, mémoire désactivée
     Quand le propriétaire exécute "doctor"
     Alors la commande échoue avec le code 1
-    Et la sortie contient "Runtime claude: 2.1.325"
+    Et la sortie contient "Runtime claude: 2.1.327"
     Et la sortie contient "Bash sandbox (bubblewrap + socat): ✔"
     Et la sortie contient "Agent planner (claude)"
     Et la sortie contient "✖ connector.write"

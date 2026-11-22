@@ -4,7 +4,7 @@
 
 **Governed execution for coding agents.** Taskquoin runs a software-engineering workflow over **Claude Code**, **OpenAI Codex** and **any OpenAI-compatible AI**, where every file write, shell command and "it's done" claim is either *enforced by a mechanism we can name and test*, *approved by a human who is bound to the exact hash they read*, or *explicitly labeled advisory*.
 
-> **Status: 2026.11.0 — first public release (alpha).** Tested on Linux (WSL2, ext4) with Claude Code 2.1.325 and Codex 0.157.1; macOS and Windows are not verified yet. Everything runs on your machine: only the AI providers you configure receive code.
+> **Status: 2026.11.0 — first public release (alpha).** Tested on Linux (WSL2, ext4) with Claude Code 2.1.327 and Codex 0.157.1; macOS and Windows are not verified yet. Everything runs on your machine: only the AI providers you configure receive code.
 
 ## Why
 Instructions in `CLAUDE.md` / `AGENTS.md` decay as context fills. Taskquoin puts the checks *in the loop* (sandboxes, hooks, a clean room for your tests, human gates bound to hashes) and refuses to compile a mandatory rule it cannot enforce on your runtime version.

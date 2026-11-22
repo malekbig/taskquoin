@@ -6,9 +6,11 @@
 - **npm package** `taskquoin`, built by `npm run package`: compiled JavaScript keeping the repository layout, tested once installed under `node_modules` and under a path with a space. Not on npm yet: the first publish waits for the maintainer's signing key and the npm/GitHub settings (`SECURITY.md`, "Verifying a release").
 - **Release provenance**: `.github/workflows/release.yml` publishes to npm with provenance from a tag signed by a key that main's `.github/allowed_signers` lists and that is the commit built, through the protected environment `npm-publish`; the publishing job runs no repository code.
 - **CI supply-chain gates**: `npm audit`, registry signatures, gitleaks over the whole history; the npm package installed for real and run.
+- **22 languages** for the console and the CLI (`TASKQUOIN_LANG`, otherwise the system locale): English and French by hand, 20 machine-translated languages checked by tests (placeholders, `/commands`, CLDR plurals); columns stay aligned with CJK characters. The planner, the critique and the review write in the run's language. `--json` outputs, the run journal, artifacts, commit trailers, the `VERDICT:` line and the banner's brand stay English.
 
 ### Changed
 - `taskquoin setup` creates no shortcut for an npm install: npm already put `taskquoin` on the PATH.
+- **Claude Code 2.1.327** measured: every live suite rerun with unchanged mechanisms, same results as on 2.1.325 (`docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt`). Claude agents now need 2.1.327; any other version fails closed (`docs/adr/0008`).
 
 ### Fixed
 - An install path containing a space: the Claude hook entry and the first-party skills were looked up with `%20`.

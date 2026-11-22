@@ -1,8 +1,8 @@
 {
   "runtime": "claude",
-  "runtimeVersion": "2.1.325",
-  "measuredOn": "2026-11-15",
-  "evidence": "docs/reports/evidence-live-contract-R1.2-2026-11-15.txt (current mechanisms). R1.1 evidence superseded where mechanisms changed (ADR-0008). Hooks: docs/reports/evidence-live-R2-2026-11-15.txt. Bash sandbox: with sandbox.failIfUnavailable and bubblewrap/socat absent, a shell-granted run is refused before any API call (measured R2.1, $0); inside the sandbox measured R2.1 (docs/reports/evidence-live-R2.1-sandbox-2026-11-15.txt). R3.1 rerun of every live suite after the Codex R3 fixes: docs/reports/evidence-live-R3.1-2026-11-15.txt.",
+  "runtimeVersion": "2.1.327",
+  "measuredOn": "2026-11-18",
+  "evidence": "Re-measured on 2.1.327 (2026-11-18): every live suite rerun with unchanged mechanisms, same results as R3.1 on 2.1.325 — docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt. History: docs/reports/evidence-live-contract-R1.2-2026-11-15.txt (current mechanisms). R1.1 evidence superseded where mechanisms changed (ADR-0008). Hooks: docs/reports/evidence-live-R2-2026-11-15.txt. Bash sandbox: with sandbox.failIfUnavailable and bubblewrap/socat absent, a shell-granted run is refused before any API call (measured R2.1, $0); inside the sandbox measured R2.1 (docs/reports/evidence-live-R2.1-sandbox-2026-11-15.txt). R3.1 rerun of every live suite after the Codex R3 fixes: docs/reports/evidence-live-R3.1-2026-11-15.txt.",
   "entries": {
     "fs.read": [
       {
@@ -17,7 +17,7 @@
           "bash-sandbox"
         ],
         "evidence": "measured",
-        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R2.1 sandbox probe (bubblewrap 0.6.1, socat 1.7.4.1): .env read blocked by sandbox.filesystem.denyRead",
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt (rerun on 2.1.327) — R2.1 sandbox probe (bubblewrap 0.6.1, socat 1.7.4.1): .env read blocked by sandbox.filesystem.denyRead",
         "mechanism": "sandbox denyRead blocks listed secret files and the control store; other reads (inside or outside the workspace) are not restricted"
       },
       {
@@ -61,7 +61,7 @@
           "deny-all"
         ],
         "evidence": "measured",
-        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
         "mechanism": "--tools lists no Edit/Write/Bash: the agent cannot write any file"
       },
       {
@@ -80,7 +80,7 @@
         "holdsFor": [
           "workspace"
         ],
-        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R2.1 sandbox probe (bubblewrap 0.6.1, socat 1.7.4.1): allowed/ written, other/ (not granted, inside workspace) ALSO written, outside and /tmp blocked"
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt (rerun on 2.1.327) — R2.1 sandbox probe (bubblewrap 0.6.1, socat 1.7.4.1): allowed/ written, other/ (not granted, inside workspace) ALSO written, outside and /tmp blocked"
       },
       {
         "when": {
@@ -97,7 +97,7 @@
         "class": "ENFORCED",
         "granularity": "pattern",
         "evidence": "measured",
-        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R1.2 claude boundary (fix/r1.2-hardening): allowed/ written; forbidden/, .claude/settings.json, outside denied (3 structured Write denials); R2 hooks A: Write through a symlink inside allowed/ to a file outside it was denied by Claude permissions alone (symlink resolved); R2 hooks B: also denied by the Taskquoin hook",
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt (rerun on 2.1.327) — R1.2 claude boundary (fix/r1.2-hardening): allowed/ written; forbidden/, .claude/settings.json, outside denied (3 structured Write denials); R2 hooks A: Write through a symlink inside allowed/ to a file outside it was denied by Claude permissions alone (symlink resolved); R2 hooks B: also denied by the Taskquoin hook",
         "mechanism": "dontAsk + Edit(./<glob>) allow per granted glob; everything else denied. Defense in depth: Taskquoin PreToolUse hook re-checks the physical path (inline --settings, runs under --setting-sources \"\")"
       }
     ],
@@ -106,7 +106,7 @@
         "class": "ENFORCED",
         "granularity": "pattern",
         "evidence": "measured",
-        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt: \"claude bash-operators\" — echo hello * ran (positive control) and did not extend to &&, ;, $(…), backticks, inside the Bash sandbox",
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt: \"claude bash-operators\" — echo hello * ran (positive control) and did not extend to &&, ;, $(…), backticks, inside the Bash sandbox",
         "mechanism": "Bash tool only present when shell.run is granted; dontAsk + Bash(<pattern>) allow governs which commands the model may issue. Effects of allowed commands are captured by the shell.run variants of the other capabilities"
       }
     ],
@@ -124,7 +124,7 @@
           "deny-all"
         ],
         "evidence": "measured",
-        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
         "mechanism": "--tools lists no WebFetch, WebSearch or Bash: the agent has no network-capable tool"
       },
       {
@@ -143,7 +143,7 @@
         "holdsFor": [
           "deny-all"
         ],
-        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R2.1 sandbox probe (bubblewrap 0.6.1, socat 1.7.4.1): curl to a 127.0.0.1 server: exit 7, 0 hits; curl https://example.com: exit 56"
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt (rerun on 2.1.327) — R2.1 sandbox probe (bubblewrap 0.6.1, socat 1.7.4.1): curl to a 127.0.0.1 server: exit 7, 0 hits; curl https://example.com: exit 56"
       },
       {
         "when": {
@@ -185,7 +185,7 @@
           "deny-all"
         ],
         "evidence": "measured",
-        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
         "mechanism": "no Bash tool: the agent cannot invoke git"
       },
       {
@@ -203,7 +203,7 @@
           "bash-sandbox"
         ],
         "evidence": "measured",
-        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt (rerun) — R2.1 hooks C: git commit inside the Bash sandbox fails, .git/index.lock Read-only file system (even with .git in allowWrite)",
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt (rerun on 2.1.327) — R2.1 hooks C: git commit inside the Bash sandbox fails, .git/index.lock Read-only file system (even with .git in allowWrite)",
         "mechanism": "Claude's Bash sandbox keeps .git read-only: agents cannot commit; commits are made by the orchestrator on the host after verification"
       },
       {
@@ -237,7 +237,7 @@
           "deny-all"
         ],
         "evidence": "measured",
-        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
         "mechanism": "no Bash tool: the agent cannot invoke git"
       },
       {
@@ -256,7 +256,7 @@
         "holdsFor": [
           "deny-all"
         ],
-        "evidenceRef": "docs/reports/evidence-live-R3.1-2026-11-15.txt: \"sandbox\" probe push=1 to a local bare remote outside the workspace, remote refs unchanged; loopback 0 hits, internet blocked"
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt: \"sandbox\" probe push=1 to a local bare remote outside the workspace, remote refs unchanged; loopback 0 hits, internet blocked"
       },
       {
         "when": {
@@ -291,7 +291,7 @@
         "granularity": "pattern",
         "evidence": "measured",
         "mechanism": "--setting-sources \"\" + --strict-mcp-config with no --mcp-config ⇒ zero MCP servers (init event inventory recorded per run)",
-        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1: init-event inventory mcp_servers=[] with and without a shell"
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt M1: init-event inventory mcp_servers=[] with and without a shell"
       }
     ],
     "connector.write": [
@@ -312,7 +312,7 @@
         "granularity": "pattern",
         "evidence": "measured",
         "mechanism": "zero MCP servers in agent runs (init event inventory recorded per run)",
-        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1: init-event inventory mcp_servers=[] with and without a shell"
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt M1: init-event inventory mcp_servers=[] with and without a shell"
       }
     ],
     "config.modify": [
@@ -329,7 +329,7 @@
           "deny-all"
         ],
         "evidence": "measured",
-        "evidenceRef": "docs/reports/evidence-live-R3-2026-11-15.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
+        "evidenceRef": "docs/reports/evidence-live-claude-2.1.327-2026-11-18.txt M1 (shell=false): init-event tools=[\"Read\",\"Grep\",\"Glob\"] — no Edit/Write/Bash/WebFetch/WebSearch",
         "mechanism": "--tools lists no Edit/Write/Bash: the agent cannot modify any file"
       },
       {
