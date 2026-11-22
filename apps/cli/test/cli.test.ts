@@ -1127,7 +1127,9 @@ test('console piped: /dashboard prints the child\'s refusal and /quit still exit
  * `p`, a name, Enter, the 12 hex characters key by key, Enter — then `q` leaves the centre and `q q` quits at once.
  * The detached `taskquoin approve` keeps going after the dashboard has quit and records the approval in the store.
  */
-test('dashboard end to end: the typed hash goes to a separate taskquoin approve, which records `alice (via taskquoin dashboard)` with the full plan hash after the dashboard has quit', { timeout: 300_000 }, async () => {
+// A real run needs a passing Claude gate, which needs the bash sandbox (bubblewrap with namespaces, and socat) — as the Gherkin @sandbox scenarios.
+const sandboxReady = (() => { try { execFileSync('bwrap', ['--ro-bind', '/', '/', '--unshare-net', '--dev', '/dev', 'true'], { stdio: 'ignore' }); execFileSync('sh', ['-c', 'command -v socat'], { stdio: 'ignore' }); return true; } catch { return false; } })();
+test('dashboard end to end: the typed hash goes to a separate taskquoin approve, which records `alice (via taskquoin dashboard)` with the full plan hash after the dashboard has quit', { timeout: 300_000, skip: sandboxReady ? false : 'bubblewrap + socat required' }, async () => {
   const FAKES = new URL('../../../features/support/fakes/', import.meta.url).pathname;
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'tq-dash-e2e-')));
   const bin = join(root, 'bin'); mkdirSync(bin); mkdirSync(join(root, 'home'));
