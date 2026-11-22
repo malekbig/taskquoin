@@ -1,84 +1,211 @@
 # Taskquoin
 
-![Taskquoin console: the squad, the / menu and /help](docs/assets/console.gif)
+**Governed execution for AI coding agents.** Taskquoin lets Claude Code, OpenAI Codex, OpenCode and any
+OpenAI-compatible model work on your repository — under rules that are **enforced, measured and approved by you**,
+not merely written in a prompt.
 
-**Governed execution for coding agents.** Taskquoin runs a software-engineering workflow over **Claude Code**, **OpenAI Codex** and **any OpenAI-compatible AI**, where every file write, shell command and "it's done" claim is either *enforced by a mechanism we can name and test*, *approved by a human who is bound to the exact hash they read*, or *explicitly labeled advisory*.
+![The Taskquoin console: the squad with each agent's real verdict, and the commands](docs/assets/screens/en/console.svg)
 
-> **Status: 2026.11.0 — first public release (alpha).** Tested on Linux (WSL2, ext4) with Claude Code 2.1.327 and Codex 0.157.1; macOS and Windows are not verified yet. Everything runs on your machine: only the AI providers you configure receive code.
+> **Status: 2026.11.1 — alpha.** Tested on Linux (WSL2, ext4) with Claude Code 2.1.327, Codex 0.157.1 and
+> OpenCode 1.19.5; macOS and Windows are not verified yet. Screens in this README come from a demo repository with
+> simulated AI agents; every command shown is the real CLI.
 
-## Why
-Instructions in `CLAUDE.md` / `AGENTS.md` decay as context fills. Taskquoin puts the checks *in the loop* (sandboxes, hooks, a clean room for your tests, human gates bound to hashes) and refuses to compile a mandatory rule it cannot enforce on your runtime version.
+**[Documentation](docs/README.md)** · **[Tutorial](docs/getting-started/first-run.md)** ·
+[Français](docs/tutorial/fr.md) · [Español](docs/tutorial/es.md) · [Deutsch](docs/tutorial/de.md) ·
+[日本語](docs/tutorial/ja.md) · [简体中文](docs/tutorial/zh-CN.md) · [22 languages](#the-tutorial-in-your-language)
+
+---
+
+## The concept
+
+A coding agent can do whatever its tools allow: write anywhere, run any command, read your `.env`, commit, push,
+and declare "done" when it thinks it is. Instructions in `CLAUDE.md` or `AGENTS.md` ask it not to — and they fade as
+the context fills.
+
+Taskquoin puts a **control plane** between you and the agents. A *quoin* is the cornerstone of a wall: the stone
+the rest is aligned on. Taskquoin is that stone for agentic development:
+
+1. **The agents act, Taskquoin decides.** Agents propose a plan, code, critiques and reviews; only Taskquoin moves the
+   run forward, and only Taskquoin commits — on a dedicated branch, never pushed.
+2. **Rules are enforced, and the enforcement is measured.** Every capability an agent receives (write here, run that
+   command, no network…) is compiled to the runtime's own sandbox and hooks, and is accepted only if it was
+   **measured** on that exact runtime version. A rule that is only *advisory* is never presented as *enforced*.
+3. **You decide at two gates, bound to what you read.** You approve the plan, then the exact tree to commit — each by
+   its hash. If anything changes after you read it, the approval no longer applies.
+4. **"Done" is proven, not claimed.** Your tests run in a clean room with no network and no secrets, and a
+   **RED proof** shows that the new tests fail without the change — so a test that proves nothing is refused.
 
 ## How a run works
+
+```mermaid
+flowchart LR
+  R["taskquoin run &quot;…&quot;"] --> P["Plan<br/>(Architect)"]
+  P --> C["Adversarial critique<br/>(Reviewer)"]
+  C --> G1{{"✋ You approve the plan<br/>by its hash"}}
+  G1 --> I["Implementation, TDD<br/>(Developer, sandboxed)"]
+  I --> V["Clean-room Verify<br/>+ RED proof"]
+  V -- tests red --> I
+  V --> RV["Review<br/>(Reviewer)"]
+  RV -- changes requested --> I
+  RV --> G2{{"✋ You approve the exact tree<br/>by its hash"}}
+  G2 --> K["Taskquoin commits on<br/>taskquoin/&lt;run&gt; — never pushed"]
 ```
-taskquoin run "Add a sum function"
-  plan (Claude) → critique (Codex or any AI) → YOU approve the plan, by hash
-  → implementation in TDD (Claude, sandboxed, no network)
-  → Verify: your tests in a clean room + RED proof (the new tests fail without the change)
-  → review (Codex or any AI) → YOU approve the exact diff, by hash
-  → Taskquoin commits on branch taskquoin/<run>. It never pushes.
+
+Retries are bounded (3 implementation attempts — 5 for an OpenCode implementer — and 2 review reworks); past them, the
+run stops and hands back to you (`needs-human`). Nothing is committed in that case.
+
+## Architecture at a glance
+
+```mermaid
+flowchart TB
+  H(["You"]) -->|"commands · approvals by hash"| CLI["taskquoin CLI / console"]
+  subgraph CP["Taskquoin control plane (outside the workspace)"]
+    CLI --> WF["Workflow state machine"]
+    WF --> PG["Policy compiler + gate<br/>(measured capability matrix)"]
+    WF --> CS[("Control store<br/>state · artifacts · approvals · events")]
+    WF --> VR["Verify clean room<br/>(bubblewrap, no network, no HOME)"]
+  end
+  PG -->|"sandbox settings, hooks, ticket"| RT
+  subgraph RT["Native runtimes, each in its own sandbox"]
+    CC["Claude Code"]
+    CX["Codex"]
+    OC["OpenCode"]
+    API["API judges<br/>(text only)"]
+  end
+  RT -->|"proposals: plan, code, critique, review"| WF
+  CC & CX & OC -->|"edits, inside granted paths only"| WS[("Your repository<br/>branch taskquoin/&lt;run&gt;")]
+  WF -->|"the only commit"| WS
 ```
 
-## What you get
-- **Two human gates**, each bound to the hash of what you read; agents never commit (`docs/adr/0011`, `0013`).
-- **Measured enforcement**: a capability matrix per runtime version (`adapters/*/src/capabilities.json`), printed by `taskquoin doctor`; a mandatory restriction that is only advisory on your runtime refuses to compile.
-- **Clean-room Verify** and a mechanical **RED proof** recorded in the commit (`RED-Proof:` trailer, `docs/adr/0014`).
-- **Judges by API** (`docs/adr/0016`): any OpenAI-compatible provider — OpenRouter, Mistral, DeepSeek, Gemini, OpenAI, a local Ollama… — can critique the plan and review the diff. Text only: judges never receive secret files, binaries or your keys, and `taskquoin doctor` lists every destination of your code.
-- **OpenCode for planning and coding** (`docs/adr/0017`): with only a ChatGPT subscription, OpenCode can plan, implement and review (other sign-ins — API keys, Copilot, local models — are refused until their hosts are measured) — in Taskquoin's sandbox, **without any command** (Taskquoin runs your tests), with its own connection (`taskquoin connect opencode`).
-- **Console** (above): `taskquoin` alone opens an interactive shell (`/run`, `/status`, `/show`, `/approve`, Tab completion).
-- **22 languages** (below): the console and the CLI speak your language, and the agents write the plan, the critique and the review in it.
-- **Skills**: pinned first-party skills (planning contract, TDD, code review, security review). Third-party skills are imported from a local directory into quarantine, audited, and approved by you — Taskquoin never downloads.
-- **Memory** (optional): a structured summary of each finished run goes to your local [claude-mem](https://github.com/thedotmack/claude-mem) worker.
-- **Clean removal**: `taskquoin uninstall` removes only what Taskquoin created and you did not modify.
+The control store lives in `~/.local/state/taskquoin`, outside the repository: agents cannot write it, so they cannot
+approve, change the policy or forge a result. Details: [Architecture](docs/concepts/architecture.md).
 
-## Languages
-![The Taskquoin console in English, French, Spanish, German, Russian, Japanese, Chinese and Korean](docs/assets/languages.gif)
+## What it guarantees — and the evidence
 
-English, Français, Español, Português (Brasil), Deutsch, Italiano, Nederlands, Polski, Русский, Українська, Türkçe, العربية, فارسی, עברית, हिन्दी, Bahasa Indonesia, Tiếng Việt, ไทย, 简体中文, 繁體中文, 日本語, 한국어.
+Every line below is backed by a measurement with the real runtimes (files in `docs/reports/`) or by an end-to-end
+scenario that runs on every test run (`features/`, scenario names in French).
 
-- **Choice**: `TASKQUOIN_LANG`, otherwise your system locale (`LC_ALL`, `LC_MESSAGES`, `LANG`), otherwise English. Example: `TASKQUOIN_LANG=ja taskquoin`.
-- **Quality**: English and French are written by hand. The other 20 are machine translations, checked by tests: every placeholder and `/command` is kept, and plurals follow each language's rules.
-- **Layout**: columns stay aligned with Chinese, Japanese and Korean characters.
-- **What stays English**: every `--json` output (byte-identical in every language), the run journal, artifacts, commit trailers, the agents' `VERDICT:` line, and the brand: the banner's tagline, slogan, role names and READY / NOT READY.
+| When an agent works alone, it can… | With Taskquoin | Evidence |
+|---|---|---|
+| write outside your repository | refused by the runtime's sandbox (ENFORCED); inside it, the Write/Edit tools are limited to the granted paths by the PreToolUse hook | `evidence-live-claude-2.1.327-2026-11-18.txt`: `forbidden/no.txt=false`, `outside=false`, `/tmp` blocked — limit measured too: a Bash command can still write anywhere *inside* the repository |
+| read `.env` and other secrets | reads denied; secrets never put in a prompt | same file: `.env read blocked by sandbox.filesystem.denyRead`; canary not leaked |
+| chain shell commands past an allow-list (`&&`, `;`, `$( )`, backticks) | each chained form denied | same file: `bash-operators` denials |
+| commit or push, even with `--no-verify` | agents never commit; `git commit` blocked | same file: `hooks C git` — commit refused |
+| reach the network from a command | no network for commands (Codex sandbox, Claude Bash sandbox) | same file: `M2 codex read-only`, network probe `hits=0` |
+| change the rules it runs under | `taskquoin.yaml` and agent config files are protected; a run that touches them never lands | scenario "Une modification de configuration protégée n'atterrit jamais" |
+| say "tests pass" when they fail | Taskquoin runs your tests itself, in a clean room | scenario "Des tests rouges déclenchent au plus deux reprises…" |
+| write a test that proves nothing | RED proof: the new tests must fail without the change | scenario "Des tests qui passent sans le changement… (preuve RED)" |
+| land code nobody read | two human gates, bound to the hash of what you read | scenarios on wrong, stale and replayed hashes |
 
-## Requirements
-- Node ≥ 22.18 (runs TypeScript natively) and git
-- Linux: `bubblewrap` and `socat` (command sandbox)
-- Claude Code, signed in (`claude auth login`) — planner and implementer (or OpenCode, below)
-- Optional: Codex CLI (signed in); OpenCode 1.19.5 (`npm install -g opencode-ai@1.19.5`, then `taskquoin connect opencode`) — it can replace Claude Code; API keys for the judges you add, as environment variables
+What it does **not** protect against, and what it costs, is in [Why Taskquoin](docs/concepts/why-taskquoin.md). A
+comparative live benchmark (Claude Code alone, Codex alone, GitHub Copilot, through Taskquoin) is planned and has
+**no numbers yet**.
 
-## Install
+## Quick start
+
 ```bash
+# 1. Install (Linux / WSL2)
 sudo apt install -y bubblewrap socat
 git clone <this repository> ~/taskquoin && cd ~/taskquoin
 npm install --ignore-scripts
-bin/taskquoin setup        # puts `taskquoin` on your PATH (~/.local/bin); also done at first launch
+bin/taskquoin setup                      # puts `taskquoin` on your PATH (~/.local/bin)
+
+# 2. Prepare your repository
+cd ~/my-project                          # a git repository with a test command
+taskquoin init                           # writes taskquoin.yaml for the detected stack
+git add taskquoin.yaml && git commit -m "taskquoin init"   # a run needs a clean tree
+taskquoin doctor                         # certifies each agent; says where your code goes
 ```
 
-## Use
+If `doctor` reports the Codex reviewer as refused on `connector.write` (the restriction is claimed by Codex but not
+measured), read why in [Agents and runtimes](docs/guides/agents-and-runtimes.md), then accept that exact risk if it
+fits your project:
+
 ```bash
-cd <your git repo>
-taskquoin init                      # taskquoin.yaml for the detected stack; detected AIs are proposed, commented out
-taskquoin doctor                    # certify every agent; shows where your code is sent
-taskquoin run "Add a sum function"  # plan → critique → waits for you
-taskquoin show <run> plan           # read it
-taskquoin approve <run> plan --expect <hash> --as <you>
-taskquoin show <run> diff-1         # read the exact diff
-taskquoin approve <run> commit --expect <hash> --as <you>   # commit on taskquoin/<run>, never pushed
-taskquoin status [<run>]
+taskquoin accept-risk challenger connector.write --reason "Codex reviews read-only; no connector configured" --expires 2026-12-31 --as you
 ```
-`taskquoin help` lists every command. Full guide (French): `docs/guide-developpeur.md`. Executable specification of every command and of the whole chain: `features/` (`npm run features`).
+
+```bash
+# 3. Run, read, approve
+taskquoin run "Add a sum function"       # plan → critique → waits for you
+taskquoin status <run>                   # shows the exact approve command and hash
+taskquoin show <run> plan                # read the plan
+taskquoin approve <run> plan --expect <hash> --as you
+taskquoin show <run> diff-1              # read the exact diff (and verify-1, red-1, review-1)
+taskquoin approve <run> commit --expect <hash> --as you   # commit on taskquoin/<run>; merge it yourself
+```
+
+![Approving the plan, then the commit](docs/assets/screens/en/approve.svg)
+
+The full walk-through, every step with its screen, is the [tutorial](docs/getting-started/first-run.md).
+
+> [!IMPORTANT]
+> A Claude Code version that Taskquoin has not measured is refused (NOT READY), by design. `doctor` tells you which
+> version is measured; see [Troubleshooting](docs/guides/troubleshooting.md).
+
+> [!WARNING]
+> Your tests run in a clean room without your `HOME` and without network: a test toolchain installed under `HOME`
+> (nvm, pyenv, `~/.m2`…) is not visible there. See [Verify and the RED proof](docs/guides/verify-and-red-proof.md).
+
+## The console
+
+`taskquoin` alone opens an interactive console: the squad with each agent's real verdict, `/` commands with Tab
+completion, and `/approve`, which shows what is bound and asks you to retype the hash. Nothing starts without a `/`
+command. See [The console](docs/getting-started/console.md).
+
+## The tutorial in your language
+
+| | | | |
+|---|---|---|---|
+| [English](docs/getting-started/first-run.md) | [Français](docs/tutorial/fr.md) | [Español](docs/tutorial/es.md) | [Português (Brasil)](docs/tutorial/pt-BR.md) |
+| [Deutsch](docs/tutorial/de.md) | [Italiano](docs/tutorial/it.md) | [Nederlands](docs/tutorial/nl.md) | [Polski](docs/tutorial/pl.md) |
+| [Русский](docs/tutorial/ru.md) | [Українська](docs/tutorial/uk.md) | [Türkçe](docs/tutorial/tr.md) | [العربية](docs/tutorial/ar.md) |
+| [فارسی](docs/tutorial/fa.md) | [עברית](docs/tutorial/he.md) | [हिन्दी](docs/tutorial/hi.md) | [Bahasa Indonesia](docs/tutorial/id.md) |
+| [Tiếng Việt](docs/tutorial/vi.md) | [ไทย](docs/tutorial/th.md) | [简体中文](docs/tutorial/zh-CN.md) | [繁體中文](docs/tutorial/zh-TW.md) |
+| [日本語](docs/tutorial/ja.md) | [한국어](docs/tutorial/ko.md) | | |
+
+Each tutorial shows the screens in its own language. The console, the CLI and the agents' prose follow your
+language (`TASKQUOIN_LANG`, otherwise your locale): [Languages](docs/guides/languages.md).
+
+![The Taskquoin console in eight languages](docs/assets/languages.gif)
+
+## Documentation
+
+| | |
+|---|---|
+| **Getting started** | [Installation](docs/getting-started/installation.md) · [Tutorial](docs/getting-started/first-run.md) · [The console](docs/getting-started/console.md) |
+| **Concepts** | [Why Taskquoin](docs/concepts/why-taskquoin.md) · [Architecture](docs/concepts/architecture.md) |
+| **Guides** | [Configuration](docs/guides/configuration.md) · [Agents and runtimes](docs/guides/agents-and-runtimes.md) · [Approvals](docs/guides/approvals.md) · [Verify and the RED proof](docs/guides/verify-and-red-proof.md) · [Security](docs/guides/security.md) · [Skills](docs/guides/skills.md) · [Memory](docs/guides/memory.md) · [Languages](docs/guides/languages.md) · [Troubleshooting](docs/guides/troubleshooting.md) · [Best practices](docs/guides/best-practices.md) |
+| **Reference** | [CLI](docs/reference/cli.md) · [Console commands](docs/reference/console-commands.md) · [Configuration](docs/reference/configuration.md) · [Runs, artifacts and events](docs/reference/runs-artifacts-events.md) · [Capabilities](docs/reference/capabilities.md) |
+| **Decisions** | [ADRs](docs/adr/) · [Measured evidence](docs/reports/) · [Threat model](docs/security/threat-model.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG](CHANGELOG.md) |
+
+## Requirements
+
+- Node ≥ 22.18 (runs TypeScript natively) and git.
+- Linux: `bubblewrap` and `socat` (sandboxes and the clean room).
+- At least one coding runtime: Claude Code (signed in), or OpenCode 1.19.5 (`taskquoin connect opencode`); Codex CLI
+  for the default reviewer; API keys (environment variables) for any API judge you add.
 
 ## Develop
+
 ```bash
 npm install --ignore-scripts
-npm run typecheck && npm test       # offline; live tests: TQ_E2E=1 npm test (uses your Claude / Codex sign-in)
-npm run package                     # the npm package, in dist/package
+npm run typecheck && npm test            # offline; live tests: TQ_E2E=1 npm test (uses your Claude / Codex sign-in)
+npm run package                          # the npm package, in dist/package
+node scripts/docs-screens/build.mjs <work-dir>   # rebuilds every documentation screen from the real CLI
 ```
-Nothing is written outside the repository. Taskquoin never modifies `~/.claude` or `~/.codex`.
 
-## Docs
-`docs/architecture.md` · `docs/implementation-plan.md` (roadmap) · `docs/security/threat-model.md` · `docs/adr/` (decisions) · `docs/reports/` (live evidence) · `docs/research/` · `SECURITY.md` · `CHANGELOG.md`.
+Nothing is written outside the repository; Taskquoin never modifies `~/.claude` or `~/.codex`. The executable
+specification of every command and of the whole chain is in `features/` (`npm run features`).
 
 ## License
-Apache-2.0 (`LICENSE`). Practices credited to [ai-craftsman-superpowers](https://github.com/BULDEE/ai-craftsman-superpowers) (Apache-2.0) and others listed in `docs/research/licensing.md`.
+
+Apache-2.0 (`LICENSE`).
+
+## Acknowledgements
+
+Two ideas come from [ai-craftsman-superpowers](https://github.com/BULDEE/ai-craftsman-superpowers) (Apache-2.0):
+measuring what each runtime really enforces on a given machine ([ADR-0002](docs/adr/0002-enforcement-classes.md)), and
+enforcing rules with hooks rather than prose ([ADR-0003](docs/adr/0003-hooks-enforce-prose-asks.md)). Taskquoin
+re-implements them; no code is copied from that project. The other projects studied, and their licences, are listed in
+[docs/research/licensing.md](docs/research/licensing.md).

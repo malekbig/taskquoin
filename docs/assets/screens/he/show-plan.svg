@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="564" height="178" viewBox="0 0 564 178" role="img" aria-label="~/calc — taskquoin show plan">
+<title>~/calc — taskquoin show plan</title>
+<rect width="564" height="178" rx="8" fill="#1a1b26"/>
+<path d="M0 8a8 8 0 0 1 8-8h548a8 8 0 0 1 8 8v22h-564z" fill="#16161e"/>
+<circle cx="16" cy="15" r="5" fill="#f7768e"/>
+<circle cx="33" cy="15" r="5" fill="#e0af68"/>
+<circle cx="50" cy="15" r="5" fill="#9ece6a"/>
+<text x="282" y="19.5" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-size="12.5" fill="#787c99">~/calc — taskquoin show plan</text>
+<g font-family="'Cascadia Mono','JetBrains Mono','DejaVu Sans Mono',Menlo,Consolas,'Noto Sans Mono CJK SC','Noto Sans Mono','Segoe UI Symbol','Noto Sans Symbols 2','Apple Symbols',monospace" font-size="16" xml:space="preserve">
+<text x="18 27.6 37.2 46.8 56.4 66" y="59" fill="#9aa5ce">~/calc</text>
+<text x="85.2" y="59" fill="#9aa5ce">$</text>
+<text x="104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="59" fill="#c0caf5">taskquoin</text>
+<text x="200.4 210 219.6 229.2" y="59" fill="#c0caf5">show</text>
+<text x="248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4" y="59" fill="#c0caf5">run-20261122T133054-001281</text>
+<text x="507.6 517.2 526.8 536.4" y="59" fill="#c0caf5">plan</text>
+<text x="18 27.6 37.2 46.8" y="79" fill="#c0caf5">PLAN</text>
+<text x="18" y="99" fill="#c0caf5">-</text>
+<text x="37.2 46.8 56.4 66 75.6" y="99" fill="#c0caf5">Goal:</text>
+<text x="94.8 104.4 114" y="99" fill="#c0caf5">Add</text>
+<text x="133.2" y="99" fill="#c0caf5">a</text>
+<text x="152.4 162 171.6" y="99" fill="#c0caf5">sum</text>
+<text x="190.8 200.4 210 219.6 229.2 238.8 248.4 258" y="99" fill="#c0caf5">function</text>
+<text x="18" y="119" fill="#c0caf5">-</text>
+<text x="37.2 46.8 56.4 66" y="119" fill="#c0caf5">Test</text>
+<text x="85.2 94.8 104.4 114 123.6 133.2" y="119" fill="#c0caf5">first:</text>
+<text x="152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4" y="119" fill="#c0caf5">sum.test.js</text>
+<text x="267.6 277.2 286.8 296.4 306 315.6 325.2" y="119" fill="#c0caf5">already</text>
+<text x="344.4 354 363.6 373.2 382.8" y="119" fill="#c0caf5">fails</text>
+<text x="402 411.6 421.2 430.8 440.4" y="119" fill="#c0caf5">(RED)</text>
+<text x="18" y="139" fill="#c0caf5">-</text>
+<text x="37.2 46.8 56.4 66 75.6" y="139" fill="#c0caf5">Step:</text>
+<text x="94.8 104.4 114 123.6 133.2 142.8" y="139" fill="#c0caf5">create</text>
+<text x="162 171.6 181.2 190.8 200.4 210" y="139" fill="#c0caf5">sum.js</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162" y="159" fill="#c0caf5">SKILLS-RECEIVED:</text>
+<text x="181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8" y="159" fill="#c0caf5">planning-contract</text>
+</g></svg>
