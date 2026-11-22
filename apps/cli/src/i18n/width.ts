@@ -17,9 +17,14 @@ function isWide(cp: number): boolean {
     || (cp >= 0x20000 && cp <= 0x3fffd); // CJK extensions B+
 }
 
+const PLAIN = /^[\x20-\x7e]*$/;
+
 export function displayWidth(s: string): number {
+  if (PLAIN.test(s)) return s.length; // the common case: printable ASCII, one column each
+  const bare = s.replace(ANSI, '');
+  if (PLAIN.test(bare)) return bare.length;
   let w = 0;
-  for (const ch of s.replace(ANSI, '')) {
+  for (const ch of bare) {
     if (ZERO.test(ch)) continue;
     w += isWide(ch.codePointAt(0)!) ? 2 : 1;
   }

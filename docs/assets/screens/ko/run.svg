@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1236" height="498" viewBox="0 0 1236 498" role="img" aria-label="~/calc — taskquoin run">
+<title>~/calc — taskquoin run</title>
+<rect width="1236" height="498" rx="8" fill="#1a1b26"/>
+<path d="M0 8a8 8 0 0 1 8-8h1220a8 8 0 0 1 8 8v22h-1236z" fill="#16161e"/>
+<circle cx="16" cy="15" r="5" fill="#f7768e"/>
+<circle cx="33" cy="15" r="5" fill="#e0af68"/>
+<circle cx="50" cy="15" r="5" fill="#9ece6a"/>
+<text x="618" y="19.5" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-size="12.5" fill="#787c99">~/calc — taskquoin run</text>
+<g font-family="'Cascadia Mono','JetBrains Mono','DejaVu Sans Mono',Menlo,Consolas,'Noto Sans Mono CJK SC','Noto Sans Mono','Segoe UI Symbol','Noto Sans Symbols 2','Apple Symbols',monospace" font-size="16" xml:space="preserve">
+<text x="18 27.6 37.2 46.8 56.4 66" y="59" fill="#9aa5ce">~/calc</text>
+<text x="85.2" y="59" fill="#9aa5ce">$</text>
+<text x="104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="59" fill="#c0caf5">taskquoin</text>
+<text x="200.4 210 219.6" y="59" fill="#c0caf5">run</text>
+<text x="238.8 248.4 258 267.6" y="59" fill="#c0caf5">"Add</text>
+<text x="286.8" y="59" fill="#c0caf5">a</text>
+<text x="306 315.6 325.2" y="59" fill="#c0caf5">sum</text>
+<text x="344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2" y="59" fill="#c0caf5">function"</text>
+<text x="37.2" y="79" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="79" fill="#c0caf5">21:53:19</text>
+<text x="152.4 162 171.6 181.2 190.8 200.4" y="79" fill="#c0caf5">recall</text>
+<text x="229.2 238.8 248.4 258 267.6 277.2 286.8 296.4 306" y="79" fill="#c0caf5">no-memory</text>
+<text x="334.8" y="79" fill="#c0caf5">→</text>
+<text x="363.6 373.2 382.8 392.4" y="79" fill="#c0caf5">plan</text>
+<text x="37.2" y="99" fill="#c0caf5">◉</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="99" fill="#c0caf5">21:53:19</text>
+<text x="152.4 171.6 190.8" y="99" fill="#c0caf5">시작:</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6" y="99" fill="#c0caf5">planner</text>
+<text x="286.8" y="99" fill="#c0caf5">·</text>
+<text x="306 315.6 325.2 334.8 344.4 354" y="99" fill="#c0caf5">claude</text>
+<text x="37.2" y="119" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="119" fill="#c0caf5">21:53:19</text>
+<text x="152.4 171.6 190.8" y="119" fill="#c0caf5">완료:</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6" y="119" fill="#c0caf5">planner</text>
+<text x="286.8" y="119" fill="#c0caf5">·</text>
+<text x="306 315.6 325.2 334.8 344.4 354" y="119" fill="#c0caf5">claude</text>
+<text x="382.8 392.4" y="119" fill="#c0caf5">0초</text>
+<text x="37.2" y="139" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="139" fill="#c0caf5">21:53:19</text>
+<text x="152.4 162 171.6 181.2" y="139" fill="#c0caf5">plan</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6" y="139" fill="#c0caf5">planned</text>
+<text x="296.4" y="139" fill="#c0caf5">→</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402" y="139" fill="#c0caf5">challenge</text>
+<text x="37.2" y="159" fill="#c0caf5">◉</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="159" fill="#c0caf5">21:53:19</text>
+<text x="152.4 171.6 190.8" y="159" fill="#c0caf5">시작:</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4" y="159" fill="#c0caf5">challenger</text>
+<text x="315.6" y="159" fill="#c0caf5">·</text>
+<text x="334.8 344.4 354 363.6 373.2" y="159" fill="#c0caf5">codex</text>
+<text x="37.2" y="179" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="179" fill="#c0caf5">21:53:20</text>
+<text x="152.4 171.6 190.8" y="179" fill="#c0caf5">완료:</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4" y="179" fill="#c0caf5">challenger</text>
+<text x="315.6" y="179" fill="#c0caf5">·</text>
+<text x="334.8 344.4 354 363.6 373.2" y="179" fill="#c0caf5">codex</text>
+<text x="402 411.6" y="179" fill="#c0caf5">0초</text>
+<text x="37.2" y="199" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="199" fill="#c0caf5">21:53:20</text>
+<text x="152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2" y="199" fill="#c0caf5">challenge</text>
+<text x="258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2" y="199" fill="#c0caf5">challenged:APPROVE</text>
+<text x="450" y="199" fill="#c0caf5">→</text>
+<text x="478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4" y="199" fill="#c0caf5">approve-plan</text>
+<text x="18 37.2" y="219" fill="#c0caf5">실행</text>
+<text x="66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4 306" y="219" fill="#c0caf5">run-20261122T215319-5dbe69</text>
+<text x="325.2" y="219" fill="#c0caf5">—</text>
+<text x="344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 478.8" y="219" fill="#c0caf5">approve-plan에서</text>
+<text x="507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4 594 603.6 613.2 622.8 632.4 642 651.6" y="219" fill="#c0caf5">waiting-approval</text>
+<text x="670.8 680.4 699.6" y="219" fill="#c0caf5">(시도</text>
+<text x="728.4 738 757.2 776.4" y="219" fill="#c0caf5">0회차,</text>
+<text x="795.6 814.8 834" y="219" fill="#c0caf5">브랜치</text>
+<text x="862.8 872.4 882 891.6 901.2 910.8 920.4 930 939.6 949.2 958.8 968.4 978 987.6 997.2 1006.8 1016.4 1026 1035.6 1045.2 1054.8 1064.4 1074 1083.6 1093.2 1102.8 1112.4 1122 1131.6 1141.2 1150.8 1160.4 1170 1179.6 1189.2 1198.8 1208.4" y="219" fill="#c0caf5">taskquoin/run-20261122T215319-5dbe69)</text>
+<text x="37.2 46.8 56.4 66" y="239" fill="#c0caf5">plan</text>
+<text x="85.2 94.8 104.4 114 123.6 133.2 142.8 152.4" y="239" fill="#c0caf5">approval</text>
+<text x="171.6 181.2 190.8 200.4 210 219.6 229.2 238.8" y="239" fill="#c0caf5">required</text>
+<text x="37.2" y="259" fill="#c0caf5">✔</text>
+<text x="56.4 75.6" y="259" fill="#c0caf5">계획</text>
+<text x="104.4 123.6" y="259" fill="#c0caf5">수립</text>
+<text x="200.4 219.6" y="259" fill="#c0caf5">완료</text>
+<text x="258 267.6 277.2 286.8 296.4 306 315.6" y="259" fill="#c0caf5">planner</text>
+<text x="334.8" y="259" fill="#c0caf5">·</text>
+<text x="354 363.6 373.2 382.8 392.4 402" y="259" fill="#c0caf5">claude</text>
+<text x="430.8 440.4 450 459.6 469.2 478.8 488.4 498" y="259" fill="#c0caf5">21:53:19</text>
+<text x="526.8 536.4" y="259" fill="#c0caf5">0초</text>
+<text x="574.8 584.4 594 603.6" y="259" fill="#c0caf5">show</text>
+<text x="622.8 632.4 642 651.6" y="259" fill="#c0caf5">plan</text>
+<text x="37.2" y="279" fill="#c0caf5">✔</text>
+<text x="56.4 75.6 94.8" y="279" fill="#c0caf5">적대적</text>
+<text x="123.6 142.8" y="279" fill="#c0caf5">비평</text>
+<text x="200.4 219.6" y="279" fill="#c0caf5">완료</text>
+<text x="258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4" y="279" fill="#c0caf5">challenger</text>
+<text x="363.6" y="279" fill="#c0caf5">·</text>
+<text x="382.8 392.4 402 411.6 421.2" y="279" fill="#c0caf5">codex</text>
+<text x="450 459.6 469.2 478.8 488.4 498 507.6 517.2" y="279" fill="#c0caf5">21:53:20</text>
+<text x="546 555.6" y="279" fill="#c0caf5">0초</text>
+<text x="594 603.6 613.2 622.8" y="279" fill="#c0caf5">show</text>
+<text x="642 651.6 661.2 670.8 680.4 690 699.6 709.2 718.8" y="279" fill="#c0caf5">challenge</text>
+<text x="37.2" y="299" fill="#c0caf5">◆</text>
+<text x="56.4 75.6" y="299" fill="#c0caf5">계획</text>
+<text x="104.4 123.6" y="299" fill="#c0caf5">승인</text>
+<text x="200.4 219.6 238.8 258" y="299" fill="#c0caf5">기다리는</text>
+<text x="286.8" y="299" fill="#c0caf5">중</text>
+<text x="325.2 334.8" y="299" fill="#c0caf5">0초</text>
+<text x="373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8" y="299" fill="#c0caf5">964c04e09ebe</text>
+<text x="37.2" y="319" fill="#c0caf5">·</text>
+<text x="56.4 75.6" y="319" fill="#c0caf5">구현</text>
+<text x="200.4 219.6" y="319" fill="#c0caf5">대기</text>
+<text x="248.4" y="319" fill="#c0caf5">중</text>
+<text x="37.2" y="339" fill="#c0caf5">·</text>
+<text x="56.4 75.6 94.8" y="339" fill="#c0caf5">클린룸</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6" y="339" fill="#c0caf5">Verify</text>
+<text x="200.4 219.6" y="339" fill="#c0caf5">대기</text>
+<text x="248.4" y="339" fill="#c0caf5">중</text>
+<text x="37.2" y="359" fill="#c0caf5">·</text>
+<text x="56.4 66 75.6" y="359" fill="#c0caf5">RED</text>
+<text x="94.8 114" y="359" fill="#c0caf5">증명</text>
+<text x="200.4 219.6" y="359" fill="#c0caf5">대기</text>
+<text x="248.4" y="359" fill="#c0caf5">중</text>
+<text x="37.2" y="379" fill="#c0caf5">·</text>
+<text x="56.4 75.6" y="379" fill="#c0caf5">리뷰</text>
+<text x="200.4 219.6" y="379" fill="#c0caf5">대기</text>
+<text x="248.4" y="379" fill="#c0caf5">중</text>
+<text x="37.2" y="399" fill="#c0caf5">·</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4" y="399" fill="#c0caf5">commit</text>
+<text x="123.6 142.8" y="399" fill="#c0caf5">승인</text>
+<text x="200.4 219.6" y="399" fill="#c0caf5">대기</text>
+<text x="248.4" y="399" fill="#c0caf5">중</text>
+<text x="37.2" y="419" fill="#c0caf5">·</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4" y="419" fill="#c0caf5">Commit</text>
+<text x="200.4 219.6" y="419" fill="#c0caf5">대기</text>
+<text x="248.4" y="419" fill="#c0caf5">중</text>
+<text x="37.2 56.4 75.6" y="439" fill="#c0caf5">검토:</text>
+<text x="104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="439" fill="#c0caf5">taskquoin</text>
+<text x="200.4 210 219.6 229.2" y="439" fill="#c0caf5">show</text>
+<text x="248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4" y="439" fill="#c0caf5">run-20261122T215319-5dbe69</text>
+<text x="507.6 517.2 526.8 536.4" y="439" fill="#c0caf5">plan</text>
+<text x="555.6 565.2" y="439" fill="#c0caf5">(및</text>
+<text x="594 603.6 613.2 622.8 632.4 642 651.6 661.2 670.8 680.4" y="439" fill="#c0caf5">challenge)</text>
+<text x="37.2 56.4 75.6" y="459" fill="#c0caf5">승인:</text>
+<text x="104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="459" fill="#c0caf5">taskquoin</text>
+<text x="200.4 210 219.6 229.2 238.8 248.4 258" y="459" fill="#c0caf5">approve</text>
+<text x="277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2" y="459" fill="#c0caf5">run-20261122T215319-5dbe69</text>
+<text x="536.4 546 555.6 565.2" y="459" fill="#c0caf5">plan</text>
+<text x="584.4 594 603.6 613.2 622.8 632.4 642 651.6" y="459" fill="#c0caf5">--expect</text>
+<text x="670.8 680.4 690 699.6 709.2 718.8 728.4 738 747.6 757.2 766.8 776.4" y="459" fill="#c0caf5">964c04e09ebe</text>
+<text x="795.6 805.2 814.8 824.4" y="459" fill="#c0caf5">--as</text>
+<text x="843.6 853.2 872.4 891.6" y="459" fill="#c0caf5">&lt;사용자</text>
+<text x="920.4 939.6 958.8" y="459" fill="#c0caf5">이름&gt;</text>
+<text x="104.4 114 123.6 133.2 142.8" y="479" fill="#c0caf5">(plan</text>
+<text x="162 171.6 181.2 190.8 200.4 210" y="479" fill="#c0caf5">sha256</text>
+<text x="229.2 238.8 248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4 594 603.6 613.2 622.8 632.4 642 651.6 661.2 670.8 680.4 690 699.6 709.2 718.8 728.4 738 747.6 757.2 766.8 776.4 786 795.6 805.2 814.8 824.4 834 843.6" y="479" fill="#c0caf5">964c04e09ebe1c44125abac3209229ee9b73f3c899afc54e32565f248c87435b)</text>
+</g></svg>

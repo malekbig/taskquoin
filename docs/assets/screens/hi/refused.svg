@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1188" height="98" viewBox="0 0 1188 98" role="img" aria-label="~/calc — a wrong hash is refused">
+<title>~/calc — a wrong hash is refused</title>
+<rect width="1188" height="98" rx="8" fill="#1a1b26"/>
+<path d="M0 8a8 8 0 0 1 8-8h1172a8 8 0 0 1 8 8v22h-1188z" fill="#16161e"/>
+<circle cx="16" cy="15" r="5" fill="#f7768e"/>
+<circle cx="33" cy="15" r="5" fill="#e0af68"/>
+<circle cx="50" cy="15" r="5" fill="#9ece6a"/>
+<text x="594" y="19.5" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-size="12.5" fill="#787c99">~/calc — a wrong hash is refused</text>
+<g font-family="'Cascadia Mono','JetBrains Mono','DejaVu Sans Mono',Menlo,Consolas,'Noto Sans Mono CJK SC','Noto Sans Mono','Segoe UI Symbol','Noto Sans Symbols 2','Apple Symbols',monospace" font-size="16" xml:space="preserve">
+<text x="18 27.6 37.2 46.8 56.4 66" y="59" fill="#9aa5ce">~/calc</text>
+<text x="85.2" y="59" fill="#9aa5ce">$</text>
+<text x="104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="59" fill="#c0caf5">taskquoin</text>
+<text x="200.4 210 219.6 229.2 238.8 248.4 258" y="59" fill="#c0caf5">approve</text>
+<text x="277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2" y="59" fill="#c0caf5">run-20261122T215110-31ddeb</text>
+<text x="536.4 546 555.6 565.2 574.8 584.4" y="59" fill="#c0caf5">commit</text>
+<text x="603.6 613.2 622.8 632.4 642 651.6 661.2 670.8" y="59" fill="#c0caf5">--expect</text>
+<text x="690 699.6 709.2 718.8 728.4 738 747.6 757.2 766.8 776.4 786 795.6" y="59" fill="#c0caf5">000000000000</text>
+<text x="814.8 824.4 834 843.6" y="59" fill="#c0caf5">--as</text>
+<text x="862.8 872.4 882" y="59" fill="#c0caf5">you</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="79" fill="#c0caf5">taskquoin</text>
+<text x="114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="79" fill="#c0caf5">approve:</text>
+<text x="200.4 210 219.6 229.2 238.8 248.4 258 267.6" y="79" fill="#c0caf5">expected</text>
+<text x="286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4" y="79" fill="#c0caf5">000000000000</text>
+<text x="411.6 421.2 430.8 440.4" y="79" fill="#c0caf5">does</text>
+<text x="459.6 469.2 478.8" y="79" fill="#c0caf5">not</text>
+<text x="498 507.6 517.2 526.8 536.4" y="79" fill="#c0caf5">match</text>
+<text x="555.6 565.2 574.8" y="79" fill="#c0caf5">the</text>
+<text x="594 603.6 613.2 622.8 632.4 642 651.6" y="79" fill="#c0caf5">pending</text>
+<text x="670.8 680.4 690 699.6 709.2 718.8 728.4 738" y="79" fill="#c0caf5">artifact</text>
+<text x="757.2 766.8 776.4 786 795.6 805.2 814.8 824.4 834 843.6 853.2 862.8 872.4" y="79" fill="#c0caf5">909645eeb0a1…</text>
+<text x="891.6" y="79" fill="#c0caf5">—</text>
+<text x="910.8 920.4 930 939.6 949.2 958.8 968.4" y="79" fill="#c0caf5">re-read</text>
+<text x="987.6 997.2" y="79" fill="#c0caf5">it</text>
+<text x="1016.4 1026 1035.6 1045.2 1054.8 1064.4" y="79" fill="#c0caf5">before</text>
+<text x="1083.6 1093.2 1102.8 1112.4 1122 1131.6 1141.2 1150.8 1160.4" y="79" fill="#c0caf5">approving</text>
+</g></svg>

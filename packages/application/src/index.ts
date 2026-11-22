@@ -4,3 +4,5 @@ export * from './ports/memory.ts';
 export * from './use-cases/prepare-run.ts';
 export * from './workflow/feature-governed.ts';
 export * from './workflow/prompts.ts';
+export * from './projection/run-view.ts';
+export * from './projection/squad-view.ts';

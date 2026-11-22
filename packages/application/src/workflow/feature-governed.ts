@@ -58,7 +58,11 @@ export interface RunState {
 
 export interface VerifyResult { passed: boolean; exitCode: number | null; conclusive: boolean; treeChanged: boolean; log: string;
   /** Verify will not run this tree at all (e.g. symlinks leaving the repository): a human decision, never a rework. */
-  refusal?: string }
+  refusal?: string;
+  /** First line of the test command's own output (untrusted, raw): says why an inconclusive run could not run. */
+  firstLine?: string;
+  /** The command could not run at all (sandbox not started, exit >= 126, killed other than by timeout): not red tests. A timeout or a truncated log of a genuine red is NOT this: it is red. */
+  couldNotRun?: boolean }
 /** `roots` = inherited dependency directories (repository-relative); `deps` = their digests; `ignored` = path → fingerprint. */
 export interface WorkspaceSnapshot { roots: string[]; deps: Record<string, string>; ignored: Record<string, string>;
   /** The inherited paths cannot be frozen (e.g. one goes through a symlink): stop before any agent writes. */
@@ -150,6 +154,12 @@ export function approve(state: RunState, node: ApprovalNode, approvedBy: string,
   return { ...state, status: 'running', reason: undefined, approvals: { ...state.approvals, [node]: { approvedBy: approvedBy.trim(), at: now.toISOString(), binding: p.binding } } };
 }
 
+/** A run whose process was killed (the caller holds its lock, so nobody owns it): `interrupted` at the node it was at. */
+export function interrupt(state: RunState, reason: string, now: Date): RunState {
+  if (state.status !== 'running') throw new Error(`only a running run can be recovered (status ${state.status})`);
+  return { ...state, status: 'interrupted', reason, history: [...state.history, { node: state.current, outcome: 'interrupted', at: now.toISOString() }] };
+}
+
 /** Continue an interrupted run from the node where it stopped. */
 export function resume(state: RunState): RunState {
   if (state.status !== 'interrupted') throw new Error(`only an interrupted run can be resumed (status ${state.status})`);
@@ -177,8 +187,10 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
     if (!g.ok) { stop('failed', `gate refused agent ${role}: ${g.failures.map(f => f.message).join(' | ')}`); return undefined; }
     for (const r of g.acceptedRisks) d.event({ type: 'risk.accepted', runId: s.runId, agent: role, capability: r.capability, approvedBy: r.approvedBy, expires: r.expires });
     const { spec, executor } = d.agents[role];
+    d.event({ type: 'agent.started', runId: s.runId, agent: role, runtime: executor.runtime, label: labelOf(role) });
     const r = await executor.run({ agent: spec, task, cwd: d.run.cwd, env: d.run.env, timeoutMs: d.run.timeoutMs, maxOutputBytes: d.run.maxOutputBytes, ticket: g.ticket, ...(frozenPaths?.length ? { frozenPaths } : {}) });
     d.event({ type: 'agent.finished', runId: s.runId, agent: role, runtime: r.runtime, label: labelOf(role), status: r.status, costUsd: r.usage?.costUsd ?? null,
+      durationMs: r.durationMs, model: r.inventory?.model ?? null, tokensIn: r.usage?.inputTokens ?? null, tokensOut: r.usage?.outputTokens ?? null,
       tokens: { prompt: r.usage?.inputTokens ?? null, completion: r.usage?.outputTokens ?? null }, digest: r.effectiveConfigDigest });
     if (r.status !== 'completed' || !r.terminalMessage?.trim()) {
       // What the runtime said (e.g. OpenCode naming its provider's error) comes first, then stderr (final review I4).
@@ -253,6 +265,7 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
             const snap = await d.workspace.snapshot();
             if (snap.refusal) { stop('needs-human', `Verify refused: ${snap.refusal}`); break; }
             s = { ...s, inheritedRoots: snap.roots, artifacts: art('workspace-baseline', JSON.stringify(snap)) };
+            save(); // on disk BEFORE the implementer starts: a run killed during this attempt resumes with this baseline
           }
           s = { ...s, attempts: attempt, verifiedTree: undefined, reviewedTree: undefined };
           const frozen = s.inheritedRoots!.map(r => `${d.run.cwd.replace(/\/$/, '')}/${r}`);
@@ -281,6 +294,12 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
           }
           const v = await d.verify(before, roots);
           if (v.refusal) { s = { ...s, artifacts: art(`verify-${s.attempts}`, v.log) }; stop('needs-human', `Verify refused: ${v.refusal}`); break; }
+          if (v.couldNotRun) { // the test command could not even run (127, 126, a kill other than the timeout, sandbox not started): not red tests, no rework can fix it
+            s = { ...s, artifacts: art(`verify-${s.attempts}`, v.log) };
+            d.event({ type: 'verify.result', runId: s.runId, attempt: s.attempts, passed: false, exitCode: v.exitCode, inconclusive: true, tree: before, ignoredChanges: nIgn });
+            stop('needs-human', `Verify could not run the test command (exit ${v.exitCode ?? 'none'}): ${(v.firstLine ?? '').slice(0, 200)}`);
+            break;
+          }
           const treeChanged = v.treeChanged;
           const log = treeChanged ? `${v.log}\n\nTASKQUOIN: verification modified tracked files of the clean room; tests must not change the code under test` : v.log;
           arts = art(`verify-${s.attempts}`, log);

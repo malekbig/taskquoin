@@ -1,7 +1,8 @@
 /**
  * Test world for the E2E features: a temporary git repository, an isolated HOME / XDG_STATE_HOME (the owner's real
  * control store and claude-mem are never touched), fake `claude` / `codex` on PATH, and the REAL Taskquoin CLI, git,
- * npm and bubblewrap verification.
+ * npm and bubblewrap verification — except where a scenario puts a fake `npm` first on the PATH (`fakeNpm`, the
+ * /upgrade install scenarios: the real `npm install -g` must never run, even if a cancellation regressed).
  */
 import { execFileSync, spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
@@ -26,16 +27,28 @@ export class World {
   /** A fake OpenAI-compatible provider in its own process (multi-LLM A scenarios). */
   provider?: { proc: ChildProcess; url: string; modeFile: string; logFile: string };
 
+  /** One line per real (non-version) call of a fake runtime, in order. */
+  callLog = join(this.root, 'runtime-calls');
+  calls(): string[] { try { return readFileSync(this.callLog, 'utf8').split('\n').filter(Boolean); } catch { return []; } }
+
   constructor() {
     const bin = join(this.root, 'bin'); mkdirSync(bin); mkdirSync(join(this.root, 'home'));
     for (const [name, file] of [['claude', 'fake-claude.cjs'], ['codex', 'fake-codex.cjs']]) {
-      writeFileSync(join(bin, name), `#!/bin/sh\nexec ${process.execPath} ${FAKES}${file} "$@"\n`); chmodSync(join(bin, name), 0o755);
+      // Every call that is not a version probe is recorded: a scenario can prove an agent was never called.
+      writeFileSync(join(bin, name), `#!/bin/sh\ncase "$1" in --version) ;; *) echo "${name}" >> '${this.callLog}' ;; esac\nexec ${process.execPath} ${FAKES}${file} "$@"\n`); chmodSync(join(bin, name), 0o755);
     }
     // OpenCode runs inside Taskquoin's sandbox (HOME hidden): its fake lives next to its shim, outside the repository.
     copyFileSync(`${FAKES}fake-opencode.cjs`, join(bin, 'fake-opencode.cjs'));
     writeFileSync(join(bin, 'opencode'), `#!/bin/sh\nexec ${process.execPath} ${join(bin, 'fake-opencode.cjs')} "$@"\n`); chmodSync(join(bin, 'opencode'), 0o755);
     // node's own directory too: on CI runners node lives in a tool cache, not in /usr/bin (the launcher runs `node`)
-    this.env = { PATH: `${bin}:${dirname(process.execPath)}:/usr/bin:/bin`, HOME: join(this.root, 'home'), XDG_STATE_HOME: join(this.root, 'state'), LANG: 'C.UTF-8' };
+    this.env = { PATH: `${bin}:${dirname(process.execPath)}:/usr/bin:/bin`, HOME: join(this.root, 'home'), XDG_STATE_HOME: join(this.root, 'state'), LANG: 'C.UTF-8', TASKQUOIN_OFFLINE: '1' };
+  }
+  /** Where the fake npm writes its working directory (line 1) and its arguments (line 2) when it is run. */
+  npmTrace = join(this.root, 'npm-ran');
+  /** A fake `npm` in the World's bin, ahead of the real one: it leaves a trace and fails (exit 1), installing nothing. */
+  fakeNpm() {
+    const p = join(this.root, 'bin', 'npm');
+    writeFileSync(p, `#!/bin/sh\npwd > '${this.npmTrace}'\necho "$*" >> '${this.npmTrace}'\nexit 1\n`); chmodSync(p, 0o755);
   }
   git(...a: string[]) { return execFileSync('git', a, { cwd: this.repo, encoding: 'utf8', env: this.env }); }
   tq(args: string[], input?: string) {

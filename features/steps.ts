@@ -1,9 +1,10 @@
 /** Step definitions (French) for the Taskquoin E2E features. Each step drives the REAL CLI or inspects real state. */
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import YAML from 'yaml';
 import { join } from 'node:path';
+import { repoStore } from '@taskquoin/store-fs';
 import { defaultConfig, renderConfig } from '@taskquoin/config';
 import type { StepDef } from './support/gherkin.ts';
 import type { World } from './support/world.ts';
@@ -119,6 +120,12 @@ export const steps: StepDef<World>[] = [
     w.git('add', '.gitignore'); w.git('commit', '-q', '-m', 'ignore ' + pattern);
     w.commitsAtStart = Number(w.git('rev-list', '--count', 'HEAD').trim()); // the owner's commit, before any run
   } },
+  { re: s(`le propriétaire configure la commande de test "(.+)"`), fn: (w, cmd) => {
+    const y = join(w.repo, 'taskquoin.yaml'); writeFileSync(y, readFileSync(y, 'utf8') + `verify:\n  command: ${cmd}\n`);
+    w.git('add', 'taskquoin.yaml'); w.git('commit', '-q', '-m', 'verify.command ' + cmd);
+    w.commitsAtStart = Number(w.git('rev-list', '--count', 'HEAD').trim());
+  } },
+  { re: s(`l'historique du run ne contient pas "(.+)"`), fn: (w, text) => { const o = status(w); assert.ok(!o.includes(text), o); } },
   { re: s(`la langue est "(.+)"`), fn: (w, code) => { w.env.TASKQUOIN_LANG = code; } },
   { re: s(`le propriétaire tape dans la console : (.+)`), fn: (w, script) => {
     // `<run>` = the current run id; `<hash>` = the 12 chars a human reads in `taskquoin status <run>` (--expect …)
@@ -146,6 +153,17 @@ export const steps: StepDef<World>[] = [
   { re: s(`les requêtes reçues par le fournisseur contiennent "(.+)"`), fn: (w, text) => {
     const rs = w.providerRequests(); assert.ok(rs.length > 0); for (const r of rs) assert.ok(JSON.parse(r.body).messages[1].content.includes(text), `missing: ${text}`);
   } },
+  { re: s(`le processus du run tué pendant le nœud "(.+)"`), fn: (w, node) => {
+    // What a SIGKILL leaves behind: status running at the node, and a lock naming a pid that no longer exists.
+    const store = repoStore(w.repo, join(w.env.XDG_STATE_HOME, 'taskquoin')); const dir = join(store.runs, w.runId!);
+    const st = JSON.parse(readFileSync(join(dir, 'state.json'), 'utf8')); st.status = 'running'; st.current = node; delete st.reason;
+    writeFileSync(join(dir, 'state.json'), JSON.stringify(st, null, 2));
+    const dead = spawnSync(process.execPath, ['-e', '']); // a finished child: its pid is free
+    writeFileSync(join(dir, 'lock'), `${dead.pid}\n`, { mode: 0o600 });
+  } },
+  // Exact: a history entry whose outcome IS the text (one definition only — the runner takes the first match).
+  { re: s(`l'historique du run contient "(.+)"`), fn: (w, text) => { const o = w.tq(['status', w.runId!, '--json']).stdout; assert.ok(o.includes(`"outcome": "${text}"`), o); } },
+  { re: s(`la demande du run est "(.+)"`), fn: (w, text) => { assert.ok(w.runId, 'no run started'); assert.equal(JSON.parse(w.tq(['status', w.runId!, '--json']).stdout).request, text); } },
   { re: s(`le propriétaire reprend le run`), fn: (w) => { w.tq(['resume', w.runId!]); } },
   { re: s(`le propriétaire consulte le run`), fn: (w) => { w.tq(['status', w.runId!]); } },
   { re: s(`le propriétaire approuve le plan sans vérifier le résultat`), fn: (w) => {
@@ -169,6 +187,25 @@ export const steps: StepDef<World>[] = [
   // ── Vérifications : commandes ───────────────────────────────────────────────────────────────────────────────────
   { re: s(`la commande réussit`), fn: (w) => ok(w, 'command') },
   { re: s(`la commande échoue avec le code (\\d)`), fn: (w, code) => assert.equal(w.last?.status, Number(code), `${w.last?.stdout}\n${w.last?.stderr}`) },
+  { re: s(`la sortie ne contient pas "(.+)"`), fn: (w, text) => assert.ok(!w.last?.stdout.includes(text), `stdout:\n${w.last?.stdout}`) },
+  { re: s(`la sortie d'erreur ne contient pas "(.+)"`), fn: (w, text) => assert.ok(!w.last?.stderr.includes(text), `stderr:\n${w.last?.stderr}`) },
+  { re: s(`un Claude Code "(.+)" installé sur le PATH`), fn: (w, v) => {
+    const bin = join(w.root, 'bin', 'claude'); writeFileSync(bin, `#!/bin/sh\necho '${v} (Claude Code)'\n`); chmodSync(bin, 0o755);
+  } },
+  { re: s(`le propriétaire exécute "(.+)" en tapant une ligne vide`), fn: (w, cmd) => { w.tq(cmd.split(' '), '\n'); } },
+  { re: s(`le propriétaire exécute "(.+)" et confirme en tapant yes`), fn: (w, cmd) => { w.tq(cmd.split(' '), 'yes\n'); } },
+  { re: s(`un faux npm qui laisse une trace s'il est lancé`), fn: (w) => w.fakeNpm() },
+  { re: s(`le faux npm n'a pas été lancé`), fn: (w) => assert.ok(!existsSync(w.npmTrace), `npm was run: ${existsSync(w.npmTrace) ? readFileSync(w.npmTrace, 'utf8') : ''}`) },
+  { re: s(`le faux npm a été lancé dans HOME avec "(.+)"`), fn: (w, args) => {
+    assert.ok(existsSync(w.npmTrace), 'npm was not run');
+    const [cwd, line] = readFileSync(w.npmTrace, 'utf8').split('\n');
+    assert.equal(cwd, w.env.HOME, 'the installer runs in HOME, outside the repository'); assert.ok(line.includes(args), line);
+  } },
+  // before the plain `contient` step: its `(.+)` would swallow the `avant` part
+  { re: s(`la sortie contient "(.+)" avant "(.+)"`), fn: (w, a, b) => {
+    const out = w.last?.stdout ?? ''; const i = out.indexOf(a), j = out.indexOf(b);
+    assert.ok(i >= 0 && j >= 0 && i < j, `"${a}" (${i}) should come before "${b}" (${j}):\n${out}`);
+  } },
   { re: s(`la sortie contient "(.+)"`), fn: (w, text) => assert.ok(w.last?.stdout.includes(text), `stdout:\n${w.last?.stdout}`) },
   { re: s(`la sortie d'erreur contient "(.+)"`), fn: (w, text) => assert.ok(w.last?.stderr.includes(text), `stderr:\n${w.last?.stderr}`) },
   // ── Vérifications : run ─────────────────────────────────────────────────────────────────────────────────────────
@@ -184,6 +221,8 @@ export const steps: StepDef<World>[] = [
     assert.match(w.git('rev-parse', '--abbrev-ref', 'HEAD').trim(), /^taskquoin\/run-/);
     assert.ok(w.git('log', '-1', '--format=%B').includes(text));
   } },
+  { re: s(`aucun agent n'a été appelé`), fn: (w) => assert.deepEqual(w.calls(), [], 'a runtime was called before the refusal') },
+  { re: s(`aucune branche de run n'existe`), fn: (w) => assert.equal(w.git('branch', '--list', 'taskquoin/*').trim(), '') },
   { re: s(`le dernier commit contient le fichier "(.+)"`), fn: (w, f) => assert.ok(w.git('show', '--name-only', '--format=', 'HEAD').split('\n').includes(f)) },
   { re: s(`la commande échoue avec un message contenant "(.+)"`), fn: (w, text) => {
     assert.notEqual(w.last?.status, 0); assert.ok(`${w.last?.stdout}${w.last?.stderr}`.includes(text), `${w.last?.stdout}\n${w.last?.stderr}`);

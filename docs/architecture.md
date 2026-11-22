@@ -40,15 +40,20 @@ flowchart LR
   AF -->|Action Broker, approved only| WR[Write connectors<br/>GitHub PR, Jira comment]
   AF -->|state, approvals, audit| CP[(Control plane store<br/>outside workspace)]
   CI[CI pipeline] -->|taskquoin ci gate| AF
+  Dev -->|watch| DB[Dashboard<br/>read-only]
+  DB -.->|read-only| CP
+  DB -->|retyped hash: taskquoin approve, separate process| AF
 ```
 
 ## 3. Layered view (hexagonal)
 
 ```text
 apps/cli                       thin: parse args → application use case → print
+  └─ src/tui                   terminal screens (home, console, Dashboard): pure renderers over the projections; the Dashboard reads the store read-only
 apps/hooks                     shell/py entrypoints invoked by runtimes (PreToolUse…) → call rules engine
 packages/application           use cases + PORTS (owned here)
   ├─ InitProject, CompileRuntimes, Doctor, RunWorkflow, ApproveAction, ImportSkill, AuditSkill, Uninstall
+  ├─ projection: RunView, SquadView (pure: run state/events and gate verdicts → what a screen shows; the Dashboard and `status` read the same projection)
   └─ ports: RuntimeExecutor, RuntimeConfigInstaller, RunStore, ArtifactStore, ActionBroker, SkillSource, Scanner, Clock, Approver
 packages/domain                pure: Workflow state machine, Policy evaluation, Capability mapping, Approval binding, Trust state, Risk tier
 packages/rules                 pure deterministic rule engine (layer violations, forbidden paths, dangerous shell) — shared by hooks, CI, reviewer
@@ -69,7 +74,7 @@ Canonical capabilities: `fs.read(globs)`, `fs.write(globs)`, `shell.run(patterns
 
 Each runtime adapter publishes a **measured mapping** (`capabilities.json`, versioned):
 
-| Capability | Claude Code 2.1.325 | Codex 0.157.1 |
+| Capability | Claude Code 2.1.327 | Codex 0.157.1 |
 |---|---|---|
 | `fs.write` outside globs | PreToolUse hook deny (ENFORCED, exit 2) + `permissions.deny` `Edit(path)` rules | Sandbox `workspace-write` = workspace only (ENFORCED by OS sandbox); finer globs via PreToolUse hook (ENFORCED if hooks trusted, else UNSUPPORTED) |
 | `shell.run` patterns | `permissions.allow/deny Bash(...)` (ENFORCED for model-issued commands; **ADVISORY for what the command itself does**) | Sandbox governs effects (ENFORCED), `approval_policy=never` in headless |

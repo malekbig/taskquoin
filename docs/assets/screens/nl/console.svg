@@ -1,0 +1,331 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1217" height="758" viewBox="0 0 1217 758" role="img" aria-label="~/calc — taskquoin">
+<title>~/calc — taskquoin</title>
+<rect width="1217" height="758" rx="8" fill="#1a1b26"/>
+<path d="M0 8a8 8 0 0 1 8-8h1201a8 8 0 0 1 8 8v22h-1217z" fill="#16161e"/>
+<circle cx="16" cy="15" r="5" fill="#f7768e"/>
+<circle cx="33" cy="15" r="5" fill="#e0af68"/>
+<circle cx="50" cy="15" r="5" fill="#9ece6a"/>
+<text x="608.5" y="19.5" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-size="12.5" fill="#787c99">~/calc — taskquoin</text>
+<g font-family="'Cascadia Mono','JetBrains Mono','DejaVu Sans Mono',Menlo,Consolas,'Noto Sans Mono CJK SC','Noto Sans Mono','Segoe UI Symbol','Noto Sans Symbols 2','Apple Symbols',monospace" font-size="16" xml:space="preserve">
+<text x="18 27.6 37.2 46.8 56.4 66" y="59" fill="#9aa5ce">~/calc</text>
+<text x="85.2" y="59" fill="#9aa5ce">$</text>
+<text x="104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="59" fill="#c0caf5">taskquoin</text>
+<rect x="37.2" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="46.8" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="56.4" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="66" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="75.6" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="85.2" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="114.0" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="118.8" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="123.6" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="133.2" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="138.0" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="152.4" y="74" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="157.2" y="74" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="162.0" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="166.8" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="171.6" y="74" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="176.4" y="74" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="190.8" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="200.4" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="205.2" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="210.0" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="214.8" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="229.2" y="64" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="238.8" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="243.6" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="248.4" y="64" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="253.2" y="64" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="267.6" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="272.4" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="277.2" y="64" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="282.0" y="64" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="286.8" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="291.6" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="306" y="64" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="325.2" y="64" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="344.4" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="349.2" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="354.0" y="64" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="358.8" y="64" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="363.6" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="368.4" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="382.8" y="64" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="402" y="64" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="411.6" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="416.4" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="430.8" y="64" width="10.0" height="20.4" fill="#bb9af7"/>
+<text x="882 891.6 901.2 910.8 920.4 930 939.6 949.2 958.8 968.4" y="79" fill="#9aa5ce">v2026.11.1</text>
+<rect x="37.2" y="84" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="46.8" y="84" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="56.4" y="84" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="123.6" y="84" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="152.4" y="84" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="162.0" y="84" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="166.8" y="84" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="171.6" y="84" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="190.8" y="94" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="195.6" y="94" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="200.4" y="94" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="205.2" y="94" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="210" y="84" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="229.2" y="84" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="248.4" y="84" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="267.6" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="272.4" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="277.2" y="94" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="282.0" y="94" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="286.8" y="84" width="10.0" height="20.4" fill="#ff9e64"/>
+<rect x="306.0" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="310.8" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="315.6" y="94" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="320.4" y="94" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="325.2" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="330.0" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="344.4" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="349.2" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="354.0" y="94" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="358.8" y="94" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="363.6" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="368.4" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="382.8" y="84" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="402" y="84" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="421.2" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="426.0" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="430.8" y="84" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="37.2" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="46.8" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="56.4" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="66" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="75.6" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="85.2" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<text x="114" y="119" fill="#ff9e64">✦</text>
+<text x="133.2 142.8 152.4 162" y="119" fill="#ff9e64">YOUR</text>
+<text x="181.2 190.8" y="119" fill="#ff9e64">AI</text>
+<text x="210 219.6 229.2" y="119" fill="#ff9e64">DEV</text>
+<text x="248.4 258 267.6 277.2 286.8" y="119" fill="#ff9e64">SQUAD</text>
+<text x="306" y="119" fill="#ff9e64">✦</text>
+<rect x="37.2" y="124" width="10.0" height="20.4" fill="#ff9e64"/>
+<rect x="46.8" y="124" width="10.0" height="20.4" fill="#ff9e64"/>
+<rect x="56.4" y="124" width="10.0" height="20.4" fill="#ff9e64"/>
+<text x="114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="139" fill="#9aa5ce">gestuurd</text>
+<text x="200.4" y="139" fill="#9aa5ce">·</text>
+<text x="219.6 229.2 238.8 248.4" y="139" fill="#9aa5ce">mens</text>
+<text x="267.6 277.2" y="139" fill="#9aa5ce">in</text>
+<text x="296.4 306" y="139" fill="#9aa5ce">de</text>
+<text x="325.2 334.8 344.4" y="139" fill="#9aa5ce">lus</text>
+<text x="363.6" y="139" fill="#9aa5ce">·</text>
+<text x="382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6" y="139" fill="#9aa5ce">controleerbaar</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="179" fill="#9aa5ce">Repository</text>
+<text x="152.4 162 171.6 181.2 190.8 200.4" y="179" fill="#c0caf5">~/calc</text>
+<text x="238.8 248.4 258 267.6" y="179" fill="#c0caf5">main</text>
+<text x="286.8" y="179" fill="#c0caf5">·</text>
+<text x="306 315.6 325.2 334.8 344.4 354" y="179" fill="#c0caf5">schone</text>
+<text x="373.2 382.8 392.4 402" y="179" fill="#c0caf5">boom</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="199" fill="#9aa5ce">Sandbox</text>
+<text x="152.4" y="199" fill="#9ece6a">✔</text>
+<text x="171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258" y="199" fill="#c0caf5">bubblewrap</text>
+<text x="286.8" y="199" fill="#9ece6a">✔</text>
+<text x="306 315.6 325.2 334.8 344.4" y="199" fill="#c0caf5">socat</text>
+<text x="363.6" y="199" fill="#c0caf5">·</text>
+<text x="382.8 392.4 402 411.6 421.2 430.8" y="199" fill="#c0caf5">Verify</text>
+<text x="450 459.6" y="199" fill="#c0caf5">in</text>
+<text x="478.8 488.4 498 507.6 517.2" y="199" fill="#c0caf5">clean</text>
+<text x="536.4 546 555.6 565.2" y="199" fill="#c0caf5">room</text>
+<text x="584.4 594 603.6 613.2 622.8 632.4 642 651.6 661.2 670.8 680.4" y="199" fill="#c0caf5">beschikbaar</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2" y="219" fill="#9aa5ce">Beleid</text>
+<text x="152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2" y="219" fill="#c0caf5">taskquoin.yaml</text>
+<text x="296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402" y="219" fill="#c0caf5">b4432ff9d900</text>
+<text x="421.2" y="219" fill="#c0caf5">·</text>
+<text x="440.4" y="219" fill="#e0af68">1</text>
+<text x="459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2" y="219" fill="#e0af68">geaccepteerd</text>
+<text x="584.4 594 603.6 613.2 622.8 632.4" y="219" fill="#e0af68">risico</text>
+<text x="651.6 661.2 670.8" y="219" fill="#e0af68">tot</text>
+<text x="690 699.6 709.2 718.8 728.4 738 747.6 757.2 766.8 776.4" y="219" fill="#e0af68">2026-12-31</text>
+<text x="37.2 46.8" y="259" fill="#5f6a99">──</text>
+<text x="66 75.6 85.2 94.8" y="259" fill="#c0caf5">Team</text>
+<text x="114 123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8" y="259" fill="#5f6a99">─────────────────────────────────────────────────</text>
+<text x="594" y="259" fill="#9aa5ce">3</text>
+<text x="613.2 622.8 632.4" y="259" fill="#9aa5ce">van</text>
+<text x="651.6" y="259" fill="#9aa5ce">3</text>
+<text x="670.8 680.4 690 699.6 709.2 718.8" y="259" fill="#9aa5ce">agents</text>
+<text x="738 747.6 757.2 766.8 776.4 786" y="259" fill="#9aa5ce">gereed</text>
+<text x="805.2" y="259" fill="#9aa5ce">·</text>
+<text x="824.4 834 843.6 853.2 862.8 872.4" y="259" fill="#9aa5ce">Verify</text>
+<text x="891.6 901.2 910.8 920.4 930 939.6" y="259" fill="#9aa5ce">gereed</text>
+<text x="958.8 968.4" y="259" fill="#5f6a99">──</text>
+<text x="37.2" y="279" fill="#9ece6a">●</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2" y="279" fill="#c0caf5">Architect</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6" y="279" fill="#9aa5ce">planner</text>
+<text x="238.8" y="279" fill="#9aa5ce">·</text>
+<text x="258 267.6 277.2 286.8 296.4 306" y="279" fill="#9aa5ce">claude</text>
+<text x="373.2 382.8 392.4 402 411.6" y="279" fill="#9ece6a">READY</text>
+<text x="37.2" y="299" fill="#9ece6a">●</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2" y="299" fill="#c0caf5">Developer</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258" y="299" fill="#9aa5ce">implementer</text>
+<text x="277.2" y="299" fill="#9aa5ce">·</text>
+<text x="296.4 306 315.6 325.2 334.8 344.4" y="299" fill="#9aa5ce">claude</text>
+<text x="373.2 382.8 392.4 402 411.6" y="299" fill="#9ece6a">READY</text>
+<text x="37.2" y="319" fill="#e0af68">◐</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="319" fill="#c0caf5">Reviewer</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4" y="319" fill="#9aa5ce">challenger</text>
+<text x="267.6" y="319" fill="#9aa5ce">·</text>
+<text x="286.8 296.4 306 315.6 325.2" y="319" fill="#9aa5ce">codex</text>
+<text x="373.2 382.8 392.4 402 411.6" y="319" fill="#e0af68">READY</text>
+<text x="478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4" y="319" fill="#e0af68">geaccepteerd</text>
+<text x="603.6 613.2 622.8 632.4 642 651.6 661.2" y="319" fill="#e0af68">risico:</text>
+<text x="680.4 690 699.6 709.2 718.8 728.4 738 747.6 757.2 766.8 776.4 786 795.6 805.2 814.8" y="319" fill="#e0af68">connector.write</text>
+<text x="37.2" y="339" fill="#9ece6a">●</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4" y="339" fill="#c0caf5">Tester</text>
+<text x="162 171.6 181.2 190.8 200.4 210" y="339" fill="#9aa5ce">verify</text>
+<text x="229.2" y="339" fill="#9aa5ce">·</text>
+<text x="248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8" y="339" fill="#9aa5ce">bubblewrap</text>
+<text x="373.2 382.8 392.4 402 411.6" y="339" fill="#9ece6a">READY</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6" y="379" fill="#c0caf5">Taskquoin-console</text>
+<text x="190.8" y="379" fill="#c0caf5">—</text>
+<text x="210 219.6 229.2 238.8 248.4" y="379" fill="#c0caf5">/help</text>
+<text x="267.6 277.2 286.8 296.4" y="379" fill="#c0caf5">voor</text>
+<text x="315.6 325.2" y="379" fill="#c0caf5">de</text>
+<text x="344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4" y="379" fill="#c0caf5">commando's,</text>
+<text x="459.6 469.2 478.8" y="379" fill="#c0caf5">Tab</text>
+<text x="498 507.6" y="379" fill="#c0caf5">om</text>
+<text x="526.8 536.4 546" y="379" fill="#c0caf5">aan</text>
+<text x="565.2 574.8" y="379" fill="#c0caf5">te</text>
+<text x="594 603.6 613.2 622.8 632.4 642 651.6" y="379" fill="#c0caf5">vullen,</text>
+<text x="670.8 680.4 690 699.6 709.2" y="379" fill="#c0caf5">/quit</text>
+<text x="728.4 738" y="379" fill="#c0caf5">om</text>
+<text x="757.2 766.8" y="379" fill="#c0caf5">te</text>
+<text x="786 795.6 805.2 814.8 824.4 834 843.6 853.2" y="379" fill="#c0caf5">sluiten.</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="399" fill="#5ef2c2">taskquoin</text>
+<text x="114" y="399" fill="#5ef2c2">›</text>
+<text x="133.2 142.8 152.4 162 171.6" y="399" fill="#c0caf5">/help</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8 104.4" y="419" fill="#c0caf5">Commando's</text>
+<text x="123.6 133.2 142.8" y="419" fill="#c0caf5">(al</text>
+<text x="162 171.6 181.2" y="419" fill="#c0caf5">het</text>
+<text x="200.4 210 219.6 229.2 238.8 248.4" y="419" fill="#c0caf5">andere</text>
+<text x="267.6 277.2 286.8 296.4 306" y="419" fill="#c0caf5">wordt</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6" y="419" fill="#c0caf5">genegeerd:</text>
+<text x="430.8 440.4" y="419" fill="#c0caf5">er</text>
+<text x="459.6 469.2 478.8 488.4 498" y="419" fill="#c0caf5">start</text>
+<text x="517.2 526.8 536.4 546 555.6" y="419" fill="#c0caf5">niets</text>
+<text x="574.8 584.4 594 603.6 613.2 622.8" y="419" fill="#c0caf5">zonder</text>
+<text x="642 651.6 661.2" y="419" fill="#c0caf5">/):</text>
+<text x="37.2 46.8 56.4 66" y="439" fill="#c0caf5">/run</text>
+<text x="85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162" y="439" fill="#c0caf5">&lt;verzoek&gt;</text>
+<text x="325.2 334.8 344.4 354 363.6" y="439" fill="#c0caf5">start</text>
+<text x="382.8 392.4 402" y="439" fill="#c0caf5">een</text>
+<text x="421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546" y="439" fill="#c0caf5">gecontroleerde</text>
+<text x="565.2 574.8 584.4" y="439" fill="#c0caf5">run</text>
+<text x="603.6 613.2 622.8 632.4 642 651.6" y="439" fill="#c0caf5">(stopt</text>
+<text x="670.8 680.4 690" y="439" fill="#c0caf5">bij</text>
+<text x="709.2 718.8 728.4 738" y="439" fill="#c0caf5">elke</text>
+<text x="757.2 766.8 776.4 786 795.6 805.2 814.8 824.4 834 843.6 853.2 862.8" y="439" fill="#c0caf5">goedkeuring)</text>
+<text x="37.2 46.8 56.4 66 75.6" y="459" fill="#c0caf5">/runs</text>
+<text x="325.2 334.8 344.4 354" y="459" fill="#c0caf5">toon</text>
+<text x="373.2 382.8" y="459" fill="#c0caf5">de</text>
+<text x="402 411.6 421.2 430.8" y="459" fill="#c0caf5">runs</text>
+<text x="37.2 46.8 56.4 66" y="479" fill="#c0caf5">/use</text>
+<text x="85.2 94.8 104.4 114 123.6" y="479" fill="#c0caf5">&lt;run&gt;</text>
+<text x="325.2 334.8 344.4 354" y="479" fill="#c0caf5">kies</text>
+<text x="373.2 382.8" y="479" fill="#c0caf5">de</text>
+<text x="402 411.6 421.2 430.8 440.4 450 459.6" y="479" fill="#c0caf5">huidige</text>
+<text x="478.8 488.4 498" y="479" fill="#c0caf5">run</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="499" fill="#c0caf5">/status</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8" y="499" fill="#c0caf5">geschiedenis</text>
+<text x="450 459.6 469.2" y="499" fill="#c0caf5">van</text>
+<text x="488.4 498" y="499" fill="#c0caf5">de</text>
+<text x="517.2 526.8 536.4 546 555.6 565.2 574.8" y="499" fill="#c0caf5">huidige</text>
+<text x="594 603.6 613.2" y="499" fill="#c0caf5">run</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="519" fill="#c0caf5">/resume</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2" y="519" fill="#c0caf5">hervat</text>
+<text x="392.4 402" y="519" fill="#c0caf5">de</text>
+<text x="421.2 430.8 440.4 450 459.6 469.2 478.8" y="519" fill="#c0caf5">huidige</text>
+<text x="498 507.6 517.2" y="519" fill="#c0caf5">run</text>
+<text x="536.4 546 555.6" y="519" fill="#c0caf5">als</text>
+<text x="574.8 584.4 594" y="519" fill="#c0caf5">die</text>
+<text x="613.2 622.8 632.4 642 651.6 661.2 670.8 680.4 690 699.6 709.2" y="519" fill="#c0caf5">onderbroken</text>
+<text x="728.4 738 747.6" y="519" fill="#c0caf5">was</text>
+<text x="37.2 46.8 56.4 66 75.6" y="539" fill="#c0caf5">/show</text>
+<text x="94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4" y="539" fill="#c0caf5">[&lt;artefact&gt;]</text>
+<text x="325.2 334.8 344.4 354" y="539" fill="#c0caf5">toon</text>
+<text x="373.2 382.8" y="539" fill="#c0caf5">de</text>
+<text x="402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498" y="539" fill="#c0caf5">artefacten,</text>
+<text x="517.2 526.8" y="539" fill="#c0caf5">of</text>
+<text x="546 555.6 565.2" y="539" fill="#c0caf5">één</text>
+<text x="584.4 594 603.6 613.2 622.8" y="539" fill="#c0caf5">ervan</text>
+<text x="642 651.6 661.2 670.8 680.4 690" y="539" fill="#c0caf5">(plan,</text>
+<text x="709.2 718.8 728.4 738 747.6 757.2 766.8" y="539" fill="#c0caf5">diff-N,</text>
+<text x="786 795.6 805.2 814.8 824.4 834 843.6 853.2 862.8" y="539" fill="#c0caf5">verify-N,</text>
+<text x="882 891.6 901.2 910.8 920.4 930 939.6" y="539" fill="#c0caf5">red-N…)</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8 104.4" y="559" fill="#c0caf5">/approve</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8" y="559" fill="#c0caf5">&lt;plan|commit&gt;</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2" y="559" fill="#c0caf5">goedkeuren:</text>
+<text x="440.4 450 459.6 469.2 478.8" y="559" fill="#c0caf5">toont</text>
+<text x="498 507.6" y="559" fill="#c0caf5">de</text>
+<text x="526.8 536.4 546 555.6 565.2 574.8 584.4 594 603.6 613.2 622.8" y="559" fill="#c0caf5">openstaande</text>
+<text x="642 651.6 661.2 670.8 680.4" y="559" fill="#c0caf5">hash,</text>
+<text x="699.6 709.2 718.8" y="559" fill="#c0caf5">die</text>
+<text x="738" y="559" fill="#c0caf5">u</text>
+<text x="757.2 766.8 776.4 786 795.6 805.2 814.8" y="559" fill="#c0caf5">opnieuw</text>
+<text x="834 843.6 853.2 862.8 872.4 882" y="559" fill="#c0caf5">intypt</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="579" fill="#c0caf5">/agents</text>
+<text x="325.2 334.8" y="579" fill="#c0caf5">de</text>
+<text x="354 363.6 373.2 382.8 392.4 402" y="579" fill="#c0caf5">agents</text>
+<text x="421.2 430.8" y="579" fill="#c0caf5">en</text>
+<text x="450 459.6 469.2" y="579" fill="#c0caf5">hun</text>
+<text x="488.4 498 507.6 517.2 526.8 536.4 546" y="579" fill="#c0caf5">rechten</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="599" fill="#c0caf5">/doctor</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2" y="599" fill="#c0caf5">status</text>
+<text x="392.4 402 411.6" y="599" fill="#c0caf5">van</text>
+<text x="430.8 440.4" y="599" fill="#c0caf5">de</text>
+<text x="459.6 469.2 478.8 488.4 498 507.6 517.2" y="599" fill="#c0caf5">machine</text>
+<text x="536.4 546" y="599" fill="#c0caf5">en</text>
+<text x="565.2 574.8 584.4 594 603.6 613.2 622.8 632.4 642 651.6 661.2 670.8 680.4" y="599" fill="#c0caf5">certificering</text>
+<text x="699.6 709.2 718.8" y="599" fill="#c0caf5">van</text>
+<text x="738 747.6" y="599" fill="#c0caf5">de</text>
+<text x="766.8 776.4 786 795.6 805.2 814.8" y="599" fill="#c0caf5">agents</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="619" fill="#c0caf5">/skills</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450" y="619" fill="#c0caf5">geïnstalleerde</text>
+<text x="469.2 478.8 488.4 498 507.6 517.2" y="619" fill="#c0caf5">skills</text>
+<text x="536.4 546" y="619" fill="#c0caf5">en</text>
+<text x="565.2 574.8 584.4" y="619" fill="#c0caf5">hun</text>
+<text x="603.6 613.2 622.8 632.4 642 651.6" y="619" fill="#c0caf5">status</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8 104.4" y="639" fill="#c0caf5">/upgrade</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4" y="639" fill="#c0caf5">[auto|path|install]</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8" y="639" fill="#c0caf5">versies</text>
+<text x="402 411.6 421.2" y="639" fill="#c0caf5">van</text>
+<text x="440.4 450" y="639" fill="#c0caf5">de</text>
+<text x="469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4 594 603.6 613.2" y="639" fill="#c0caf5">AI-hulpmiddelen:</text>
+<text x="632.4 642 651.6 661.2 670.8 680.4" y="639" fill="#c0caf5">tonen,</text>
+<text x="699.6 709.2" y="639" fill="#c0caf5">de</text>
+<text x="728.4 738 747.6 757.2 766.8 776.4 786 795.6 805.2" y="639" fill="#c0caf5">gebruikte</text>
+<text x="824.4 834 843.6 853.2 862.8 872.4 882" y="639" fill="#c0caf5">kiezen,</text>
+<text x="901.2 910.8 920.4" y="639" fill="#c0caf5">het</text>
+<text x="939.6 949.2 958.8 968.4 978 987.6 997.2" y="639" fill="#c0caf5">gemeten</text>
+<text x="1016.4 1026 1035.6 1045.2 1054.8 1064.4" y="639" fill="#c0caf5">Claude</text>
+<text x="1083.6 1093.2 1102.8 1112.4" y="639" fill="#c0caf5">Code</text>
+<text x="1131.6 1141.2 1150.8 1160.4 1170 1179.6 1189.2" y="639" fill="#c0caf5">opnieuw</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4" y="659" fill="#c0caf5">installeren</text>
+<text x="37.2 46.8 56.4 66 75.6" y="679" fill="#c0caf5">/help</text>
+<text x="325.2 334.8 344.4 354" y="679" fill="#c0caf5">deze</text>
+<text x="373.2 382.8 392.4 402" y="679" fill="#c0caf5">hulp</text>
+<text x="37.2 46.8 56.4 66 75.6" y="699" fill="#c0caf5">/quit</text>
+<text x="325.2 334.8 344.4 354 363.6" y="699" fill="#c0caf5">sluit</text>
+<text x="382.8 392.4" y="699" fill="#c0caf5">de</text>
+<text x="411.6 421.2 430.8 440.4 450 459.6 469.2" y="699" fill="#c0caf5">console</text>
+<text x="18 27.6 37.2" y="719" fill="#c0caf5">Tab</text>
+<text x="56.4 66 75.6 85.2" y="719" fill="#c0caf5">vult</text>
+<text x="104.4 114 123.6" y="719" fill="#c0caf5">een</text>
+<text x="142.8 152.4 162 171.6 181.2 190.8 200.4 210" y="719" fill="#c0caf5">commando</text>
+<text x="229.2 238.8 248.4 258" y="719" fill="#c0caf5">aan;</text>
+<text x="277.2 286.8 296.4" y="719" fill="#c0caf5">met</text>
+<text x="315.6" y="719" fill="#c0caf5">/</text>
+<text x="334.8 344.4 354 363.6" y="719" fill="#c0caf5">toon</text>
+<text x="382.8 392.4" y="719" fill="#c0caf5">je</text>
+<text x="411.6 421.2 430.8" y="719" fill="#c0caf5">dit</text>
+<text x="450 459.6 469.2 478.8 488.4" y="719" fill="#c0caf5">menu.</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="739" fill="#5ef2c2">taskquoin</text>
+<text x="114" y="739" fill="#5ef2c2">›</text>
+<text x="133.2 142.8 152.4 162 171.6" y="739" fill="#c0caf5">/quit</text>
+</g></svg>

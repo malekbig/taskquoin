@@ -1,0 +1,409 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1256" height="958" viewBox="0 0 1256 958" role="img" aria-label="~/calc — taskquoin doctor">
+<title>~/calc — taskquoin doctor</title>
+<rect width="1256" height="958" rx="8" fill="#1a1b26"/>
+<path d="M0 8a8 8 0 0 1 8-8h1240a8 8 0 0 1 8 8v22h-1256z" fill="#16161e"/>
+<circle cx="16" cy="15" r="5" fill="#f7768e"/>
+<circle cx="33" cy="15" r="5" fill="#e0af68"/>
+<circle cx="50" cy="15" r="5" fill="#9ece6a"/>
+<text x="628" y="19.5" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-size="12.5" fill="#787c99">~/calc — taskquoin doctor</text>
+<g font-family="'Cascadia Mono','JetBrains Mono','DejaVu Sans Mono',Menlo,Consolas,'Noto Sans Mono CJK SC','Noto Sans Mono','Segoe UI Symbol','Noto Sans Symbols 2','Apple Symbols',monospace" font-size="16" xml:space="preserve">
+<text x="18 27.6 37.2 46.8 56.4 66" y="59" fill="#9aa5ce">~/calc</text>
+<text x="85.2" y="59" fill="#9aa5ce">$</text>
+<text x="104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="59" fill="#c0caf5">taskquoin</text>
+<text x="200.4 210 219.6 229.2 238.8 248.4" y="59" fill="#c0caf5">doctor</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="79" fill="#c0caf5">Taskquoin</text>
+<text x="114 123.6 133.2 142.8 152.4 162" y="79" fill="#c0caf5">doctor</text>
+<text x="181.2" y="79" fill="#c0caf5">—</text>
+<text x="200.4 210 219.6 229.2 238.8 248.4" y="79" fill="#c0caf5">~/calc</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6" y="99" fill="#c0caf5">Runtime</text>
+<text x="94.8 104.4 114 123.6 133.2 142.8 152.4" y="99" fill="#c0caf5">claude:</text>
+<text x="171.6 181.2 190.8 200.4 210 219.6 229.2" y="99" fill="#c0caf5">2.1.327</text>
+<text x="248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6" y="99" fill="#c0caf5">(/usr/local/bin/claude)</text>
+<text x="478.8" y="99" fill="#c0caf5">✔</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6" y="119" fill="#c0caf5">Runtime</text>
+<text x="94.8 104.4 114 123.6 133.2 142.8" y="119" fill="#c0caf5">codex:</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6" y="119" fill="#c0caf5">0.157.1</text>
+<text x="238.8 248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4" y="119" fill="#c0caf5">(/usr/local/bin/codex)</text>
+<text x="459.6" y="119" fill="#c0caf5">✔</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6" y="139" fill="#c0caf5">Runtime</text>
+<text x="94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6" y="139" fill="#c0caf5">opencode:</text>
+<text x="190.8 200.4 210 219.6 229.2 238.8" y="139" fill="#c0caf5">1.19.5</text>
+<text x="258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4" y="139" fill="#c0caf5">(/usr/local/bin/opencode)</text>
+<text x="507.6" y="139" fill="#c0caf5">✔</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6" y="159" fill="#c0caf5">Sandbox</text>
+<text x="94.8 104.4 114 123.6" y="159" fill="#c0caf5">Bash</text>
+<text x="142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8" y="159" fill="#c0caf5">(bubblewrap</text>
+<text x="258" y="159" fill="#c0caf5">+</text>
+<text x="277.2 286.8 296.4 306 315.6 325.2 334.8" y="159" fill="#c0caf5">socat):</text>
+<text x="354" y="159" fill="#c0caf5">✔</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6" y="179" fill="#c0caf5">Sandbox</text>
+<text x="94.8 104.4 114" y="179" fill="#c0caf5">dei</text>
+<text x="133.2 142.8 152.4 162" y="179" fill="#c0caf5">file</text>
+<text x="181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4" y="179" fill="#c0caf5">(bubblewrap):</text>
+<text x="315.6" y="179" fill="#c0caf5">✔</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8 104.4" y="199" fill="#c0caf5">Isolamento</text>
+<text x="123.6 133.2 142.8 152.4 162" y="199" fill="#c0caf5">degli</text>
+<text x="181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258" y="199" fill="#c0caf5">strumenti</text>
+<text x="277.2 286.8 296.4 306 315.6 325.2" y="199" fill="#c0caf5">locali</text>
+<text x="344.4 354 363.6 373.2 382.8 392.4 402 411.6" y="199" fill="#c0caf5">(unshare</text>
+<text x="430.8 440.4 450 459.6 469.2" y="199" fill="#c0caf5">-rn):</text>
+<text x="488.4" y="199" fill="#c0caf5">✔</text>
+<text x="18 27.6 37.2 46.8" y="219" fill="#c0caf5">Voce</text>
+<text x="66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8" y="219" fill="#c0caf5">dell'hook</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258" y="219" fill="#c0caf5">PreToolUse:</text>
+<text x="277.2" y="219" fill="#c0caf5">✔</text>
+<text x="296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4 594 603.6 613.2 622.8 632.4 642 651.6 661.2 670.8 680.4 690 699.6 709.2 718.8 728.4 738" y="219" fill="#c0caf5">(~/taskquoin/adapters/hooks-claude/src/main.ts)</text>
+<text x="18 27.6" y="239" fill="#c0caf5">Il</text>
+<text x="46.8 56.4 66 75.6 85.2 94.8" y="239" fill="#c0caf5">codice</text>
+<text x="114 123.6" y="239" fill="#c0caf5">di</text>
+<text x="142.8 152.4 162 171.6 181.2 190.8" y="239" fill="#c0caf5">questo</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6 277.2" y="239" fill="#c0caf5">progetto</text>
+<text x="296.4 306 315.6 325.2 334.8" y="239" fill="#c0caf5">viene</text>
+<text x="354 363.6 373.2 382.8 392.4 402 411.6" y="239" fill="#c0caf5">inviato</text>
+<text x="430.8 440.4" y="239" fill="#c0caf5">a:</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8 104.4 114" y="259" fill="#c0caf5">Anthropic</text>
+<text x="133.2 142.8 152.4 162 171.6 181.2 190.8" y="259" fill="#c0caf5">(Claude</text>
+<text x="210 219.6 229.2 238.8 248.4" y="259" fill="#c0caf5">Code)</text>
+<text x="267.6" y="259" fill="#c0caf5">—</text>
+<text x="286.8 296.4 306 315.6 325.2 334.8 344.4 354" y="259" fill="#c0caf5">planner,</text>
+<text x="373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2" y="259" fill="#c0caf5">implementer</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2" y="279" fill="#c0caf5">OpenAI</text>
+<text x="104.4 114 123.6 133.2 142.8 152.4 162" y="279" fill="#c0caf5">(Codex)</text>
+<text x="181.2" y="279" fill="#c0caf5">—</text>
+<text x="200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8" y="279" fill="#c0caf5">challenger</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8 104.4" y="299" fill="#c0caf5">Connettori</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6" y="299" fill="#c0caf5">remoti</text>
+<text x="190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8" y="299" fill="#c0caf5">(ADR-0012):</text>
+<text x="306 315.6 325.2 334.8 344.4 354 363.6" y="299" fill="#c0caf5">nessuno</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6" y="319" fill="#c0caf5">Memoria</text>
+<text x="94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210" y="319" fill="#c0caf5">(claude-mem):</text>
+<text x="229.2 238.8 248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2" y="319" fill="#c0caf5">disattivata</text>
+<text x="344.4 354 363.6 373.2 382.8" y="319" fill="#c0caf5">nella</text>
+<text x="402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8" y="319" fill="#c0caf5">configurazione</text>
+<text x="18 27.6 37.2 46.8 56.4 66" y="359" fill="#c0caf5">Agente</text>
+<text x="85.2 94.8 104.4 114 123.6 133.2 142.8" y="359" fill="#c0caf5">planner</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2" y="359" fill="#c0caf5">(claude)</text>
+<text x="37.2" y="379" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="379" fill="#c0caf5">fs.write</text>
+<text x="142.8 152.4 162 171.6 181.2 190.8 200.4 210" y="379" fill="#c0caf5">ENFORCED</text>
+<text x="229.2" y="379" fill="#c0caf5">—</text>
+<text x="248.4 258 267.6 277.2 286.8 296.4 306" y="379" fill="#c0caf5">--tools</text>
+<text x="325.2 334.8 344.4 354 363.6" y="379" fill="#c0caf5">lists</text>
+<text x="382.8 392.4" y="379" fill="#c0caf5">no</text>
+<text x="411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6" y="379" fill="#c0caf5">Edit/Write/Bash:</text>
+<text x="574.8 584.4 594" y="379" fill="#c0caf5">the</text>
+<text x="613.2 622.8 632.4 642 651.6" y="379" fill="#c0caf5">agent</text>
+<text x="670.8 680.4 690 699.6 709.2 718.8" y="379" fill="#c0caf5">cannot</text>
+<text x="738 747.6 757.2 766.8 776.4" y="379" fill="#c0caf5">write</text>
+<text x="795.6 805.2 814.8" y="379" fill="#c0caf5">any</text>
+<text x="834 843.6 853.2 862.8" y="379" fill="#c0caf5">file</text>
+<text x="37.2" y="399" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8" y="399" fill="#c0caf5">net.egress</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2" y="399" fill="#c0caf5">ENFORCED</text>
+<text x="248.4" y="399" fill="#c0caf5">—</text>
+<text x="267.6 277.2 286.8 296.4 306 315.6 325.2" y="399" fill="#c0caf5">--tools</text>
+<text x="344.4 354 363.6 373.2 382.8" y="399" fill="#c0caf5">lists</text>
+<text x="402 411.6" y="399" fill="#c0caf5">no</text>
+<text x="430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6" y="399" fill="#c0caf5">WebFetch,</text>
+<text x="526.8 536.4 546 555.6 565.2 574.8 584.4 594 603.6" y="399" fill="#c0caf5">WebSearch</text>
+<text x="622.8 632.4" y="399" fill="#c0caf5">or</text>
+<text x="651.6 661.2 670.8 680.4 690" y="399" fill="#c0caf5">Bash:</text>
+<text x="709.2 718.8 728.4" y="399" fill="#c0caf5">the</text>
+<text x="747.6 757.2 766.8 776.4 786" y="399" fill="#c0caf5">agent</text>
+<text x="805.2 814.8 824.4" y="399" fill="#c0caf5">has</text>
+<text x="843.6 853.2" y="399" fill="#c0caf5">no</text>
+<text x="872.4 882 891.6 901.2 910.8 920.4 930 939.6 949.2 958.8 968.4 978 987.6 997.2 1006.8" y="399" fill="#c0caf5">network-capable</text>
+<text x="1026 1035.6 1045.2 1054.8" y="399" fill="#c0caf5">tool</text>
+<text x="37.2" y="419" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6" y="419" fill="#c0caf5">config.modify</text>
+<text x="190.8 200.4 210 219.6 229.2 238.8 248.4 258" y="419" fill="#c0caf5">ENFORCED</text>
+<text x="277.2" y="419" fill="#c0caf5">—</text>
+<text x="296.4 306 315.6 325.2 334.8 344.4 354" y="419" fill="#c0caf5">--tools</text>
+<text x="373.2 382.8 392.4 402 411.6" y="419" fill="#c0caf5">lists</text>
+<text x="430.8 440.4" y="419" fill="#c0caf5">no</text>
+<text x="459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4 594 603.6" y="419" fill="#c0caf5">Edit/Write/Bash:</text>
+<text x="622.8 632.4 642" y="419" fill="#c0caf5">the</text>
+<text x="661.2 670.8 680.4 690 699.6" y="419" fill="#c0caf5">agent</text>
+<text x="718.8 728.4 738 747.6 757.2 766.8" y="419" fill="#c0caf5">cannot</text>
+<text x="786 795.6 805.2 814.8 824.4 834" y="419" fill="#c0caf5">modify</text>
+<text x="853.2 862.8 872.4" y="419" fill="#c0caf5">any</text>
+<text x="891.6 901.2 910.8 920.4" y="419" fill="#c0caf5">file</text>
+<text x="37.2" y="439" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2 190.8" y="439" fill="#c0caf5">connector.write</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6 277.2" y="439" fill="#c0caf5">ENFORCED</text>
+<text x="296.4" y="439" fill="#c0caf5">—</text>
+<text x="315.6 325.2 334.8 344.4" y="439" fill="#c0caf5">zero</text>
+<text x="363.6 373.2 382.8" y="439" fill="#c0caf5">MCP</text>
+<text x="402 411.6 421.2 430.8 440.4 450 459.6" y="439" fill="#c0caf5">servers</text>
+<text x="478.8 488.4" y="439" fill="#c0caf5">in</text>
+<text x="507.6 517.2 526.8 536.4 546" y="439" fill="#c0caf5">agent</text>
+<text x="565.2 574.8 584.4 594" y="439" fill="#c0caf5">runs</text>
+<text x="613.2 622.8 632.4 642 651.6" y="439" fill="#c0caf5">(init</text>
+<text x="670.8 680.4 690 699.6 709.2" y="439" fill="#c0caf5">event</text>
+<text x="728.4 738 747.6 757.2 766.8 776.4 786 795.6 805.2" y="439" fill="#c0caf5">inventory</text>
+<text x="824.4 834 843.6 853.2 862.8 872.4 882 891.6" y="439" fill="#c0caf5">recorded</text>
+<text x="910.8 920.4 930" y="439" fill="#c0caf5">per</text>
+<text x="949.2 958.8 968.4 978" y="439" fill="#c0caf5">run)</text>
+<text x="37.2" y="459" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8" y="459" fill="#c0caf5">vcs.commit</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2" y="459" fill="#c0caf5">ENFORCED</text>
+<text x="248.4" y="459" fill="#c0caf5">—</text>
+<text x="267.6 277.2" y="459" fill="#c0caf5">no</text>
+<text x="296.4 306 315.6 325.2" y="459" fill="#c0caf5">Bash</text>
+<text x="344.4 354 363.6 373.2 382.8" y="459" fill="#c0caf5">tool:</text>
+<text x="402 411.6 421.2" y="459" fill="#c0caf5">the</text>
+<text x="440.4 450 459.6 469.2 478.8" y="459" fill="#c0caf5">agent</text>
+<text x="498 507.6 517.2 526.8 536.4 546" y="459" fill="#c0caf5">cannot</text>
+<text x="565.2 574.8 584.4 594 603.6 613.2" y="459" fill="#c0caf5">invoke</text>
+<text x="632.4 642 651.6" y="459" fill="#c0caf5">git</text>
+<text x="37.2" y="479" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="479" fill="#c0caf5">vcs.push</text>
+<text x="142.8 152.4 162 171.6 181.2 190.8 200.4 210" y="479" fill="#c0caf5">ENFORCED</text>
+<text x="229.2" y="479" fill="#c0caf5">—</text>
+<text x="248.4 258" y="479" fill="#c0caf5">no</text>
+<text x="277.2 286.8 296.4 306" y="479" fill="#c0caf5">Bash</text>
+<text x="325.2 334.8 344.4 354 363.6" y="479" fill="#c0caf5">tool:</text>
+<text x="382.8 392.4 402" y="479" fill="#c0caf5">the</text>
+<text x="421.2 430.8 440.4 450 459.6" y="479" fill="#c0caf5">agent</text>
+<text x="478.8 488.4 498 507.6 517.2 526.8" y="479" fill="#c0caf5">cannot</text>
+<text x="546 555.6 565.2 574.8 584.4 594" y="479" fill="#c0caf5">invoke</text>
+<text x="613.2 622.8 632.4" y="479" fill="#c0caf5">git</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2" y="499" fill="#c0caf5">Skill:</text>
+<text x="104.4" y="499" fill="#c0caf5">✔</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2" y="499" fill="#c0caf5">planning-contract</text>
+<text x="296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6" y="499" fill="#c0caf5">(first-party,</text>
+<text x="430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546" y="499" fill="#c0caf5">5c6dbdd65655)</text>
+<text x="18 27.6 37.2 46.8 56.4 66" y="539" fill="#c0caf5">Agente</text>
+<text x="85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="539" fill="#c0caf5">implementer</text>
+<text x="200.4 210 219.6 229.2 238.8 248.4 258 267.6" y="539" fill="#c0caf5">(claude)</text>
+<text x="37.2" y="559" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="559" fill="#c0caf5">fs.write</text>
+<text x="142.8 152.4 162 171.6 181.2 190.8 200.4 210" y="559" fill="#c0caf5">ENFORCED</text>
+<text x="229.2" y="559" fill="#c0caf5">—</text>
+<text x="248.4 258 267.6 277.2" y="559" fill="#c0caf5">Bash</text>
+<text x="296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402" y="559" fill="#c0caf5">subprocesses</text>
+<text x="421.2 430.8" y="559" fill="#c0caf5">in</text>
+<text x="450 459.6 469.2" y="559" fill="#c0caf5">the</text>
+<text x="488.4 498 507.6 517.2 526.8 536.4" y="559" fill="#c0caf5">native</text>
+<text x="555.6 565.2" y="559" fill="#c0caf5">OS</text>
+<text x="584.4 594 603.6 613.2 622.8 632.4 642" y="559" fill="#c0caf5">sandbox</text>
+<text x="661.2 670.8 680.4" y="559" fill="#c0caf5">can</text>
+<text x="699.6 709.2 718.8 728.4 738" y="559" fill="#c0caf5">write</text>
+<text x="757.2 766.8 776.4" y="559" fill="#c0caf5">the</text>
+<text x="795.6 805.2 814.8 824.4 834 843.6 853.2 862.8 872.4" y="559" fill="#c0caf5">workspace</text>
+<text x="891.6 901.2 910.8" y="559" fill="#c0caf5">but</text>
+<text x="930 939.6 949.2" y="559" fill="#c0caf5">not</text>
+<text x="968.4 978 987.6 997.2 1006.8 1016.4 1026" y="559" fill="#c0caf5">outside</text>
+<text x="1045.2 1054.8" y="559" fill="#c0caf5">it</text>
+<text x="1074 1083.6 1093.2 1102.8 1112.4" y="559" fill="#c0caf5">(/tmp</text>
+<text x="1131.6 1141.2 1150.8 1160.4 1170 1179.6 1189.2 1198.8 1208.4 1218" y="559" fill="#c0caf5">included);</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="579" fill="#c0caf5">per-glob</text>
+<text x="142.8 152.4 162 171.6 181.2" y="579" fill="#c0caf5">scope</text>
+<text x="200.4 210" y="579" fill="#c0caf5">is</text>
+<text x="229.2 238.8 248.4" y="579" fill="#c0caf5">NOT</text>
+<text x="267.6 277.2 286.8 296.4 306 315.6 325.2 334.8" y="579" fill="#c0caf5">enforced</text>
+<text x="354 363.6 373.2" y="579" fill="#c0caf5">for</text>
+<text x="392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498" y="579" fill="#c0caf5">subprocesses</text>
+<text x="37.2" y="599" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8" y="599" fill="#c0caf5">net.egress</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2" y="599" fill="#c0caf5">ENFORCED</text>
+<text x="248.4" y="599" fill="#c0caf5">—</text>
+<text x="267.6 277.2 286.8 296.4" y="599" fill="#c0caf5">Bash</text>
+<text x="315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2" y="599" fill="#c0caf5">subprocesses</text>
+<text x="440.4 450 459.6" y="599" fill="#c0caf5">run</text>
+<text x="478.8 488.4" y="599" fill="#c0caf5">in</text>
+<text x="507.6 517.2 526.8" y="599" fill="#c0caf5">the</text>
+<text x="546 555.6 565.2 574.8 584.4 594" y="599" fill="#c0caf5">native</text>
+<text x="613.2 622.8" y="599" fill="#c0caf5">OS</text>
+<text x="642 651.6 661.2 670.8 680.4 690 699.6" y="599" fill="#c0caf5">sandbox</text>
+<text x="718.8 728.4 738 747.6" y="599" fill="#c0caf5">with</text>
+<text x="766.8 776.4" y="599" fill="#c0caf5">an</text>
+<text x="795.6 805.2 814.8 824.4 834" y="599" fill="#c0caf5">empty</text>
+<text x="853.2 862.8 872.4 882 891.6 901.2 910.8" y="599" fill="#c0caf5">network</text>
+<text x="930 939.6 949.2 958.8 968.4 978 987.6 997.2 1006.8" y="599" fill="#c0caf5">allowlist</text>
+<text x="1026 1035.6 1045.2 1054.8 1064.4 1074 1083.6 1093.2 1102.8 1112.4 1122 1131.6 1141.2 1150.8 1160.4 1170 1179.6 1189.2 1198.8" y="599" fill="#c0caf5">(failIfUnavailable,</text>
+<text x="1218 1227.6" y="599" fill="#c0caf5">no</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4" y="619" fill="#c0caf5">unsandboxed</text>
+<text x="171.6 181.2 190.8 200.4 210 219.6 229.2" y="619" fill="#c0caf5">escape)</text>
+<text x="37.2" y="639" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6" y="639" fill="#c0caf5">config.modify</text>
+<text x="190.8 200.4 210 219.6 229.2 238.8 248.4 258" y="639" fill="#c0caf5">ENFORCED</text>
+<text x="277.2" y="639" fill="#c0caf5">—</text>
+<text x="296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4" y="639" fill="#c0caf5">write-time:</text>
+<text x="411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4 594 603.6 613.2 622.8 632.4 642 651.6 661.2 670.8" y="639" fill="#c0caf5">sandbox.filesystem.denyWrite</text>
+<text x="690 699.6" y="639" fill="#c0caf5">on</text>
+<text x="718.8 728.4 738 747.6 757.2 766.8 776.4 786 795.6" y="639" fill="#c0caf5">protected</text>
+<text x="814.8 824.4 834 843.6 853.2 862.8 872.4" y="639" fill="#c0caf5">config,</text>
+<text x="891.6 901.2 910.8 920.4 930" y="639" fill="#c0caf5">.git,</text>
+<text x="949.2 958.8 968.4" y="639" fill="#c0caf5">the</text>
+<text x="987.6 997.2 1006.8 1016.4 1026 1035.6 1045.2" y="639" fill="#c0caf5">control</text>
+<text x="1064.4 1074 1083.6 1093.2 1102.8" y="639" fill="#c0caf5">store</text>
+<text x="1122 1131.6 1141.2" y="639" fill="#c0caf5">and</text>
+<text x="1160.4 1170 1179.6 1189.2 1198.8" y="639" fill="#c0caf5">every</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4" y="659" fill="#c0caf5">nested</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4" y="659" fill="#c0caf5">CLAUDE.md/AGENTS.md</text>
+<text x="315.6 325.2 334.8 344.4 354" y="659" fill="#c0caf5">found</text>
+<text x="373.2 382.8" y="659" fill="#c0caf5">by</text>
+<text x="402" y="659" fill="#c0caf5">a</text>
+<text x="421.2 430.8 440.4 450 459.6 469.2 478.8 488.4" y="659" fill="#c0caf5">complete</text>
+<text x="507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4" y="659" fill="#c0caf5">workspace</text>
+<text x="603.6 613.2 622.8 632.4" y="659" fill="#c0caf5">scan</text>
+<text x="651.6 661.2 670.8 680.4" y="659" fill="#c0caf5">(run</text>
+<text x="699.6 709.2 718.8 728.4 738 747.6 757.2" y="659" fill="#c0caf5">refused</text>
+<text x="776.4 786" y="659" fill="#c0caf5">if</text>
+<text x="805.2 814.8 824.4" y="659" fill="#c0caf5">the</text>
+<text x="843.6 853.2 862.8 872.4" y="659" fill="#c0caf5">scan</text>
+<text x="891.6 901.2" y="659" fill="#c0caf5">is</text>
+<text x="920.4 930 939.6 949.2 958.8 968.4 978 987.6 997.2 1006.8 1016.4 1026" y="659" fill="#c0caf5">incomplete);</text>
+<text x="1045.2 1054.8 1064.4 1074 1083.6 1093.2 1102.8 1112.4 1122 1131.6" y="659" fill="#c0caf5">land-time:</text>
+<text x="1150.8 1160.4 1170" y="659" fill="#c0caf5">the</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="679" fill="#c0caf5">workflow</text>
+<text x="142.8 152.4 162 171.6 181.2" y="679" fill="#c0caf5">never</text>
+<text x="200.4 210 219.6 229.2 238.8 248.4 258" y="679" fill="#c0caf5">commits</text>
+<text x="277.2" y="679" fill="#c0caf5">a</text>
+<text x="296.4 306 315.6 325.2 334.8 344.4" y="679" fill="#c0caf5">change</text>
+<text x="363.6 373.2" y="679" fill="#c0caf5">to</text>
+<text x="392.4 402 411.6" y="679" fill="#c0caf5">any</text>
+<text x="430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6" y="679" fill="#c0caf5">protected</text>
+<text x="526.8 536.4 546 555.6 565.2" y="679" fill="#c0caf5">path,</text>
+<text x="584.4 594 603.6 613.2 622.8 632.4 642 651.6 661.2" y="679" fill="#c0caf5">including</text>
+<text x="680.4 690 699.6" y="679" fill="#c0caf5">new</text>
+<text x="718.8 728.4 738 747.6 757.2 766.8" y="679" fill="#c0caf5">nested</text>
+<text x="786 795.6 805.2 814.8 824.4 834 843.6 853.2 862.8 872.4 882" y="679" fill="#c0caf5">instruction</text>
+<text x="901.2 910.8 920.4 930 939.6" y="679" fill="#c0caf5">files</text>
+<text x="37.2" y="699" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2 190.8" y="699" fill="#c0caf5">connector.write</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6 277.2" y="699" fill="#c0caf5">ENFORCED</text>
+<text x="296.4" y="699" fill="#c0caf5">—</text>
+<text x="315.6 325.2 334.8 344.4" y="699" fill="#c0caf5">zero</text>
+<text x="363.6 373.2 382.8" y="699" fill="#c0caf5">MCP</text>
+<text x="402 411.6 421.2 430.8 440.4 450 459.6" y="699" fill="#c0caf5">servers</text>
+<text x="478.8 488.4" y="699" fill="#c0caf5">in</text>
+<text x="507.6 517.2 526.8 536.4 546" y="699" fill="#c0caf5">agent</text>
+<text x="565.2 574.8 584.4 594" y="699" fill="#c0caf5">runs</text>
+<text x="613.2 622.8 632.4 642 651.6" y="699" fill="#c0caf5">(init</text>
+<text x="670.8 680.4 690 699.6 709.2" y="699" fill="#c0caf5">event</text>
+<text x="728.4 738 747.6 757.2 766.8 776.4 786 795.6 805.2" y="699" fill="#c0caf5">inventory</text>
+<text x="824.4 834 843.6 853.2 862.8 872.4 882 891.6" y="699" fill="#c0caf5">recorded</text>
+<text x="910.8 920.4 930" y="699" fill="#c0caf5">per</text>
+<text x="949.2 958.8 968.4 978" y="699" fill="#c0caf5">run)</text>
+<text x="37.2" y="719" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8" y="719" fill="#c0caf5">vcs.commit</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2" y="719" fill="#c0caf5">ENFORCED</text>
+<text x="248.4" y="719" fill="#c0caf5">—</text>
+<text x="267.6 277.2 286.8 296.4 306 315.6 325.2 334.8" y="719" fill="#c0caf5">Claude's</text>
+<text x="354 363.6 373.2 382.8" y="719" fill="#c0caf5">Bash</text>
+<text x="402 411.6 421.2 430.8 440.4 450 459.6" y="719" fill="#c0caf5">sandbox</text>
+<text x="478.8 488.4 498 507.6 517.2" y="719" fill="#c0caf5">keeps</text>
+<text x="536.4 546 555.6 565.2" y="719" fill="#c0caf5">.git</text>
+<text x="584.4 594 603.6 613.2 622.8 632.4 642 651.6 661.2 670.8" y="719" fill="#c0caf5">read-only:</text>
+<text x="690 699.6 709.2 718.8 728.4 738" y="719" fill="#c0caf5">agents</text>
+<text x="757.2 766.8 776.4 786 795.6 805.2" y="719" fill="#c0caf5">cannot</text>
+<text x="824.4 834 843.6 853.2 862.8 872.4 882" y="719" fill="#c0caf5">commit;</text>
+<text x="901.2 910.8 920.4 930 939.6 949.2 958.8" y="719" fill="#c0caf5">commits</text>
+<text x="978 987.6 997.2" y="719" fill="#c0caf5">are</text>
+<text x="1016.4 1026 1035.6 1045.2" y="719" fill="#c0caf5">made</text>
+<text x="1064.4 1074" y="719" fill="#c0caf5">by</text>
+<text x="1093.2 1102.8 1112.4" y="719" fill="#c0caf5">the</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162" y="739" fill="#c0caf5">orchestrator</text>
+<text x="181.2 190.8" y="739" fill="#c0caf5">on</text>
+<text x="210 219.6 229.2" y="739" fill="#c0caf5">the</text>
+<text x="248.4 258 267.6 277.2" y="739" fill="#c0caf5">host</text>
+<text x="296.4 306 315.6 325.2 334.8" y="739" fill="#c0caf5">after</text>
+<text x="354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6" y="739" fill="#c0caf5">verification</text>
+<text x="37.2" y="759" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="759" fill="#c0caf5">vcs.push</text>
+<text x="142.8 152.4 162 171.6 181.2 190.8 200.4 210" y="759" fill="#c0caf5">ENFORCED</text>
+<text x="229.2" y="759" fill="#c0caf5">—</text>
+<text x="248.4 258" y="759" fill="#c0caf5">no</text>
+<text x="277.2 286.8 296.4 306 315.6 325.2 334.8" y="759" fill="#c0caf5">network</text>
+<text x="354 363.6 373.2 382.8 392.4 402" y="759" fill="#c0caf5">inside</text>
+<text x="421.2 430.8 440.4" y="759" fill="#c0caf5">the</text>
+<text x="459.6 469.2 478.8 488.4" y="759" fill="#c0caf5">Bash</text>
+<text x="507.6 517.2 526.8 536.4 546 555.6 565.2" y="759" fill="#c0caf5">sandbox</text>
+<text x="584.4 594 603.6" y="759" fill="#c0caf5">and</text>
+<text x="622.8 632.4" y="759" fill="#c0caf5">no</text>
+<text x="651.6 661.2 670.8 680.4 690" y="759" fill="#c0caf5">write</text>
+<text x="709.2 718.8 728.4 738 747.6 757.2 766.8" y="759" fill="#c0caf5">outside</text>
+<text x="786 795.6 805.2" y="759" fill="#c0caf5">the</text>
+<text x="824.4 834 843.6 853.2 862.8 872.4 882 891.6 901.2" y="759" fill="#c0caf5">workspace</text>
+<text x="920.4" y="759" fill="#c0caf5">⇒</text>
+<text x="939.6 949.2 958.8 968.4" y="759" fill="#c0caf5">push</text>
+<text x="987.6 997.2 1006.8 1016.4 1026 1035.6 1045.2" y="759" fill="#c0caf5">reaches</text>
+<text x="1064.4 1074 1083.6 1093.2 1102.8 1112.4 1122" y="759" fill="#c0caf5">neither</text>
+<text x="1141.2" y="759" fill="#c0caf5">a</text>
+<text x="1160.4 1170 1179.6 1189.2 1198.8 1208.4 1218" y="759" fill="#c0caf5">network</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4" y="779" fill="#c0caf5">remote</text>
+<text x="123.6 133.2 142.8" y="779" fill="#c0caf5">nor</text>
+<text x="162" y="779" fill="#c0caf5">a</text>
+<text x="181.2 190.8 200.4 210 219.6" y="779" fill="#c0caf5">local</text>
+<text x="238.8 248.4 258 267.6 277.2 286.8" y="779" fill="#c0caf5">remote</text>
+<text x="306 315.6 325.2 334.8 344.4 354 363.6" y="779" fill="#c0caf5">outside</text>
+<text x="382.8 392.4 402" y="779" fill="#c0caf5">the</text>
+<text x="421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498" y="779" fill="#c0caf5">workspace</text>
+<text x="517.2 526.8 536.4 546 555.6 565.2 574.8 584.4 594 603.6" y="779" fill="#c0caf5">(measured)</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2" y="799" fill="#c0caf5">Skill:</text>
+<text x="104.4" y="799" fill="#c0caf5">✔</text>
+<text x="123.6 133.2 142.8" y="799" fill="#c0caf5">tdd</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2" y="799" fill="#c0caf5">(first-party,</text>
+<text x="296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6" y="799" fill="#c0caf5">47088899bae5)</text>
+<text x="37.2" y="819" fill="#9aa5ce">…</text>
+<text x="56.4 66" y="819" fill="#9aa5ce">10</text>
+<text x="85.2 94.8 104.4 114" y="819" fill="#9aa5ce">more</text>
+<text x="133.2 142.8 152.4 162 171.6" y="819" fill="#9aa5ce">lines</text>
+<text x="190.8" y="819" fill="#9aa5ce">…</text>
+<text x="37.2" y="839" fill="#c0caf5">✔</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="839" fill="#c0caf5">vcs.push</text>
+<text x="142.8 152.4 162 171.6 181.2 190.8 200.4 210" y="839" fill="#c0caf5">ENFORCED</text>
+<text x="229.2" y="839" fill="#c0caf5">—</text>
+<text x="248.4 258" y="839" fill="#c0caf5">no</text>
+<text x="277.2 286.8 296.4 306 315.6 325.2 334.8" y="839" fill="#c0caf5">network</text>
+<text x="354 363.6 373.2" y="839" fill="#c0caf5">and</text>
+<text x="392.4 402" y="839" fill="#c0caf5">no</text>
+<text x="421.2 430.8 440.4 450 459.6 469.2 478.8 488.4" y="839" fill="#c0caf5">writable</text>
+<text x="507.6 517.2 526.8 536.4" y="839" fill="#c0caf5">root</text>
+<text x="555.6 565.2 574.8 584.4 594 603.6 613.2" y="839" fill="#c0caf5">outside</text>
+<text x="632.4 642 651.6" y="839" fill="#c0caf5">the</text>
+<text x="670.8 680.4 690 699.6 709.2 718.8 728.4 738 747.6 757.2 766.8 776.4 786 795.6 805.2 814.8 824.4" y="839" fill="#c0caf5">workspace/scratch</text>
+<text x="843.6" y="839" fill="#c0caf5">⇒</text>
+<text x="862.8" y="839" fill="#c0caf5">a</text>
+<text x="882 891.6 901.2 910.8" y="839" fill="#c0caf5">push</text>
+<text x="930 939.6 949.2 958.8 968.4 978 987.6" y="839" fill="#c0caf5">reaches</text>
+<text x="1006.8 1016.4 1026 1035.6 1045.2 1054.8 1064.4" y="839" fill="#c0caf5">neither</text>
+<text x="1083.6" y="839" fill="#c0caf5">a</text>
+<text x="1102.8 1112.4 1122 1131.6 1141.2 1150.8 1160.4" y="839" fill="#c0caf5">network</text>
+<text x="1179.6 1189.2 1198.8 1208.4 1218 1227.6" y="839" fill="#c0caf5">remote</text>
+<text x="56.4 66 75.6" y="859" fill="#c0caf5">nor</text>
+<text x="94.8" y="859" fill="#c0caf5">a</text>
+<text x="114 123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4" y="859" fill="#c0caf5">local-path</text>
+<text x="219.6 229.2 238.8 248.4 258 267.6" y="859" fill="#c0caf5">remote</text>
+<text x="286.8 296.4 306 315.6 325.2 334.8 344.4" y="859" fill="#c0caf5">outside</text>
+<text x="363.6 373.2 382.8 392.4" y="859" fill="#c0caf5">them</text>
+<text x="411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4" y="859" fill="#c0caf5">(measured</text>
+<text x="507.6 517.2 526.8 536.4" y="859" fill="#c0caf5">M3);</text>
+<text x="555.6" y="859" fill="#c0caf5">a</text>
+<text x="574.8 584.4 594 603.6" y="859" fill="#c0caf5">bare</text>
+<text x="622.8 632.4 642 651.6 661.2 670.8" y="859" fill="#c0caf5">remote</text>
+<text x="690 699.6 709.2 718.8 728.4 738 747.6" y="859" fill="#c0caf5">created</text>
+<text x="766.8 776.4 786 795.6 805.2 814.8" y="859" fill="#c0caf5">INSIDE</text>
+<text x="834 843.6 853.2" y="859" fill="#c0caf5">the</text>
+<text x="872.4 882 891.6 901.2 910.8 920.4 930 939.6 949.2" y="859" fill="#c0caf5">workspace</text>
+<text x="968.4 978 987.6 997.2 1006.8" y="859" fill="#c0caf5">stays</text>
+<text x="1026 1035.6 1045.2 1054.8 1064.4 1074 1083.6 1093.2 1102.8" y="859" fill="#c0caf5">reachable</text>
+<text x="1122 1131.6 1141.2 1150.8 1160.4 1170 1179.6" y="859" fill="#c0caf5">(within</text>
+<text x="1198.8 1208.4 1218" y="859" fill="#c0caf5">the</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2" y="879" fill="#c0caf5">boundary)</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2" y="899" fill="#c0caf5">Skill:</text>
+<text x="104.4" y="899" fill="#c0caf5">✔</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6" y="899" fill="#c0caf5">code-review</text>
+<text x="238.8 248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354" y="899" fill="#c0caf5">(first-party,</text>
+<text x="373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4" y="899" fill="#c0caf5">ece6e11fdb2f)</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="939" fill="#c0caf5">Verdetto:</text>
+<text x="114 123.6 133.2 142.8 152.4" y="939" fill="#c0caf5">tutti</text>
+<text x="171.6" y="939" fill="#c0caf5">i</text>
+<text x="190.8" y="939" fill="#c0caf5">3</text>
+<text x="210 219.6 229.2 238.8 248.4 258" y="939" fill="#c0caf5">agenti</text>
+<text x="277.2 286.8 296.4 306 315.6 325.2 334.8" y="939" fill="#c0caf5">possono</text>
+<text x="354 363.6 373.2 382.8 392.4 402" y="939" fill="#c0caf5">essere</text>
+<text x="421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498" y="939" fill="#c0caf5">eseguiti.</text>
+</g></svg>

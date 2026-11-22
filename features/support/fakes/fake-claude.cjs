@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Deterministic stand-in for Claude Code 2.1.325 in headless stream-json mode (E2E features: zero tokens).
+// Deterministic stand-in for Claude Code 2.1.327 in headless stream-json mode (E2E features: zero tokens).
 // Behaviour by agent: planner → returns a plan; implementer → writes sum.js (wrong if the request says CASSÉE; also a
 // nested AGENTS.md if it says CONFIG). It is NOT sandboxed: the features test Taskquoin's orchestration, not Claude.
 const fs = require('fs');
 const args = process.argv.slice(2);
-if (args.includes('--version')) { process.stdout.write('2.1.325 (Claude Code)\n'); process.exit(0); }
+if (args.includes('--version')) { process.stdout.write('2.1.327 (Claude Code)\n'); process.exit(0); }
 const at = (f) => args[args.indexOf(f) + 1];
 const emit = (o) => process.stdout.write(JSON.stringify(o) + '\n');
 let stdin = ''; process.stdin.on('data', d => (stdin += d)); process.stdin.on('end', () => {

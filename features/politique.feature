@@ -7,11 +7,13 @@ Fonctionnalité: Verrou de politique avant chaque agent (prepareRun)
     Soit un dépôt git "calc" dont le test "sum" échoue tant que sum.js n'existe pas
     Et Taskquoin initialisé dans ce dépôt, mémoire désactivée
 
-  Scénario: Sans acceptation de risque, le challenger Codex est refusé et le run s'arrête avant lui
+  @sandbox
+  Scénario: Sans acceptation de risque, le challenger Codex est refusé et le run n'est même pas créé
     Alors l'agent "challenger" est refusé pour "connector.write"
     Et l'agent "planner" est autorisé
     Quand le propriétaire lance la demande "Ajouter une fonction sum"
-    Alors le run est "failed" avec la raison contenant "gate refused agent challenger"
+    Alors la commande échoue avec un message contenant "agent challenger cannot start"
+    Et aucun agent n'a été appelé
 
   Scénario: Une acceptation de risque est stockée hors du dépôt et rend l'agent autorisable
     Soit le propriétaire de test a accepté le risque "connector.write" pour l'agent "challenger"

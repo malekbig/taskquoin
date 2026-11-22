@@ -1,0 +1,307 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1246" height="738" viewBox="0 0 1246 738" role="img" aria-label="~/calc — taskquoin">
+<title>~/calc — taskquoin</title>
+<rect width="1246" height="738" rx="8" fill="#1a1b26"/>
+<path d="M0 8a8 8 0 0 1 8-8h1230a8 8 0 0 1 8 8v22h-1246z" fill="#16161e"/>
+<circle cx="16" cy="15" r="5" fill="#f7768e"/>
+<circle cx="33" cy="15" r="5" fill="#e0af68"/>
+<circle cx="50" cy="15" r="5" fill="#9ece6a"/>
+<text x="623" y="19.5" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-size="12.5" fill="#787c99">~/calc — taskquoin</text>
+<g font-family="'Cascadia Mono','JetBrains Mono','DejaVu Sans Mono',Menlo,Consolas,'Noto Sans Mono CJK SC','Noto Sans Mono','Segoe UI Symbol','Noto Sans Symbols 2','Apple Symbols',monospace" font-size="16" xml:space="preserve">
+<text x="18 27.6 37.2 46.8 56.4 66" y="59" fill="#9aa5ce">~/calc</text>
+<text x="85.2" y="59" fill="#9aa5ce">$</text>
+<text x="104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="59" fill="#c0caf5">taskquoin</text>
+<rect x="37.2" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="46.8" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="56.4" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="66" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="75.6" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="85.2" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="114.0" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="118.8" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="123.6" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="133.2" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="138.0" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="152.4" y="74" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="157.2" y="74" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="162.0" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="166.8" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="171.6" y="74" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="176.4" y="74" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="190.8" y="64" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="200.4" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="205.2" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="210.0" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="214.8" y="64" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="229.2" y="64" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="238.8" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="243.6" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="248.4" y="64" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="253.2" y="64" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="267.6" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="272.4" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="277.2" y="64" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="282.0" y="64" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="286.8" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="291.6" y="74" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="306" y="64" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="325.2" y="64" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="344.4" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="349.2" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="354.0" y="64" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="358.8" y="64" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="363.6" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="368.4" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="382.8" y="64" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="402" y="64" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="411.6" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="416.4" y="74" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="430.8" y="64" width="10.0" height="20.4" fill="#bb9af7"/>
+<text x="882 891.6 901.2 910.8 920.4 930 939.6 949.2 958.8 968.4" y="79" fill="#9aa5ce">v2026.11.1</text>
+<rect x="37.2" y="84" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="46.8" y="84" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="56.4" y="84" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="123.6" y="84" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="152.4" y="84" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="162.0" y="84" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="166.8" y="84" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="171.6" y="84" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="190.8" y="94" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="195.6" y="94" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="200.4" y="94" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="205.2" y="94" width="5.2" height="10.4" fill="#5ef2c2"/>
+<rect x="210" y="84" width="10.0" height="20.4" fill="#5ef2c2"/>
+<rect x="229.2" y="84" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="248.4" y="84" width="10.0" height="20.4" fill="#7dcfff"/>
+<rect x="267.6" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="272.4" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="277.2" y="94" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="282.0" y="94" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="286.8" y="84" width="10.0" height="20.4" fill="#ff9e64"/>
+<rect x="306.0" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="310.8" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="315.6" y="94" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="320.4" y="94" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="325.2" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="330.0" y="84" width="5.2" height="10.4" fill="#7dcfff"/>
+<rect x="344.4" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="349.2" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="354.0" y="94" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="358.8" y="94" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="363.6" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="368.4" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="382.8" y="84" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="402" y="84" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="421.2" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="426.0" y="84" width="5.2" height="10.4" fill="#bb9af7"/>
+<rect x="430.8" y="84" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="37.2" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="46.8" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="56.4" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="66" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="75.6" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<rect x="85.2" y="104" width="10.0" height="20.4" fill="#bb9af7"/>
+<text x="114" y="119" fill="#ff9e64">✦</text>
+<text x="133.2 142.8 152.4 162" y="119" fill="#ff9e64">YOUR</text>
+<text x="181.2 190.8" y="119" fill="#ff9e64">AI</text>
+<text x="210 219.6 229.2" y="119" fill="#ff9e64">DEV</text>
+<text x="248.4 258 267.6 277.2 286.8" y="119" fill="#ff9e64">SQUAD</text>
+<text x="306" y="119" fill="#ff9e64">✦</text>
+<rect x="37.2" y="124" width="10.0" height="20.4" fill="#ff9e64"/>
+<rect x="46.8" y="124" width="10.0" height="20.4" fill="#ff9e64"/>
+<rect x="56.4" y="124" width="10.0" height="20.4" fill="#ff9e64"/>
+<text x="114 123.6 133.2 142.8 152.4 162 171.6 181.2" y="139" fill="#9aa5ce">кероване</text>
+<text x="200.4" y="139" fill="#9aa5ce">·</text>
+<text x="219.6 229.2 238.8 248.4 258 267.6" y="139" fill="#9aa5ce">людина</text>
+<text x="286.8" y="139" fill="#9aa5ce">в</text>
+<text x="306 315.6 325.2 334.8 344.4" y="139" fill="#9aa5ce">циклі</text>
+<text x="363.6" y="139" fill="#9aa5ce">·</text>
+<text x="382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4" y="139" fill="#9aa5ce">перевірюване</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2" y="179" fill="#9aa5ce">Репозиторій</text>
+<text x="162 171.6 181.2 190.8 200.4 210" y="179" fill="#c0caf5">~/calc</text>
+<text x="248.4 258 267.6 277.2" y="179" fill="#c0caf5">main</text>
+<text x="296.4" y="179" fill="#c0caf5">·</text>
+<text x="315.6 325.2 334.8 344.4 354" y="179" fill="#c0caf5">чисте</text>
+<text x="373.2 382.8 392.4 402 411.6 421.2" y="179" fill="#c0caf5">дерево</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="199" fill="#9aa5ce">Sandbox</text>
+<text x="162" y="199" fill="#9ece6a">✔</text>
+<text x="181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6" y="199" fill="#c0caf5">bubblewrap</text>
+<text x="296.4" y="199" fill="#9ece6a">✔</text>
+<text x="315.6 325.2 334.8 344.4 354" y="199" fill="#c0caf5">socat</text>
+<text x="373.2" y="199" fill="#c0caf5">·</text>
+<text x="392.4 402 411.6 421.2 430.8 440.4" y="199" fill="#c0caf5">Verify</text>
+<text x="459.6" y="199" fill="#c0caf5">у</text>
+<text x="478.8 488.4 498 507.6 517.2 526.8" y="199" fill="#c0caf5">чистій</text>
+<text x="546 555.6 565.2 574.8 584.4 594 603.6" y="199" fill="#c0caf5">кімнаті</text>
+<text x="622.8 632.4 642 651.6 661.2 670.8 680.4 690 699.6" y="199" fill="#c0caf5">доступний</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8 104.4" y="219" fill="#9aa5ce">Політика</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8" y="219" fill="#c0caf5">taskquoin.yaml</text>
+<text x="306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6" y="219" fill="#c0caf5">b4432ff9d900</text>
+<text x="430.8" y="219" fill="#c0caf5">·</text>
+<text x="450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8" y="219" fill="#e0af68">Прийнятих</text>
+<text x="546 555.6 565.2 574.8 584.4 594 603.6" y="219" fill="#e0af68">ризиків</text>
+<text x="622.8 632.4" y="219" fill="#e0af68">до</text>
+<text x="651.6 661.2 670.8 680.4 690 699.6 709.2 718.8 728.4 738 747.6" y="219" fill="#e0af68">2026-12-31:</text>
+<text x="766.8" y="219" fill="#e0af68">1</text>
+<text x="37.2 46.8" y="259" fill="#5f6a99">──</text>
+<text x="66 75.6 85.2 94.8 104.4 114 123.6" y="259" fill="#c0caf5">Команда</text>
+<text x="142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6" y="259" fill="#5f6a99">────────────────────────────────────────────</text>
+<text x="574.8 584.4 594 603.6 613.2 622.8" y="259" fill="#9aa5ce">Готово</text>
+<text x="642 651.6 661.2 670.8 680.4 690 699.6 709.2" y="259" fill="#9aa5ce">агентів:</text>
+<text x="728.4" y="259" fill="#9aa5ce">3</text>
+<text x="747.6 757.2" y="259" fill="#9aa5ce">із</text>
+<text x="776.4" y="259" fill="#9aa5ce">3</text>
+<text x="795.6" y="259" fill="#9aa5ce">·</text>
+<text x="814.8 824.4 834 843.6 853.2 862.8" y="259" fill="#9aa5ce">Verify</text>
+<text x="882 891.6 901.2 910.8 920.4 930 939.6" y="259" fill="#9aa5ce">готовий</text>
+<text x="958.8 968.4" y="259" fill="#5f6a99">──</text>
+<text x="37.2" y="279" fill="#9ece6a">●</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2" y="279" fill="#c0caf5">Architect</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6" y="279" fill="#9aa5ce">planner</text>
+<text x="238.8" y="279" fill="#9aa5ce">·</text>
+<text x="258 267.6 277.2 286.8 296.4 306" y="279" fill="#9aa5ce">claude</text>
+<text x="373.2 382.8 392.4 402 411.6" y="279" fill="#9ece6a">READY</text>
+<text x="37.2" y="299" fill="#9ece6a">●</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2" y="299" fill="#c0caf5">Developer</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258" y="299" fill="#9aa5ce">implementer</text>
+<text x="277.2" y="299" fill="#9aa5ce">·</text>
+<text x="296.4 306 315.6 325.2 334.8 344.4" y="299" fill="#9aa5ce">claude</text>
+<text x="373.2 382.8 392.4 402 411.6" y="299" fill="#9ece6a">READY</text>
+<text x="37.2" y="319" fill="#e0af68">◐</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="319" fill="#c0caf5">Reviewer</text>
+<text x="162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4" y="319" fill="#9aa5ce">challenger</text>
+<text x="267.6" y="319" fill="#9aa5ce">·</text>
+<text x="286.8 296.4 306 315.6 325.2" y="319" fill="#9aa5ce">codex</text>
+<text x="373.2 382.8 392.4 402 411.6" y="319" fill="#e0af68">READY</text>
+<text x="478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6" y="319" fill="#e0af68">прийнятий</text>
+<text x="574.8 584.4 594 603.6 613.2 622.8" y="319" fill="#e0af68">ризик:</text>
+<text x="642 651.6 661.2 670.8 680.4 690 699.6 709.2 718.8 728.4 738 747.6 757.2 766.8 776.4" y="319" fill="#e0af68">connector.write</text>
+<text x="37.2" y="339" fill="#9ece6a">●</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4" y="339" fill="#c0caf5">Tester</text>
+<text x="162 171.6 181.2 190.8 200.4 210" y="339" fill="#9aa5ce">verify</text>
+<text x="229.2" y="339" fill="#9aa5ce">·</text>
+<text x="248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8" y="339" fill="#9aa5ce">bubblewrap</text>
+<text x="373.2 382.8 392.4 402 411.6" y="339" fill="#9ece6a">READY</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6" y="379" fill="#c0caf5">Консоль</text>
+<text x="94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6" y="379" fill="#c0caf5">Taskquoin</text>
+<text x="190.8" y="379" fill="#c0caf5">—</text>
+<text x="210 219.6 229.2 238.8 248.4" y="379" fill="#c0caf5">/help</text>
+<text x="267.6 277.2 286.8 296.4 306 315.6" y="379" fill="#c0caf5">покаже</text>
+<text x="334.8 344.4 354 363.6 373.2 382.8 392.4 402" y="379" fill="#c0caf5">команди,</text>
+<text x="421.2 430.8 440.4" y="379" fill="#c0caf5">Tab</text>
+<text x="459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4" y="379" fill="#c0caf5">доповнює,</text>
+<text x="555.6 565.2 574.8 584.4 594" y="379" fill="#c0caf5">/quit</text>
+<text x="613.2 622.8 632.4 642 651.6 661.2 670.8 680.4" y="379" fill="#c0caf5">завершує</text>
+<text x="699.6 709.2 718.8 728.4 738 747.6 757.2" y="379" fill="#c0caf5">роботу.</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="399" fill="#5ef2c2">taskquoin</text>
+<text x="114" y="399" fill="#5ef2c2">›</text>
+<text x="133.2 142.8 152.4 162 171.6" y="399" fill="#c0caf5">/help</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6" y="419" fill="#c0caf5">Команди</text>
+<text x="94.8 104.4 114 123.6" y="419" fill="#c0caf5">(все</text>
+<text x="142.8 152.4 162 171.6" y="419" fill="#c0caf5">інше</text>
+<text x="190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4" y="419" fill="#c0caf5">ігнорується:</text>
+<text x="315.6 325.2 334.8" y="419" fill="#c0caf5">без</text>
+<text x="354" y="419" fill="#c0caf5">/</text>
+<text x="373.2 382.8 392.4 402 411.6 421.2" y="419" fill="#c0caf5">нічого</text>
+<text x="440.4 450" y="419" fill="#c0caf5">не</text>
+<text x="469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4 594" y="419" fill="#c0caf5">запускається):</text>
+<text x="37.2 46.8 56.4 66" y="439" fill="#c0caf5">/run</text>
+<text x="85.2 94.8 104.4 114 123.6 133.2 142.8" y="439" fill="#c0caf5">&lt;запит&gt;</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402" y="439" fill="#c0caf5">запустити</text>
+<text x="421.2 430.8 440.4 450 459.6 469.2 478.8 488.4" y="439" fill="#c0caf5">кероване</text>
+<text x="507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4" y="439" fill="#c0caf5">виконання</text>
+<text x="603.6 613.2 622.8 632.4 642 651.6 661.2 670.8 680.4 690 699.6 709.2" y="439" fill="#c0caf5">(зупиняється</text>
+<text x="728.4 738" y="439" fill="#c0caf5">на</text>
+<text x="757.2 766.8 776.4 786 795.6 805.2 814.8" y="439" fill="#c0caf5">кожному</text>
+<text x="834 843.6 853.2 862.8 872.4 882 891.6 901.2 910.8 920.4 930 939.6 949.2" y="439" fill="#c0caf5">затвердженні)</text>
+<text x="37.2 46.8 56.4 66 75.6" y="459" fill="#c0caf5">/runs</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2" y="459" fill="#c0caf5">список</text>
+<text x="392.4 402 411.6 421.2 430.8 440.4 450 459.6" y="459" fill="#c0caf5">запусків</text>
+<text x="37.2 46.8 56.4 66" y="479" fill="#c0caf5">/use</text>
+<text x="85.2 94.8 104.4 114 123.6" y="479" fill="#c0caf5">&lt;run&gt;</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8" y="479" fill="#c0caf5">вибрати</text>
+<text x="402 411.6 421.2 430.8 440.4 450 459.6 469.2" y="479" fill="#c0caf5">поточний</text>
+<text x="488.4 498 507.6 517.2 526.8 536.4" y="479" fill="#c0caf5">запуск</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="499" fill="#c0caf5">/status</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8" y="499" fill="#c0caf5">історія</text>
+<text x="402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8" y="499" fill="#c0caf5">поточного</text>
+<text x="498 507.6 517.2 526.8 536.4 546 555.6" y="499" fill="#c0caf5">запуску</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="519" fill="#c0caf5">/resume</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402" y="519" fill="#c0caf5">відновити</text>
+<text x="421.2 430.8 440.4 450 459.6 469.2 478.8 488.4" y="519" fill="#c0caf5">поточний</text>
+<text x="507.6 517.2 526.8 536.4 546 555.6 565.2" y="519" fill="#c0caf5">запуск,</text>
+<text x="584.4 594 603.6 613.2" y="519" fill="#c0caf5">якщо</text>
+<text x="632.4 642 651.6 661.2" y="519" fill="#c0caf5">його</text>
+<text x="680.4 690 699.6 709.2" y="519" fill="#c0caf5">було</text>
+<text x="728.4 738 747.6 757.2 766.8 776.4 786 795.6 805.2" y="519" fill="#c0caf5">перервано</text>
+<text x="37.2 46.8 56.4 66 75.6" y="539" fill="#c0caf5">/show</text>
+<text x="94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4" y="539" fill="#c0caf5">[&lt;артефакт&gt;]</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2" y="539" fill="#c0caf5">список</text>
+<text x="392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8" y="539" fill="#c0caf5">артефактів</text>
+<text x="498 507.6 517.2" y="539" fill="#c0caf5">або</text>
+<text x="536.4 546 555.6 565.2 574.8" y="539" fill="#c0caf5">показ</text>
+<text x="594 603.6 613.2 622.8 632.4 642" y="539" fill="#c0caf5">одного</text>
+<text x="661.2" y="539" fill="#c0caf5">з</text>
+<text x="680.4 690 699.6" y="539" fill="#c0caf5">них</text>
+<text x="718.8 728.4 738 747.6 757.2 766.8" y="539" fill="#c0caf5">(plan,</text>
+<text x="786 795.6 805.2 814.8 824.4 834 843.6" y="539" fill="#c0caf5">diff-N,</text>
+<text x="862.8 872.4 882 891.6 901.2 910.8 920.4 930 939.6" y="539" fill="#c0caf5">verify-N,</text>
+<text x="958.8 968.4 978 987.6 997.2 1006.8 1016.4" y="539" fill="#c0caf5">red-N…)</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8 104.4" y="559" fill="#c0caf5">/approve</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8" y="559" fill="#c0caf5">&lt;plan|commit&gt;</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2" y="559" fill="#c0caf5">затвердити:</text>
+<text x="440.4 450 459.6 469.2 478.8 488.4 498" y="559" fill="#c0caf5">показує</text>
+<text x="517.2 526.8 536.4 546" y="559" fill="#c0caf5">хеш,</text>
+<text x="565.2 574.8" y="559" fill="#c0caf5">що</text>
+<text x="594 603.6 613.2 622.8 632.4 642 651.6" y="559" fill="#c0caf5">очікує,</text>
+<text x="670.8 680.4 690 699.6" y="559" fill="#c0caf5">який</text>
+<text x="718.8 728.4 738 747.6 757.2" y="559" fill="#c0caf5">треба</text>
+<text x="776.4 786 795.6 805.2 814.8 824.4" y="559" fill="#c0caf5">ввести</text>
+<text x="843.6 853.2" y="559" fill="#c0caf5">ще</text>
+<text x="872.4 882 891.6" y="559" fill="#c0caf5">раз</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="579" fill="#c0caf5">/agents</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2" y="579" fill="#c0caf5">агенти</text>
+<text x="392.4 402" y="579" fill="#c0caf5">та</text>
+<text x="421.2 430.8 440.4 450" y="579" fill="#c0caf5">їхні</text>
+<text x="469.2 478.8 488.4 498 507.6" y="579" fill="#c0caf5">права</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="599" fill="#c0caf5">/doctor</text>
+<text x="325.2 334.8 344.4 354" y="599" fill="#c0caf5">стан</text>
+<text x="373.2 382.8 392.4 402 411.6 421.2" y="599" fill="#c0caf5">машини</text>
+<text x="440.4 450" y="599" fill="#c0caf5">та</text>
+<text x="469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8" y="599" fill="#c0caf5">сертифікація</text>
+<text x="594 603.6 613.2 622.8 632.4 642 651.6" y="599" fill="#c0caf5">агентів</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8" y="619" fill="#c0caf5">/skills</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2" y="619" fill="#c0caf5">встановлені</text>
+<text x="440.4 450 459.6 469.2 478.8 488.4" y="619" fill="#c0caf5">skills</text>
+<text x="507.6 517.2" y="619" fill="#c0caf5">та</text>
+<text x="536.4 546 555.6 565.2 574.8" y="619" fill="#c0caf5">їхній</text>
+<text x="594 603.6 613.2 622.8 632.4 642" y="619" fill="#c0caf5">статус</text>
+<text x="37.2 46.8 56.4 66 75.6 85.2 94.8 104.4" y="639" fill="#c0caf5">/upgrade</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4" y="639" fill="#c0caf5">[auto|path|install]</text>
+<text x="325.2 334.8 344.4 354 363.6 373.2" y="639" fill="#c0caf5">версії</text>
+<text x="392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4" y="639" fill="#c0caf5">ІІ-інструментів:</text>
+<text x="555.6 565.2 574.8 584.4 594 603.6 613.2 622.8 632.4" y="639" fill="#c0caf5">показати,</text>
+<text x="651.6 661.2 670.8 680.4 690 699.6" y="639" fill="#c0caf5">обрати</text>
+<text x="718.8 728.4 738 747.6 757.2 766.8 776.4 786 795.6 805.2 814.8 824.4 834 843.6 853.2 862.8" y="639" fill="#c0caf5">використовувану,</text>
+<text x="882 891.6 901.2 910.8 920.4 930 939.6 949.2 958.8 968.4 978 987.6 997.2 1006.8" y="639" fill="#c0caf5">перевстановити</text>
+<text x="1026 1035.6 1045.2 1054.8 1064.4 1074 1083.6 1093.2 1102.8" y="639" fill="#c0caf5">виміряний</text>
+<text x="1122 1131.6 1141.2 1150.8 1160.4 1170" y="639" fill="#c0caf5">Claude</text>
+<text x="1189.2 1198.8 1208.4 1218" y="639" fill="#c0caf5">Code</text>
+<text x="37.2 46.8 56.4 66 75.6" y="659" fill="#c0caf5">/help</text>
+<text x="325.2 334.8" y="659" fill="#c0caf5">ця</text>
+<text x="354 363.6 373.2 382.8 392.4 402 411.6" y="659" fill="#c0caf5">довідка</text>
+<text x="37.2 46.8 56.4 66 75.6" y="679" fill="#c0caf5">/quit</text>
+<text x="325.2 334.8 344.4 354 363.6" y="679" fill="#c0caf5">вийти</text>
+<text x="382.8" y="679" fill="#c0caf5">з</text>
+<text x="402 411.6 421.2 430.8 440.4 450 459.6" y="679" fill="#c0caf5">консолі</text>
+<text x="18 27.6 37.2" y="699" fill="#c0caf5">Tab</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="699" fill="#c0caf5">доповнює</text>
+<text x="142.8 152.4 162 171.6 181.2 190.8 200.4 210" y="699" fill="#c0caf5">команду;</text>
+<text x="229.2 238.8 248.4 258 267.6 277.2 286.8 296.4" y="699" fill="#c0caf5">введення</text>
+<text x="315.6" y="699" fill="#c0caf5">/</text>
+<text x="334.8 344.4 354 363.6 373.2 382.8 392.4" y="699" fill="#c0caf5">показує</text>
+<text x="411.6 421.2" y="699" fill="#c0caf5">це</text>
+<text x="440.4 450 459.6 469.2 478.8" y="699" fill="#c0caf5">меню.</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="719" fill="#5ef2c2">taskquoin</text>
+<text x="114" y="719" fill="#5ef2c2">›</text>
+<text x="133.2 142.8 152.4 162 171.6" y="719" fill="#c0caf5">/quit</text>
+</g></svg>

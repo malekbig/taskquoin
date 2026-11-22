@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { en, ENGLISH_ONLY } from './en.ts';
 import { LANGUAGES } from './languages.ts';
 
@@ -38,16 +37,7 @@ export function resolveLanguage(env: Record<string, string | undefined>, prefs: 
   return 'en';
 }
 
-export function loadPreferences(stateDir: string): { language?: string } {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(join(stateDir, 'preferences.json'), 'utf8'));
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      const language = (parsed as { language?: unknown }).language;
-      return typeof language === 'string' ? { language } : {};
-    }
-  } catch { /* missing, unreadable or not JSON */ }
-  return {};
-}
+export { loadPreferences } from '../preferences.ts';
 
 export function translate(
   lang: string, base: Record<string, string>, local: Record<string, string> | undefined,
@@ -97,6 +87,11 @@ export function t<K extends MessageKey>(key: K, ...args: Params<ParamNames<(type
 
 export function tn<B extends PluralBase>(base: B, count: number, ...args: Params<Exclude<ParamNames<(typeof en)[`${B}_other`]>, 'count'>>): string {
   return translate(lang, en, local, base, { ...args[0], count });
+}
+
+/** Engine text (`check --json`, run reasons in `status --json`): English whatever the language — only ENGLISH_ONLY keys. */
+export function english<K extends (typeof ENGLISH_ONLY)[number]>(key: K, ...args: Params<ParamNames<(typeof en)[K]>>): string {
+  return translate('en', en, undefined, key, args[0]);
 }
 
 export { en, ENGLISH_ONLY };
