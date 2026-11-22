@@ -16,7 +16,7 @@ const ROOT = new URL('..', import.meta.url).pathname;
 test('no literal control, bidi or invisible character in tracked sources', () => {
   const files = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' }).split('\0').filter(f => /\.(ts|mjs|cjs|json|md|feature|ya?ml|sh|py|toml|txt)$/.test(f));
   assert.ok(files.length > 100, 'the scan sees the repository');
-  for (const ext of ['.feature', '.yml', '.sh']) assert.ok(files.some(f => f.endsWith(ext)), `the scan covers ${ext} files (Gherkin, CI, shell)`);
+  for (const ext of ['.feature', '.yml']) assert.ok(files.some(f => f.endsWith(ext)), `the scan covers ${ext} files (Gherkin, CI)`); // .sh is scanned too, but the public tree may hold none
   const bad: string[] = [];
   for (const f of files) {
     const natural = /\.(json|md)$/.test(f);
