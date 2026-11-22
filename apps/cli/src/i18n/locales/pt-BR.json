@@ -376,6 +376,7 @@
   "dashboard.center.unchanged": "inalterado",
   "dashboard.center.changed": "alterado",
   "dashboard.center.error.slash": "um nome nunca começa com /: digite seu nome, ou Esc para cancelar",
+  "dashboard.center.error.dash": "um nome nunca começa com -: digite seu nome, ou Esc para cancelar",
   "dashboard.center.error.controls": "caracteres de controle ou invisíveis são recusados: nada foi adicionado",
   "dashboard.center.error.mismatch": "o hash não confere: nada foi aprovado — digite novamente os 12 caracteres mostrados",
   "dashboard.center.notWaiting": "Não está mais aguardando — aprovado ou alterado em outro lugar. Nada a aprovar aqui.",

@@ -368,6 +368,7 @@
   "dashboard.center.unchanged": "変更なし",
   "dashboard.center.changed": "変更あり",
   "dashboard.center.error.slash": "名前は / で始まりません：名前を入力するか、Esc でキャンセル",
+  "dashboard.center.error.dash": "名前は - で始まりません：名前を入力するか、Esc でキャンセル",
   "dashboard.center.error.controls": "制御文字や不可視文字は受け付けません：何も追加されていません",
   "dashboard.center.error.mismatch": "ハッシュが一致しません：何も承認されていません — 表示された 12 文字を再入力してください",
   "dashboard.center.notWaiting": "もう待機していません — 別の場所で承認または変更されました。ここで承認するものはありません。",

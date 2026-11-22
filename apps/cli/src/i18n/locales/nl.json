@@ -376,6 +376,7 @@
   "dashboard.center.unchanged": "ongewijzigd",
   "dashboard.center.changed": "gewijzigd",
   "dashboard.center.error.slash": "een naam begint nooit met /: typ je naam, of Esc om te annuleren",
+  "dashboard.center.error.dash": "een naam begint nooit met -: typ je naam, of Esc om te annuleren",
   "dashboard.center.error.controls": "stuur- of onzichtbare tekens worden geweigerd: er is niets toegevoegd",
   "dashboard.center.error.mismatch": "de hash komt niet overeen: er is niets goedgekeurd — typ de 12 getoonde tekens opnieuw",
   "dashboard.center.notWaiting": "Wacht niet meer — elders goedgekeurd of gewijzigd. Hier valt niets goed te keuren.",

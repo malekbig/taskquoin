@@ -149,17 +149,19 @@ while the selected run waits at a gate.
 
 1. **Nothing approves on a key.** `y`, `Enter`, `Space` and every other key do nothing in the main view. Keys typed
    before the center is on screen are ignored.
-2. **Your name** is asked once per session (not empty, 64 characters at most, never starting with `/`, no control or
-   invisible character) and recorded as `<name> (via taskquoin dashboard)`. It is never read from the system.
+2. **Your name** is asked once per session (not empty, 64 characters at most, never starting with `/` or `-`, no
+   control or invisible character) and recorded as `<name> (via taskquoin dashboard)`. It is never read from the system.
 3. **Retype the 12 characters** of the hash shown, one key at a time, then press `Enter`. A paste, or several keys in
    one chunk, fills the field but never submits. A wrong hash clears the field and approves nothing; an empty field
    cancels.
 4. **The binding is read again** from the store when the center opens, when the hash step starts, and after your last
    keystroke. If the gate has gone, or its hash changed, nothing is sent: `Refused: the tree changed since it was
    shown` (or `the plan`), then `Nothing was approved. Read the new diff: d`.
-5. **`Esc` cancels** at any step: `Cancelled: nothing was approved.`
+5. **`Esc` cancels** at any step: `Cancelled: nothing was approved.` One exception: below 40 × 12 the center shows only
+   the too-small message and drops every key, `Esc`, `q` and `Ctrl-C` included — enlarge the terminal first; what
+   you had typed is still there.
 
-Once the hash is right, the Dashboard starts `taskquoin approve <run> <gate> --expect <hash> --as "<name> (via taskquoin
+Once the hash is right, the Dashboard starts `taskquoin approve <run> <gate> --expect=<hash> --as="<name> (via taskquoin
 dashboard)"` **in a separate process** (no shell; detached; its output goes to a private log file, mode `0600` in a
 `0700` temporary directory, never to a pipe a closing Dashboard could break) — the same command you would type. All its
 checks apply as usual. Then the Dashboard only watches:
@@ -171,7 +173,9 @@ checks apply as usual. Then the Dashboard only watches:
 | `✖ taskquoin approve refused (exit N)`, the last 3 lines of its log, `nothing was approved` | the process ended and recorded nothing (a busy run, a changed gate…) |
 
 If `taskquoin approve` exits non-zero **after** the approval was recorded, the screen still says approved: the run's
-later failure shows in Pipeline.
+later failure shows in Pipeline. An approval recorded by any process this Dashboard started is reported, even after a
+later one (for another run) was refused. Pressing `p` again on a run whose approval is still in flight shows that
+approval's line; it never starts a second process.
 
 **Quitting keeps the run going — and says so.** The approved run continues in its own process until its next gate. If
 you press `q` or `Ctrl-C` while that process is alive, the Dashboard asks first: `The run <short> continues in process
@@ -181,18 +185,28 @@ the run, the pid and the log path on stderr.
 ## Read-only guarantees
 
 - The Dashboard opens the control store **read-only**: it creates no directory, takes no lock, writes no file, and
-  never opens a run's lock for writing. It only stats files and reads one when its stamp changed.
+  never opens a run's lock for writing. It stats files and reads one when its stamp changed, except for three reads
+  made on every 500 ms poll whatever the stamps say: while the approval center asks for the hash, that run's
+  `state.json` (the binding, re-checked); while an approval started here waits to be recorded, that run's
+  `state.json` and `events.jsonl`; while the selected run is running, its `lock` file (the pid whose process is
+  checked).
+- Each file is opened once, never through a symbolic link and never blocking: a FIFO, a device or a link in the store
+  is unreadable, and the Dashboard goes on. A `state.json` whose fields have the wrong types, that names another run,
+  or whose binding is not a hash is an `unreadable` run.
 - This is proven, not promised: the test suite runs the real loop under `node --permission --allow-fs-read=*` — a
   process that cannot write anything to disk — over a seeded store, browsing every run, every panel and the help.
   Opening and cancelling the approval center is part of that run.
-- It starts no process except `taskquoin approve`, and only from the approval center after the hash was retyped.
+- At start-up, before its first frame, it runs the same host checks as the console: the runtimes' `--version` and
+  `git rev-parse --show-toplevel` (the host probe), the sandbox check (`bwrap`), and `git branch --show-current` and
+  `git status --porcelain`. After that it starts no process except `taskquoin approve`, and only from the approval
+  center after the hash was retyped.
 - Nothing it does on a timer, a poll or a resize can approve: only the retyped hash, at the Enter of the approval center.
 
 ## Live updates
 
 - Every **500 ms** it checks the `state.json` stamps (modification time and size) of the newest runs and the
-  `events.jsonl` size of the selected run. A file is read only when its stamp changed, and a frame is drawn only when
-  something changed.
+  `events.jsonl` size of the selected run. A file is read only when its stamp changed (except the three reads listed
+  under the read-only guarantees), and a frame is drawn only when something changed.
 - The selected run's last **1 000 events** are kept (newest first); older ones are not shown, and the panel says so.
   Lines that cannot be read are skipped and counted.
 - While the selected run has a live running step, the elapsed times are redrawn once a second; an idle Dashboard writes

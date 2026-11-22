@@ -368,6 +368,7 @@
   "dashboard.center.unchanged": "변경 없음",
   "dashboard.center.changed": "변경됨",
   "dashboard.center.error.slash": "이름은 /로 시작하지 않습니다: 이름을 입력하거나 Esc로 취소하세요",
+  "dashboard.center.error.dash": "이름은 -로 시작하지 않습니다: 이름을 입력하거나 Esc로 취소하세요",
   "dashboard.center.error.controls": "제어 문자나 보이지 않는 문자는 거부됩니다: 아무것도 추가되지 않았습니다",
   "dashboard.center.error.mismatch": "hash가 일치하지 않음: 아무것도 승인되지 않았습니다 — 표시된 12자를 다시 입력하세요",
   "dashboard.center.notWaiting": "더 이상 대기 중이 아님 — 다른 곳에서 승인되거나 변경되었습니다. 여기서 승인할 것이 없습니다.",

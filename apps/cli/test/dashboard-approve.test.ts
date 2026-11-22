@@ -187,6 +187,18 @@ test('a name typed in one chunk is kept (its Enter does not submit it); `/alice`
   }
 });
 
+test('I6: a name starting with - is refused like one starting with / (taskquoin approve would read it as an option); a session approver too', async () => {
+  for (const typed of ['-bob', '--as', ' -x']) {
+    const h = harness({ approver: null }); h.form.open();
+    await typeKeys(h.form, typed); await h.form.key('\r');
+    assert.deepEqual(h.form.state(), { step: 'name', text: '', error: 'dash' }, typed);
+    assert.deepEqual(h.names, []); assert.equal(h.calls.length, 0);
+    assert.match(text(h.form.render(caps())).replace(/[│╭╮╰╯─]+/g, ' ').replace(/\s+/g, ' '), /a name never starts with -/);
+  }
+  const kept = harness({ approver: '-bob' }); kept.form.open();
+  assert.equal(kept.form.state().step, 'name');
+});
+
 test('F32: the name is trimmed and capped at 64 characters; `as` is that name and the surface, once', async () => {
   const h = harness({ approver: null }); h.form.open();
   await typeKeys(h.form, '  ' + 'x'.repeat(100) + '  '); await h.form.key('\r');
@@ -440,7 +452,8 @@ test('spawnApprove: argv and options exactly (no shell), stdout/stderr to a 0600
   assert.equal(f.calls.length, 1);
   const { cmd, args, opts } = f.calls[0]!;
   assert.equal(cmd, '/usr/bin/node');
-  assert.deepEqual(args, ['/opt/tq/main.ts', 'approve', 'run-x-ab12cd', 'commit', '--expect', '9c1e04b7aa31', '--as', 'alice (via taskquoin dashboard)']);
+  // one element per option (I6): a value is never read as an option of its own
+  assert.deepEqual(args, ['/opt/tq/main.ts', 'approve', 'run-x-ab12cd', 'commit', '--expect=9c1e04b7aa31', '--as=alice (via taskquoin dashboard)']);
   assert.deepEqual(Object.keys(opts).sort(), ['cwd', 'detached', 'env', 'stdio']);
   assert.equal(opts.cwd, '/work/repo'); assert.equal(opts.detached, true);
   assert.deepEqual(opts.env, { PATH: '/bin', HOME: '/h', NO_COLOR: '1', TASKQUOIN_NO_SETUP: '1' });

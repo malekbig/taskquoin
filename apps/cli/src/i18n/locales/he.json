@@ -370,6 +370,7 @@
   "dashboard.center.unchanged": "ללא שינוי",
   "dashboard.center.changed": "השתנה",
   "dashboard.center.error.slash": "שם אף פעם לא מתחיל ב-/: הקלידו את שמכם, או Esc לביטול",
+  "dashboard.center.error.dash": "שם אף פעם לא מתחיל במקף (-): הקלידו את שמכם, או Esc לביטול",
   "dashboard.center.error.controls": "תווי בקרה או תווים בלתי נראים נדחים: דבר לא נוסף",
   "dashboard.center.error.mismatch": "ה-hash אינו תואם: דבר לא אושר — הקלידו שוב את 12 התווים המוצגים",
   "dashboard.center.notWaiting": "כבר לא ממתין — אושר או השתנה במקום אחר. אין כאן מה לאשר.",

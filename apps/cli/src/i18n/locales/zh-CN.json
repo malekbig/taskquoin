@@ -368,6 +368,7 @@
   "dashboard.center.unchanged": "未变",
   "dashboard.center.changed": "已变",
   "dashboard.center.error.slash": "姓名不能以 / 开头：请输入你的姓名，或按 Esc 取消",
+  "dashboard.center.error.dash": "姓名不能以 - 开头：请输入你的姓名，或按 Esc 取消",
   "dashboard.center.error.controls": "控制字符或不可见字符会被拒绝：未添加任何内容",
   "dashboard.center.error.mismatch": "hash 不匹配：未批准任何内容 — 请重新输入显示的 12 个字符",
   "dashboard.center.notWaiting": "已不再等待 — 已在别处批准或更改。这里没有需要批准的内容。",

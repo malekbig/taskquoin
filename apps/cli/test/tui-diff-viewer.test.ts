@@ -352,3 +352,12 @@ test('the stale marker: a binding that is no longer current says so, with the d 
 });
 
 void (null as unknown as Doc);
+
+test('I2: the binding in the header goes through the neutraliser: a bidi or escape character from the store is a visible marker', () => {
+  const RLO = String.fromCharCode(0x202e), BEL = String.fromCharCode(7);
+  const v = { ...doc3(), binding: { hash: `${RLO}${E}]0;pwn${BEL}abcdef`, current: true } };
+  const text = renderViewer(v, mkCaps({ columns: 160, rows: 20, colorDepth: 0 }), 20).join('\n');
+  assert.ok(!FORBIDDEN.test(text), JSON.stringify(text.split('\n')[0]));
+  assert.ok(!text.includes(RLO));
+  assert.match(text, /‹U\+202E›/);
+});

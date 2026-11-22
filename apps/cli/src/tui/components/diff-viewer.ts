@@ -418,7 +418,7 @@ function header(v: ViewerState, caps: Caps): string {
   let bind = '';
   if (v.binding && room > displayWidth(sep(caps))) {
     const word = v.binding.current
-      ? `${t('dashboard.viewer.waiting', { hash: v.binding.hash.slice(0, 12) })} ${glyph('done', caps)} ${t('dashboard.viewer.current')}`
+      ? `${t('dashboard.viewer.waiting', { hash: neutralize(v.binding.hash.slice(0, 12), { singleLine: true }).text })} ${glyph('done', caps)} ${t('dashboard.viewer.current')}`
       : `${glyph('failed', caps)} ${t('dashboard.viewer.stale')}`;
     const shown = cut(tx(word, caps), room - displayWidth(sep(caps)), ellipsis(caps));
     bind = sep(caps) + paint(v.binding.current ? 'green' : 'red', shown, caps);

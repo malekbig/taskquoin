@@ -376,6 +376,7 @@
   "dashboard.center.unchanged": "unverändert",
   "dashboard.center.changed": "geändert",
   "dashboard.center.error.slash": "ein Name beginnt nie mit /: tippe deinen Namen oder Esc zum Abbrechen",
+  "dashboard.center.error.dash": "ein Name beginnt nie mit -: tippe deinen Namen oder Esc zum Abbrechen",
   "dashboard.center.error.controls": "Steuer- oder unsichtbare Zeichen werden abgelehnt: nichts wurde hinzugefügt",
   "dashboard.center.error.mismatch": "der Hash stimmt nicht überein: nichts wurde freigegeben — tippe die 12 angezeigten Zeichen erneut",
   "dashboard.center.notWaiting": "Wartet nicht mehr — anderswo freigegeben oder geändert. Hier gibt es nichts freizugeben.",

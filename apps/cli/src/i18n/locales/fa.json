@@ -376,6 +376,7 @@
   "dashboard.center.unchanged": "بدون تغییر",
   "dashboard.center.changed": "تغییر کرده",
   "dashboard.center.error.slash": "نام هرگز با / شروع نمی‌شود: نام خود را تایپ کنید، یا برای لغو Esc",
+  "dashboard.center.error.dash": "نام هرگز با - شروع نمی‌شود: نام خود را تایپ کنید، یا برای لغو Esc",
   "dashboard.center.error.controls": "نویسه‌های کنترلی یا نامرئی پذیرفته نمی‌شوند: چیزی افزوده نشد",
   "dashboard.center.error.mismatch": "hash مطابقت ندارد: چیزی تأیید نشد — 12 نویسهٔ نمایش‌داده‌شده را دوباره تایپ کنید",
   "dashboard.center.notWaiting": "دیگر منتظر نیست — جای دیگری تأیید یا تغییر کرده. اینجا چیزی برای تأیید نیست.",

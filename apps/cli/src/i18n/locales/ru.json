@@ -371,6 +371,7 @@
   "dashboard.center.unchanged": "без изменений",
   "dashboard.center.changed": "изменено",
   "dashboard.center.error.slash": "имя никогда не начинается с /: введите своё имя или Esc для отмены",
+  "dashboard.center.error.dash": "имя никогда не начинается с -: введите своё имя или Esc для отмены",
   "dashboard.center.error.controls": "управляющие и невидимые символы отклоняются: ничего не добавлено",
   "dashboard.center.error.mismatch": "хеш не совпадает: ничего не утверждено — наберите 12 показанных символов ещё раз",
   "dashboard.center.notWaiting": "Больше не ждёт — утверждено или изменено в другом месте. Здесь нечего утверждать.",

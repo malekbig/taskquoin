@@ -486,6 +486,7 @@ export const en = {
   'dashboard.center.unchanged': 'unchanged',
   'dashboard.center.changed': 'changed',
   'dashboard.center.error.slash': 'a name never starts with /: type your name, or Esc to cancel',
+  'dashboard.center.error.dash': 'a name never starts with -: type your name, or Esc to cancel',
   'dashboard.center.error.controls': 'control or invisible characters are refused: nothing was added',
   'dashboard.center.error.mismatch': 'the hash does not match: nothing was approved — retype the 12 characters shown',
   'dashboard.center.notWaiting': 'No longer waiting — approved or changed elsewhere. Nothing to approve here.',

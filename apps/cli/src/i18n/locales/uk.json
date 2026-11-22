@@ -371,6 +371,7 @@
   "dashboard.center.unchanged": "без змін",
   "dashboard.center.changed": "змінено",
   "dashboard.center.error.slash": "імʼя ніколи не починається з /: введіть своє імʼя або Esc, щоб скасувати",
+  "dashboard.center.error.dash": "імʼя ніколи не починається з -: введіть своє імʼя або Esc, щоб скасувати",
   "dashboard.center.error.controls": "керувальні та невидимі символи відхиляються: нічого не додано",
   "dashboard.center.error.mismatch": "хеш не збігається: нічого не затверджено — введіть 12 показаних символів ще раз",
   "dashboard.center.notWaiting": "Більше не чекає — затверджено або змінено деінде. Тут нічого затверджувати.",

@@ -474,6 +474,7 @@
   "dashboard.center.unchanged": "inchangé",
   "dashboard.center.changed": "modifié",
   "dashboard.center.error.slash": "un nom ne commence jamais par / : tapez votre nom, ou Échap pour annuler",
+  "dashboard.center.error.dash": "un nom ne commence jamais par - : tapez votre nom, ou Échap pour annuler",
   "dashboard.center.error.controls": "les caractères de contrôle ou invisibles sont refusés : rien n'a été ajouté",
   "dashboard.center.error.mismatch": "le hash ne correspond pas : rien n'a été approuvé — retapez les 12 caractères affichés",
   "dashboard.center.notWaiting": "N'attend plus — approuvé ou modifié ailleurs. Rien à approuver ici.",

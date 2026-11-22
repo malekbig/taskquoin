@@ -9,10 +9,10 @@
  *    submitting Enter): absent, another gate or another hash refuses (`stale`) and nothing is approved.
  *  - Esc and Ctrl+C cancel while something is being typed; after `sent` they only close the view (an approval may
  *    already be recorded: the screen never says "nothing was approved" then).
- * The name is trimmed and capped at 64 characters, kept in memory by the caller (`onName`), never read from the OS.
+ * The name is trimmed and capped at 64 characters, never starts with `/` or `-`, kept in memory by the caller (`onName`), never read from the OS.
  *
  * The approval itself is the existing CLI path, in its own process (spec §6): `spawnApprove` starts
- * `taskquoin approve <run> <gate> --expect <typed> --as "<name> (via taskquoin dashboard)"` detached, its output in a
+ * `taskquoin approve <run> <gate> --expect=<typed> --as="<name> (via taskquoin dashboard)"` detached, its output in a
  * private log file (never a pipe: quitting the dashboard must not kill the run with EPIPE). Whether it approved is
  * what the control store records (`approvalRecorded`), never its exit code.
  */
@@ -30,7 +30,7 @@ export type Gate = 'plan' | 'commit';
 /** What the store says the run waits for, read now. `at`: when it started waiting (the last history entry). */
 export interface Pending { gate: Gate; binding: string; at?: string }
 export type Shown = { binding: string; at: string };
-export type FormStep = { step: 'not-waiting' } | { step: 'name'; text: string; error?: 'slash' | 'controls' }
+export type FormStep = { step: 'not-waiting' } | { step: 'name'; text: string; error?: 'slash' | 'dash' | 'controls' }
   | { step: 'hash'; shown: Shown; text: string; error?: 'mismatch' | 'controls'; changed?: boolean }
   | { step: 'stale'; shown: Shown; now?: Pending } | { step: 'cancelled' } | { step: 'sent'; shown: Shown; as: string };
 /** What the centre shows around the form: the run (neutral), its request, what was read this session, the risks in force, how many runs wait. */
@@ -70,7 +70,7 @@ export function approvalForm(o: {
   let step: FormStep = { step: 'not-waiting' };
   // A name the session kept: only one that could have been typed (no control, bidi or invisible character); else asked again.
   const given = o.approver !== undefined && neutralize(o.approver, { singleLine: true }).marked === 0 ? cleanName(o.approver) : '';
-  let name = given !== '' && !given.startsWith('/') ? given : undefined;
+  let name = given !== '' && !given.startsWith('/') && !given.startsWith('-') ? given : undefined;
   let reReadAt: string | undefined;
   let sentOnce = false;
   let dropPaste = false; // a bracketed paste begun before the form was on screen: its end is dropped too
@@ -102,6 +102,7 @@ export function approvalForm(o: {
         const typed = cleanName(s.text);
         if (typed === '') return { step: 'cancelled' };
         if (typed.startsWith('/')) return { step: 'name', text: '', error: 'slash' };
+        if (typed.startsWith('-')) return { step: 'name', text: '', error: 'dash' }; // never read as an option by taskquoin approve
         name = typed;
         o.onName?.(typed);
         return toHash();
@@ -208,8 +209,8 @@ function tailOf(path: string, maxBytes: number): string {
 }
 
 /**
- * Starts `taskquoin approve` in its own process: argv exactly `[entry, 'approve', runId, gate, '--expect', expect,
- * '--as', as]` (no shell), detached, stdin ignored, stdout and stderr to `approve.log` (0600, `wx`) in a fresh 0700
+ * Starts `taskquoin approve` in its own process: argv exactly `[entry, 'approve', runId, gate, '--expect=<expect>',
+ * '--as=<as>']` (one element per option, so a value is never read as an option; no shell), detached, stdin ignored, stdout and stderr to `approve.log` (0600, `wx`) in a fresh 0700
  * directory; the descriptor is closed here once the child has it; `unref()` so the dashboard can quit while it runs.
  */
 export function spawnApprove(o: { node: string; entry: string; cwd: string; env: NodeJS.ProcessEnv; runId: string; gate: Gate; expect: string; as: string; spawn?: typeof nodeSpawn }): ApproveChild {
@@ -218,7 +219,7 @@ export function spawnApprove(o: { node: string; entry: string; cwd: string; env:
   const fd = openSync(logPath, 'wx', 0o600);
   let child: ReturnType<typeof nodeSpawn>;
   try {
-    child = (o.spawn ?? nodeSpawn)(o.node, [o.entry, 'approve', o.runId, o.gate, '--expect', o.expect, '--as', o.as],
+    child = (o.spawn ?? nodeSpawn)(o.node, [o.entry, 'approve', o.runId, o.gate, `--expect=${o.expect}`, `--as=${o.as}`],
       { cwd: o.cwd, detached: true, stdio: ['ignore', fd, fd], env: { ...o.env, NO_COLOR: '1', TASKQUOIN_NO_SETUP: '1' } });
   } finally { closeSync(fd); }
   const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
