@@ -116,18 +116,27 @@ command is the real Taskquoin CLI.
 `taskquoin` with no arguments opens the interactive console. It starts nothing unless a line begins with `/`:
 
 ```
-taskquoin › /run Add a sum function
-taskquoin › /show plan
-taskquoin › /approve plan
-To approve: plan of run run-… — hash 964c04e09ebe
-Retype 964c04e09ebe to approve (Enter to cancel):
+taskquoin [235eaf ◆ plan] › /approve plan
+Your name (recorded in the approval): alice
+  ◆ Plan approval  run 235eaf
+    Bound to the plan  964c04e09ebe   (964c04e09ebe1c44125a…)
+    Plan               · to read  /show plan
+    Critique           ✔ APPROVE  /show challenge
+    Policy             agents never commit · 1 accepted risk (connector.write)
+    Read this session  ✔ plan  · challenge
+
+    Approver           alice (via taskquoin console)
+Retype 964c04e09ebe to approve (Enter to cancel): 964c04e09ebe
 ```
 
-`/approve` asks for your name once per session, shows the hash, and approves **only when you retype that hash**. Enter
-cancels; a different hash prints `the hash does not match: nothing is approved.` Your name is recorded as
-`<name> (via taskquoin console)`.
+`/approve` asks for your name once per session, then shows what the approval is bound to, what there is to read (with
+the ignored files the agent changed, when there are) and what you read in this session with `/show`. It approves
+**only when you retype the hash**. Enter cancels; a different hash prints `the hash does not match: nothing is
+approved.` Your name is recorded as `<name> (via taskquoin console)`. After your last key the pending approval is read
+again: if it changed since the screen was shown, nothing is approved. Otherwise the console calls the same approval as
+`taskquoin approve --expect`, with the same refusals as in the table below.
 
-![the console](../assets/screens/en/console.svg)
+![/show diff-1 and /approve commit in the console](../assets/screens/en/console-approve.svg)
 
 The console is never installed as commands inside Claude Code or Codex: a model must not be able to type your
 approvals. The real boundary is the control store, which agents cannot write.

@@ -85,9 +85,9 @@ Some text is English in every language, deliberately:
   language you use.
 - **Command names and options.** `taskquoin run`, `--expect`, `--as`, and the console's `/run`, `/approve`... are never
   translated. A test checks that no translation changes a `/command`.
-- **The banner's brand.** The tagline, the slogan and the role names (Architect, Developer, Reviewer, Security, Tester) and
-  the words `READY` / `NOT READY` of the console banner. The notes after a status (an accepted risk, why an agent is
-  not ready) are translated.
+- **The console's brand.** The tagline `✦ YOUR AI DEV SQUAD ✦`, the role names (Architect, Developer, Reviewer,
+  Security, Tester) and the words `READY` / `NOT READY` of the console's home screen. The notes after a status (an
+  accepted risk, why an agent is not ready) are translated.
 - **Identifiers.** Run ids, hashes, artifact names (`plan`, `diff-1`, `verify-1`...), capability names, node names and
   statuses (`waiting-approval`, `needs-human`).
 - **Commit messages and trailers.** `Taskquoin-Run:`, `Plan-Approved-By:`, `RED-Proof:` and the rest.

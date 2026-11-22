@@ -196,6 +196,7 @@ $XDG_STATE_HOME/taskquoin/
 └── repos/
     └── <16-hex repository id>/
         ├── manifest.json       # what `init` created, with hashes, for `uninstall`
+        ├── console-history     # the console's last 500 `/` commands (↑/↓), mode 0600; never a name or a hash
         ├── runs/
         │   └── <run-id>/
         │       ├── state.json  # the run's state

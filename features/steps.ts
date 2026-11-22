@@ -188,6 +188,7 @@ export const steps: StepDef<World>[] = [
   { re: s(`la commande réussit`), fn: (w) => ok(w, 'command') },
   { re: s(`la commande échoue avec le code (\\d)`), fn: (w, code) => assert.equal(w.last?.status, Number(code), `${w.last?.stdout}\n${w.last?.stderr}`) },
   { re: s(`la sortie ne contient pas "(.+)"`), fn: (w, text) => assert.ok(!w.last?.stdout.includes(text), `stdout:\n${w.last?.stdout}`) },
+  { re: s(`la sortie d'erreur ne contient pas "(.+)"`), fn: (w, text) => assert.ok(!w.last?.stderr.includes(text), `stderr:\n${w.last?.stderr}`) },
   { re: s(`un Claude Code "(.+)" installé sur le PATH`), fn: (w, v) => {
     const bin = join(w.root, 'bin', 'claude'); writeFileSync(bin, `#!/bin/sh\necho '${v} (Claude Code)'\n`); chmodSync(bin, 0o755);
   } },
@@ -199,6 +200,11 @@ export const steps: StepDef<World>[] = [
     assert.ok(existsSync(w.npmTrace), 'npm was not run');
     const [cwd, line] = readFileSync(w.npmTrace, 'utf8').split('\n');
     assert.equal(cwd, w.env.HOME, 'the installer runs in HOME, outside the repository'); assert.ok(line.includes(args), line);
+  } },
+  // before the plain `contient` step: its `(.+)` would swallow the `avant` part
+  { re: s(`la sortie contient "(.+)" avant "(.+)"`), fn: (w, a, b) => {
+    const out = w.last?.stdout ?? ''; const i = out.indexOf(a), j = out.indexOf(b);
+    assert.ok(i >= 0 && j >= 0 && i < j, `"${a}" (${i}) should come before "${b}" (${j}):\n${out}`);
   } },
   { re: s(`la sortie contient "(.+)"`), fn: (w, text) => assert.ok(w.last?.stdout.includes(text), `stdout:\n${w.last?.stdout}`) },
   { re: s(`la sortie d'erreur contient "(.+)"`), fn: (w, text) => assert.ok(w.last?.stderr.includes(text), `stderr:\n${w.last?.stderr}`) },

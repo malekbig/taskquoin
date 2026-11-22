@@ -10,11 +10,11 @@ import { createHash, randomBytes } from 'node:crypto';
 import { chmodSync, existsSync, linkSync, lstatSync, renameSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { homedir } from 'node:os';
-import { advance, approve, interrupt, newRun, pendingApproval, resume, type GateResult, type RunState, type WorkflowDeps } from '@taskquoin/application';
+import { advance, approve, interrupt, newRun, pendingApproval, projectRun, resume, type GateResult, type RunState, type WorkflowDeps } from '@taskquoin/application';
 import { inheritGlobs, keyEnvName, testCommand, workflowOf, type TaskquoinConfig } from '@taskquoin/config';
 import { ApiExecutor } from '@taskquoin/runtime-api';
 import type { HostReport } from '@taskquoin/host-probe';
-import { appendEvent, ensureTrustedDir, getArtifact, listRuns, loadRunState, putArtifact, saveRunState, stateBase, type RepoStore } from '@taskquoin/store-fs';
+import { appendEvent, ensureTrustedDir, getArtifact, listRuns, loadRunState, putArtifact, readEvents, saveRunState, stateBase, type RepoStore } from '@taskquoin/store-fs';
 import { ClaudeExecutor } from '@taskquoin/runtime-claude';
 import { CodexExecutor } from '@taskquoin/runtime-codex';
 import { OpenCodeExecutor, userOpenCodeDirs } from '@taskquoin/runtime-opencode';
@@ -25,6 +25,8 @@ import { currentLanguage, english, t } from './i18n/index.ts';
 import { displayWidth, padEndDisplay } from './i18n/width.ts';
 import { LANGUAGES } from './i18n/languages.ts';
 import { jsonOut, n, nBlock, nCut, nLog } from './tui/neutral.ts';
+import type { Caps } from './tui/caps.ts';
+import { renderTimeline, timelineLine } from './tui/components/timeline.ts';
 import { resolveAgentSkills, skillsBlock } from './skills-cli.ts';
 import { matchGlob, SECRET_READ_GLOBS, selectInheritedRoots, TEST_PATH_GLOBS } from '@taskquoin/rules';
 /** Never sent to any judge (multi-LLM A3): the same names Taskquoin masks and denies elsewhere. */
@@ -39,7 +41,14 @@ const FORBIDDEN_FOR_READ_ONLY = ['fs.write', 'shell.run', 'net.egress', 'vcs.com
 /** A Verify that could not even start (no test command, tree not materialized, refusal): never red tests, no rework can fix it. */
 export const verifyNotRun = (log: string) => ({ passed: false, exitCode: null, conclusive: false, couldNotRun: true, treeChanged: false, log, firstLine: log.split('\n')[0].slice(0, 200) });
 
-export interface CliContext { cfg: TaskquoinConfig; h: HostReport; root: string; store: RepoStore; gate: (id: string) => GateResult; hookEntry: string; out: (s?: string) => void; err: (s: string) => void }
+export interface CliContext { cfg: TaskquoinConfig; h: HostReport; root: string; store: RepoStore; gate: (id: string) => GateResult; hookEntry: string; out: (s?: string) => void; err: (s: string) => void;
+  /** The terminal's facts (colour, charset, width); without them the timeline is plain, 80 columns, UTF-8. */
+  caps?: Caps;
+  /** Told of every event a run writes, as the run goes (the console). Without it each progress event is printed as one line. */
+  onEvent?: (event: Record<string, unknown>) => void }
+
+const PLAIN: Caps = { interactive: false, cursor: false, colorDepth: 0, charset: 'utf8', theme: 'dark', motion: false, plain: true, columns: 80, rows: 24 };
+const capsOf = (c: CliContext): Caps => c.caps ?? PLAIN;
 
 export const configDigest = (root: string) => 'sha256:' + createHash('sha256').update(readFileSync(join(root, 'taskquoin.yaml'))).digest('hex');
 
@@ -229,7 +238,11 @@ function deps(c: CliContext, state: RunState, git: GitWorkspace): WorkflowDeps {
     gate: c.gate,
     artifacts: { put: (name, text) => putArtifact(c.store, Buffer.from(text), { mediaType: 'text/plain', producer: name }).sha256, get: (h) => getArtifact(c.store, h).toString('utf8') },
     save: (s) => saveRunState(c.store, s.runId, s),
-    event: (e) => { appendEvent(c.store, state.runId, e); },
+    event: (e) => {
+      appendEvent(c.store, state.runId, e);
+      const seen = { ts: new Date().toISOString(), ...e };
+      if (c.onEvent) c.onEvent(seen); else { const line = timelineLine(seen, capsOf(c)); if (line !== undefined) c.out(line); }
+    },
     verify: async (tree, roots) => {
       const no = verifyNotRun;
       const refuse = (why: string) => ({ ...no(`TASKQUOIN — Verify refused: ${why}`), refusal: why });
@@ -336,6 +349,10 @@ const gateWord = (node: string) => (node === GATE.plan ? 'plan' : 'commit');
 function report(c: CliContext, s: RunState) {
   c.out(t('workflow.report.head', { run: n(s.runId), status: n(s.status), node: n(s.current), attempt: s.attempts, branch: n(s.branch ?? '') }));
   if (s.reason) c.out(`  ${n(s.reason)}`);
+  // The steps of the real state machine (never a progress bar), from the stored state and its event log.
+  let events: Record<string, unknown>[] = [];
+  try { events = readEvents(c.store, s.runId).events; } catch { /* no log yet, or unreadable: the view shows what the state holds */ }
+  for (const l of renderTimeline(projectRun(s, events), capsOf(c), Date.now(), { slash: !!c.onEvent })) c.out(l);
   const p = pendingApproval(s);
   // Labels share one column whatever the language (display width, so CJK aligns too).
   const names = [t('workflow.report.reviewLabel'), t('workflow.report.approveLabel'), t('workflow.report.resumeLabel')];

@@ -18,7 +18,7 @@ export function createDemo(base) {
     writeFileSync(join(bin, name), `#!/bin/sh\nexec ${process.execPath} ${FAKES}${file} "$@"\n`); chmodSync(join(bin, name), 0o755);
   }
   const env = { PATH: `${bin}:${dirname(process.execPath)}:/usr/bin:/bin`, HOME: home, XDG_STATE_HOME: state, LANG: 'C.UTF-8',
-    TASKQUOIN_NO_SETUP: '1', TASKQUOIN_NO_ANIMATION: '1', TASKQUOIN_OFFLINE: '1' };
+    TASKQUOIN_NO_SETUP: '1', TASKQUOIN_NO_ANIMATION: '1', TASKQUOIN_OFFLINE: '1', TZ: 'UTC' };
   const git = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8', env });
   writeFileSync(join(repo, 'package.json'), JSON.stringify({ name: 'calc', private: true, scripts: { test: 'node --test' } }, null, 2) + '\n');
   writeFileSync(join(repo, 'sum.test.js'), "const test = require('node:test'); const assert = require('node:assert');\ntest('sum', () => { const sum = require('./sum.js'); assert.strictEqual(sum(2, 3), 5); });\n");

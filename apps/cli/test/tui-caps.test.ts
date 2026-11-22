@@ -17,10 +17,17 @@ test('NO_COLOR non-empty forces colour off; empty does not', () => {
   assert.equal(caps({ NO_COLOR: '1' }).colorDepth, 0);
   assert.equal(caps({ NO_COLOR: '' }).colorDepth, 24);
 });
-test('TERM=dumb: no colour, no motion', () => {
+test('TERM=dumb: no colour, no motion, no cursor movement', () => {
   const c = caps({ TERM: 'dumb' });
   assert.equal(c.colorDepth, 0);
   assert.equal(c.motion, false);
+  assert.equal(c.cursor, false);
+});
+test('cursor movement: a terminal on both sides and not TERM=dumb; NO_COLOR, no animation or plain mode keep it', () => {
+  assert.equal(caps().cursor, true);
+  assert.equal(caps({ NO_COLOR: '1', TASKQUOIN_NO_ANIMATION: '1', TASKQUOIN_PLAIN: '1' }).cursor, true);
+  assert.equal(caps({}, { isTTY: false }).cursor, false);
+  assert.equal(caps({}, {}, false).cursor, false);
 });
 test('colour depth comes from getColorDepth(env); WT_SESSION raises 8 to 24 only', () => {
   assert.equal(caps({ WT_SESSION: 'x' }, { getColorDepth: () => 8 }).colorDepth, 24);

@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { glyph, paint, stateToken, TOKEN_HEX, type StateName, type Token } from '../src/tui/tokens.ts';
 import type { Caps } from '../src/tui/caps.ts';
 
-const base: Caps = { interactive: true, colorDepth: 24, charset: 'utf8', theme: 'dark', motion: true, plain: false, columns: 80, rows: 24 };
+const base: Caps = { interactive: true, cursor: true, colorDepth: 24, charset: 'utf8', theme: 'dark', motion: true, plain: false, columns: 80, rows: 24 };
 const c = (o: Partial<Caps>): Caps => ({ ...base, ...o });
 const E = '\x1b';
 

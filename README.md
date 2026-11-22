@@ -150,8 +150,8 @@ The full walk-through, every step with its screen, is the [tutorial](docs/gettin
 
 ## The console
 
-`taskquoin` alone opens an interactive console: the squad with each agent's real verdict, `/` commands with Tab
-completion, and `/approve`, which shows what is bound and asks you to retype the hash. Nothing starts without a `/`
+`taskquoin` alone opens an interactive console: the quoin logo, the repository context, the squad with each agent's real verdict, a
+timeline of the run in your local time, `/` commands with Tab completion, and `/approve`, which shows what is bound and asks you to retype the hash. Nothing starts without a `/`
 command. See [The console](docs/getting-started/console.md).
 
 ## The tutorial in your language
@@ -168,7 +168,13 @@ command. See [The console](docs/getting-started/console.md).
 Each tutorial shows the screens in its own language. The console, the CLI and the agents' prose follow your
 language (`TASKQUOIN_LANG`, otherwise your locale): [Languages](docs/guides/languages.md).
 
-![The Taskquoin console in eight languages](docs/assets/languages.gif)
+The console speaks your language: English, 日本語 and العربية below, and 19 more.
+
+<p>
+  <img src="docs/assets/screens/en/console.svg" alt="The Taskquoin console in English" width="32%">
+  <img src="docs/assets/screens/ja/console.svg" alt="The Taskquoin console in Japanese" width="32%">
+  <img src="docs/assets/screens/ar/console.svg" alt="The Taskquoin console in Arabic" width="32%">
+</p>
 
 ## Documentation
 

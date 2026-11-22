@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="804" height="578" viewBox="0 0 804 578" role="img" aria-label="~/calc — taskquoin › /approve commit">
+<title>~/calc — taskquoin › /approve commit</title>
+<rect width="804" height="578" rx="8" fill="#1a1b26"/>
+<path d="M0 8a8 8 0 0 1 8-8h788a8 8 0 0 1 8 8v22h-804z" fill="#16161e"/>
+<circle cx="16" cy="15" r="5" fill="#f7768e"/>
+<circle cx="33" cy="15" r="5" fill="#e0af68"/>
+<circle cx="50" cy="15" r="5" fill="#9ece6a"/>
+<text x="402" y="19.5" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-size="12.5" fill="#787c99">~/calc — taskquoin › /approve commit</text>
+<g font-family="'Cascadia Mono','JetBrains Mono','DejaVu Sans Mono',Menlo,Consolas,'Noto Sans Mono CJK SC','Noto Sans Mono','Segoe UI Symbol','Noto Sans Symbols 2','Apple Symbols',monospace" font-size="16" xml:space="preserve">
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="59" fill="#5ef2c2">taskquoin</text>
+<text x="114" y="59" fill="#5ef2c2">›</text>
+<text x="133.2 142.8 152.4 162" y="59" fill="#c0caf5">/use</text>
+<text x="181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6 421.2" y="59" fill="#c0caf5">run-20261122T215319-5dbe69</text>
+<text x="18 27.6 46.8" y="79" fill="#c0caf5">(현재</text>
+<text x="75.6 94.8 114" y="79" fill="#c0caf5">실행:</text>
+<text x="133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354 363.6 373.2 382.8" y="79" fill="#c0caf5">run-20261122T215319-5dbe69)</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="99" fill="#5ef2c2">taskquoin</text>
+<text x="114 123.6 133.2 142.8 152.4 162 171.6" y="99" fill="#5ef2c2">[5dbe69</text>
+<text x="190.8" y="99" fill="#5ef2c2">◆</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6" y="99" fill="#5ef2c2">commit]</text>
+<text x="286.8" y="99" fill="#5ef2c2">›</text>
+<text x="306 315.6 325.2 334.8 344.4" y="99" fill="#c0caf5">/show</text>
+<text x="363.6 373.2 382.8 392.4 402 411.6" y="99" fill="#c0caf5">diff-1</text>
+<text x="18 27.6 37.2 46.8" y="119" fill="#c0caf5">diff</text>
+<text x="66 75.6 85.2 94.8 104.4" y="119" fill="#c0caf5">--git</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6 181.2 190.8" y="119" fill="#c0caf5">a/sum.js</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6 277.2" y="119" fill="#c0caf5">b/sum.js</text>
+<text x="18 27.6 37.2" y="139" fill="#c0caf5">new</text>
+<text x="56.4 66 75.6 85.2" y="139" fill="#c0caf5">file</text>
+<text x="104.4 114 123.6 133.2" y="139" fill="#c0caf5">mode</text>
+<text x="152.4 162 171.6 181.2 190.8 200.4" y="139" fill="#c0caf5">100644</text>
+<text x="18 27.6 37.2 46.8 56.4" y="159" fill="#c0caf5">index</text>
+<text x="75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6" y="159" fill="#c0caf5">0000000..bf90601</text>
+<text x="18 27.6 37.2" y="179" fill="#c0caf5">---</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2" y="179" fill="#c0caf5">/dev/null</text>
+<text x="18 27.6 37.2" y="199" fill="#c0caf5">+++</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4 114 123.6" y="199" fill="#c0caf5">b/sum.js</text>
+<text x="18 27.6" y="219" fill="#c0caf5">@@</text>
+<text x="46.8 56.4 66 75.6" y="219" fill="#c0caf5">-0,0</text>
+<text x="94.8 104.4" y="219" fill="#c0caf5">+1</text>
+<text x="123.6 133.2" y="219" fill="#c0caf5">@@</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8 104.4 114 123.6 133.2 142.8 152.4" y="239" fill="#c0caf5">+module.exports</text>
+<text x="171.6" y="239" fill="#c0caf5">=</text>
+<text x="190.8 200.4 210" y="239" fill="#c0caf5">(a,</text>
+<text x="229.2 238.8" y="239" fill="#c0caf5">b)</text>
+<text x="258 267.6" y="239" fill="#c0caf5">=&gt;</text>
+<text x="286.8" y="239" fill="#c0caf5">a</text>
+<text x="306" y="239" fill="#c0caf5">+</text>
+<text x="325.2 334.8" y="239" fill="#c0caf5">b;</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="279" fill="#5ef2c2">taskquoin</text>
+<text x="114 123.6 133.2 142.8 152.4 162 171.6" y="279" fill="#5ef2c2">[5dbe69</text>
+<text x="190.8" y="279" fill="#5ef2c2">◆</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6" y="279" fill="#5ef2c2">commit]</text>
+<text x="286.8" y="279" fill="#5ef2c2">›</text>
+<text x="306 315.6 325.2 334.8 344.4 354 363.6 373.2" y="279" fill="#c0caf5">/approve</text>
+<text x="392.4 402 411.6 421.2 430.8 440.4" y="279" fill="#c0caf5">commit</text>
+<text x="18 37.2" y="299" fill="#c0caf5">이름</text>
+<text x="66 75.6 94.8 114" y="299" fill="#c0caf5">(승인에</text>
+<text x="142.8 162 181.2 200.4 219.6 238.8 248.4" y="299" fill="#c0caf5">기록됩니다):</text>
+<text x="267.6 277.2 286.8" y="299" fill="#c0caf5">you</text>
+<text x="37.2" y="319" fill="#c0caf5">◆</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4" y="319" fill="#c0caf5">commit</text>
+<text x="123.6 142.8" y="319" fill="#c0caf5">승인</text>
+<text x="181.2 190.8 200.4" y="319" fill="#c0caf5">run</text>
+<text x="219.6 229.2 238.8 248.4 258 267.6" y="319" fill="#c0caf5">5dbe69</text>
+<text x="56.4 66 75.6" y="339" fill="#c0caf5">git</text>
+<text x="94.8 114 133.2" y="339" fill="#c0caf5">트리에</text>
+<text x="162 181.2 200.4" y="339" fill="#c0caf5">연결됨</text>
+<text x="248.4 258 267.6 277.2 286.8 296.4 306 315.6 325.2 334.8 344.4 354" y="339" fill="#c0caf5">909645eeb0a1</text>
+<text x="392.4 402 411.6 421.2 430.8 440.4 450 459.6 469.2 478.8 488.4 498 507.6 517.2 526.8 536.4 546 555.6 565.2 574.8 584.4 594 603.6" y="339" fill="#c0caf5">(909645eeb0a1716e60fd…)</text>
+<text x="56.4 66 75.6 85.2" y="359" fill="#c0caf5">Diff</text>
+<text x="248.4" y="359" fill="#c0caf5">·</text>
+<text x="267.6 286.8" y="359" fill="#c0caf5">읽을</text>
+<text x="315.6 334.8" y="359" fill="#c0caf5">차례</text>
+<text x="373.2 382.8 392.4 402 411.6" y="359" fill="#c0caf5">/show</text>
+<text x="430.8 440.4 450 459.6 469.2 478.8" y="359" fill="#c0caf5">diff-1</text>
+<text x="56.4 66 75.6 85.2 94.8 104.4" y="379" fill="#c0caf5">Verify</text>
+<text x="248.4" y="379" fill="#c0caf5">✔</text>
+<text x="267.6 286.8" y="379" fill="#c0caf5">통과</text>
+<text x="373.2 382.8 392.4 402 411.6" y="379" fill="#c0caf5">/show</text>
+<text x="430.8 440.4 450 459.6 469.2 478.8 488.4 498" y="379" fill="#c0caf5">verify-1</text>
+<text x="56.4 66 75.6" y="399" fill="#c0caf5">RED</text>
+<text x="94.8 114" y="399" fill="#c0caf5">증명</text>
+<text x="248.4" y="399" fill="#c0caf5">✔</text>
+<text x="267.6 286.8 306" y="399" fill="#c0caf5">증명됨</text>
+<text x="373.2 382.8 392.4 402 411.6" y="399" fill="#c0caf5">/show</text>
+<text x="430.8 440.4 450 459.6 469.2" y="399" fill="#c0caf5">red-1</text>
+<text x="56.4 75.6" y="419" fill="#c0caf5">리뷰</text>
+<text x="248.4" y="419" fill="#c0caf5">✔</text>
+<text x="267.6 277.2 286.8 296.4 306 315.6 325.2" y="419" fill="#c0caf5">APPROVE</text>
+<text x="373.2 382.8 392.4 402 411.6" y="419" fill="#c0caf5">/show</text>
+<text x="430.8 440.4 450 459.6 469.2 478.8 488.4 498" y="419" fill="#c0caf5">review-1</text>
+<text x="56.4 75.6" y="439" fill="#c0caf5">정책</text>
+<text x="248.4 267.6 286.8 306 325.2" y="439" fill="#c0caf5">에이전트는</text>
+<text x="354 363.6 373.2 382.8 392.4 402 411.6 430.8" y="439" fill="#c0caf5">commit하지</text>
+<text x="459.6 478.8" y="439" fill="#c0caf5">않음</text>
+<text x="507.6" y="439" fill="#c0caf5">·</text>
+<text x="526.8 546 565.2" y="439" fill="#c0caf5">승인된</text>
+<text x="594 613.2" y="439" fill="#c0caf5">위험</text>
+<text x="642 651.6" y="439" fill="#c0caf5">1건</text>
+<text x="680.4 690 699.6 709.2 718.8 728.4 738 747.6 757.2 766.8 776.4" y="439" fill="#c0caf5">(connector…</text>
+<text x="56.4 75.6" y="459" fill="#c0caf5">이번</text>
+<text x="104.4 123.6 142.8 162" y="459" fill="#c0caf5">세션에서</text>
+<text x="190.8 210" y="459" fill="#c0caf5">읽음</text>
+<text x="248.4" y="459" fill="#c0caf5">✔</text>
+<text x="267.6 277.2 286.8 296.4 306 315.6" y="459" fill="#c0caf5">diff-1</text>
+<text x="344.4" y="459" fill="#c0caf5">·</text>
+<text x="363.6 373.2 382.8 392.4 402 411.6 421.2 430.8" y="459" fill="#c0caf5">verify-1</text>
+<text x="459.6" y="459" fill="#c0caf5">·</text>
+<text x="478.8 488.4 498 507.6 517.2" y="459" fill="#c0caf5">red-1</text>
+<text x="546" y="459" fill="#c0caf5">·</text>
+<text x="565.2 574.8 584.4 594 603.6 613.2 622.8 632.4" y="459" fill="#c0caf5">review-1</text>
+<text x="56.4 75.6 94.8" y="499" fill="#c0caf5">승인자</text>
+<text x="248.4 258 267.6" y="499" fill="#c0caf5">you</text>
+<text x="286.8 296.4 306 315.6" y="499" fill="#c0caf5">(via</text>
+<text x="334.8 344.4 354 363.6 373.2 382.8 392.4 402 411.6" y="499" fill="#c0caf5">taskquoin</text>
+<text x="430.8 440.4 450 459.6 469.2 478.8 488.4 498" y="499" fill="#c0caf5">console)</text>
+<text x="18 37.2 56.4 75.6 94.8" y="519" fill="#c0caf5">승인하려면</text>
+<text x="123.6 133.2 142.8 152.4 162 171.6 181.2 190.8 200.4 210 219.6 229.2 238.8 258 267.6 286.8" y="519" fill="#c0caf5">909645eeb0a1을(를)</text>
+<text x="306 325.2" y="519" fill="#c0caf5">다시</text>
+<text x="354 373.2 392.4 411.6 430.8" y="519" fill="#c0caf5">입력하세요</text>
+<text x="459.6 469.2 488.4 507.6 526.8 546" y="519" fill="#c0caf5">(취소하려면</text>
+<text x="574.8 584.4 594 603.6 613.2 622.8 632.4" y="519" fill="#c0caf5">Enter):</text>
+<text x="18 37.2 56.4 75.6" y="539" fill="#c0caf5">취소됨:</text>
+<text x="94.8 114 133.2 152.4" y="539" fill="#c0caf5">아무것도</text>
+<text x="181.2 200.4 219.6 238.8" y="539" fill="#c0caf5">승인되지</text>
+<text x="267.6 286.8 306 325.2 344.4 363.6" y="539" fill="#c0caf5">않았습니다.</text>
+<text x="18 27.6 37.2 46.8 56.4 66 75.6 85.2 94.8" y="559" fill="#5ef2c2">taskquoin</text>
+<text x="114 123.6 133.2 142.8 152.4 162 171.6" y="559" fill="#5ef2c2">[5dbe69</text>
+<text x="190.8" y="559" fill="#5ef2c2">◆</text>
+<text x="210 219.6 229.2 238.8 248.4 258 267.6" y="559" fill="#5ef2c2">commit]</text>
+<text x="286.8" y="559" fill="#5ef2c2">›</text>
+<text x="306 315.6 325.2 334.8 344.4" y="559" fill="#c0caf5">/quit</text>
+</g></svg>

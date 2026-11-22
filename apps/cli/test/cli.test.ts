@@ -18,7 +18,7 @@ import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, 
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { newRun, type RunState } from '@taskquoin/application';
-import { putArtifact, repoStore, saveRunState } from '@taskquoin/store-fs';
+import { appendEvent, putArtifact, repoStore, saveRunState } from '@taskquoin/store-fs';
 
 const main = new URL('../src/main.ts', import.meta.url).pathname;
 const gitBin = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim();
@@ -29,7 +29,7 @@ function sandbox(versions = { claude: '2.1.327 (Claude Code)', codex: 'codex-cli
   for (const [n, out] of Object.entries(versions)) { writeFileSync(join(bin, n), `#!/bin/sh\necho "${out}"\n`); chmodSync(join(bin, n), 0o755); }
   symlinkSync(gitBin, join(bin, 'git'));
   const ws = join(root, 'ws'); mkdirSync(ws);
-  const env = { PATH: bin, HOME: root, XDG_STATE_HOME: join(root, 'state'), LANG: 'C.UTF-8' };
+  const env = { PATH: bin, HOME: root, XDG_STATE_HOME: join(root, 'state'), LANG: 'C.UTF-8', TZ: 'UTC' };
   const tq = (...args: string[]) => spawnSync(process.execPath, [main, ...args], { cwd: ws, env, encoding: 'utf8' });
   return { root, ws, env, tq };
 }
@@ -217,7 +217,7 @@ test('status <unknown> --json still exits 1 with the same error and nothing on s
   }
 });
 
-test('status text output is unchanged', () => {
+test('status text output: the list is unchanged; status <run> shows the timeline between the head and the commands', () => {
   const { tq } = seededRepo();
   const list = tq('status');
   assert.equal(list.status, 0, list.stderr);
@@ -226,13 +226,36 @@ test('status text output is unchanged', () => {
   assert.equal(list.stdout, SEEDED.map(s => `${s.runId}  ${s.status.padEnd(16)} ${s.current.padEnd(15)} ${first(s.request)}\n`).join(''));
   const one = tq('status', 'run-a');
   assert.equal(one.status, 0, one.stderr);
-  assert.equal(one.stdout, [
-    'Run run-a — waiting-approval at approve-plan (attempt 0, branch taskquoin/run-a)',
+  const lines = one.stdout.split('\n');
+  assert.equal(lines.at(-1), '');
+  assert.deepEqual(lines.slice(0, 1), ['Run run-a — waiting-approval at approve-plan (attempt 0, branch taskquoin/run-a)']);
+  // The timeline of the real state machine follows the head: 9 steps, the gate waiting, nothing invented.
+  assert.equal(lines[1], '  ✔ Planning              done  10:01:00  ?  show plan');
+  assert.equal(lines[2], '  ✔ Adversarial critique  done  ?  ?');
+  assert.match(lines[3], /^  ◆ Plan approval         waiting  \d+ h \d+ min  a1a1a1a1a1a1$/);
+  assert.deepEqual(lines.slice(4, 10), ['Implementation', 'Clean-room Verify', 'RED proof', 'Review', 'Commit approval', 'Commit'].map(x => `  · ${x.padEnd(20)}  pending`));
+  assert.ok(!/%/.test(lines.slice(1, 10).join('\n')), 'no percentage');
+  assert.deepEqual(lines.slice(10), [
     '  Review it:   taskquoin show run-a plan  (and: challenge)',
     `  Approve it:  taskquoin approve run-a plan --expect ${PLAN_HASH.slice(0, 12)} --as <your name>`,
     `               (plan sha256 ${PLAN_HASH})`,
     ...HISTORY_A.map(h => `  ${h.at}  ${h.node.padEnd(15)} ${h.outcome}`),
-  ].join('\n') + '\n');
+    '',
+  ]);
+});
+
+test('status <run>: the agent of a step comes from the event log; the output has no escape off a terminal and the same JSON bytes', () => {
+  const { ws, env, tq } = seededRepo();
+  const store = repoStore(ws, join(env.XDG_STATE_HOME, 'taskquoin'));
+  const jsonBefore = tq('status', 'run-a', '--json').stdout;
+  appendEvent(store, 'run-a', { type: 'agent.started', runId: 'run-a', agent: 'planner', runtime: 'claude' });
+  appendEvent(store, 'run-a', { type: 'agent.finished', runId: 'run-a', agent: 'planner', runtime: 'claude', status: 'completed', durationMs: 98_000, model: 'opus' });
+  appendEvent(store, 'run-a', { type: 'node.transition', runId: 'run-a', node: 'plan', outcome: 'ok', next: 'challenge' });
+  const r = tq('status', 'run-a');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^  ✔ Planning\s+done\s+planner · claude\s+10:01:00\s+\?\s+show plan$/m);
+  assert.ok(!r.stdout.includes('\x1b'));
+  assert.equal(tq('status', 'run-a', '--json').stdout, jsonBefore, 'the events never reach --json');
 });
 
 test('status and check --json are byte-identical whatever the language; the text output is translated', () => {
@@ -1041,8 +1064,9 @@ test('console banner and doctor share one definition of ready: a skill error ref
     const m = /Verdict: (\d+) of (\d+) agents can run/.exec(d.stdout);
     const doctorReady = m ? Number(m[1]) : Number(/Verdict: all (\d+)/.exec(d.stdout)?.[1] ?? NaN);
     const c = spawnSync(process.execPath, [main, 'console'], { cwd: ws, env: { ...env, TASKQUOIN_OFFLINE: '1', NO_COLOR: '1' }, input: '/quit\n', encoding: 'utf8' });
-    const rows = c.stdout.split('\n').filter(l => /^ \[[●○]\] /.test(l) && !/verify · bubblewrap/.test(l));
-    return { doctorReady, bannerReady: rows.filter(l => /\[●\].*READY/.test(l)).length, rows, out: c.stdout };
+    // piped and NO_COLOR: the Minimal home, one line per agent (glyph, role, state word, note); the tester is the last line
+    const rows = c.stdout.split('\n').filter(l => /^[●◐○] /.test(l)).slice(0, -1);
+    return { doctorReady, bannerReady: rows.filter(l => /^[●◐] \S+\s+READY/.test(l)).length, rows, out: c.stdout };
   };
   const before = count();
   assert.equal(before.bannerReady, before.doctorReady, before.out);
@@ -1050,5 +1074,5 @@ test('console banner and doctor share one definition of ready: a skill error ref
   const after = count();
   assert.equal(after.bannerReady, after.doctorReady, after.out);
   assert.ok(after.doctorReady < before.doctorReady, 'the skill error refuses one more agent');
-  assert.match(after.rows.find(l => /planner/.test(l)) ?? '', /\[○\].*NOT READY — not-approved/);
+  assert.match(after.rows.find(l => /Architect/.test(l)) ?? '', /^○ Architect\s+NOT READY\s+not-approved/);
 });

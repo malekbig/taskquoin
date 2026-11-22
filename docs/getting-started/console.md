@@ -6,9 +6,9 @@ The console is an interactive shell over the same commands you have seen in the 
 that hard to get wrong.
 
 - [Start the console](#start-the-console)
-- [The banner and the squad](#the-banner-and-the-squad)
+- [The home screen and the squad](#the-home-screen-and-the-squad)
 - [The commands](#the-commands)
-- [Tab completion and the / menu](#tab-completion-and-the--menu)
+- [Completion, history and the prompt](#completion-history-and-the-prompt)
 - [Approving in the console](#approving-in-the-console)
 - [Ctrl+C, quitting and input you did not mean to send](#ctrlc-quitting-and-input-you-did-not-mean-to-send)
 - [Scripting the console with piped input](#scripting-the-console-with-piped-input)
@@ -31,31 +31,46 @@ With no arguments, in a terminal, `taskquoin` opens the console, the way `claude
 does the same, and also works when you want to be explicit. In a script or a pipe, `taskquoin` alone prints the help
 instead.
 
-In a terminal with colors, the logo animates for about a second before the banner appears. Two environment variables
-change the display:
+In a terminal with colors, once the home screen is ready, its logo is revealed from left to right in under a second.
+Colors follow what the terminal supports (16, 256 or 24-bit colors). These environment variables change the display:
 
 | Variable | Effect |
 |---|---|
 | `TASKQUOIN_NO_ANIMATION=1` | No start-up animation |
-| `NO_COLOR` (any value) | No colors, and so no animation |
+| `NO_COLOR` (set and not empty) | No colors, and so no animation and the minimal home screen; the `/` menu still shows |
+| `TERM=dumb` | No colors, no animation, no `/` menu: plain lines only, with no escape code at all |
+| `TASKQUOIN_PLAIN=1` | Plain mode, for screen readers and logs: the minimal home screen, no animation, no `/` menu |
+
+A pipe gets plain lines too: without a terminal on both sides there is no color, no animation and no menu.
 
 The console reads `taskquoin.yaml` once, when it starts. If the file changes or disappears while the console is open,
 every command is refused with `taskquoin.yaml changed since the console was opened: /quit, then run taskquoin console
 again`. This avoids running a command with a stale configuration.
 
-## The banner and the squad
+## The home screen and the squad
 
-![The console banner, the /help list and the squad](../assets/screens/en/console.svg)
+![The console home screen: the logo, the repository, the policy and the squad, then the /help list](../assets/screens/en/console.svg)
 
-Under the logo, the banner shows **the squad: your real agents and their real status**. Each line is
-`[marker] Role  agent · runtime  status`:
+The home screen opens with the quoin logo, the version and `✦ YOUR AI DEV SQUAD ✦`, then **the context**: the
+repository (its path, branch and whether the working tree is clean), the sandbox (bubblewrap, socat and whether the
+clean-room Verify is available) and the policy (the digest of `taskquoin.yaml` and the accepted risks, with the first
+expiry date). Below it comes **the squad: your real agents and their real status**. Each line is the state mark, the
+role, `agent · runtime`, the status word and, when there is one, the note. This is the demo repository in a terminal
+100 columns wide:
 
 ```text
- [●] Architect  planner · claude      READY
- [●] Developer  implementer · claude  READY
- [●] Reviewer   challenger · codex    READY (accepted risk: connector.write)
- [●] Tester     verify · bubblewrap   READY
+  ── Squad ─────────────────────────────────────────────────── 3 of 3 agents ready · Verify ready ──
+  ● Architect  planner · claude      READY
+  ● Developer  implementer · claude  READY
+  ◐ Reviewer   challenger · codex    READY      accepted risk: connector.write
+  ● Tester     verify · bubblewrap   READY
 ```
+
+If an agent is `NOT READY`, an **Action required** line says how many and points to `/doctor`. The layout follows the
+terminal. The **full** screen needs about 100 columns, 24 rows and colors. The **compact** one (70 to 99 columns, or 16
+to 23 rows) puts the context next to the logo and keeps short notes. The **minimal** one comes with a narrow or short
+terminal, no colors, plain mode or an ASCII locale: one brand line, one summary line (agents ready, Verify, accepted
+risks), one line per agent, then `/doctor: details · /help: commands`. Nothing is ever wider than the terminal.
 
 The role is the agent's job: `planner` is the Architect, `implementer` the Developer, `challenger` the Reviewer and
 `security` the Security reviewer; any other agent shows its own name. After the runtime, an API judge shows
@@ -65,15 +80,17 @@ The status is never decorative. It is the same gate verdict that `taskquoin doct
 
 | Status | Meaning |
 |---|---|
-| `READY` (green, `[●]`) | The agent is certified on this machine: every mandatory restriction is enforced by a measured mechanism |
-| `READY (accepted risk: …)` (amber) | It can run, but only thanks to a risk you accepted with `taskquoin accept-risk`. The capability is named |
-| `NOT READY` plus a reason (red, `[○]`) | It will not start. The reason is the start of the gate's message, or `<runtime> not found` when the tool is not installed |
+| `● READY` (green) | The agent is certified on this machine: every mandatory restriction is enforced by a measured mechanism |
+| `◐ READY` and `accepted risk: <capability>` (amber) | It can run, but only thanks to a risk you accepted with `taskquoin accept-risk` |
+| `○ NOT READY` and the reason (red) | It will not start. The reason is the start of the gate's message: `not measured (certified 2.1.327)` for a runtime version Taskquoin has not measured, `<runtime> not found` when the tool is not installed |
+
+The mark and the word always go together, so the state reads the same without colors.
 
 The last line, the **Tester**, is not an AI. It is Taskquoin's own clean-room Verify (`verify · bubblewrap`), the thing
-that runs your tests. It is `READY` when bubblewrap is available and `NOT READY — bubblewrap unavailable` when it is
+that runs your tests. It is `READY` when bubblewrap is available and `NOT READY` with `bubblewrap unavailable` when it is
 not; without it no run can be verified. Install the packages as described in [Installation](installation.md).
 
-The banner's brand (the tagline, the slogan, the role names, `READY` and `NOT READY`) stays in English in every
+The brand (the tagline `✦ YOUR AI DEV SQUAD ✦`, the role names, `READY` and `NOT READY`) stays in English in every
 language; the notes that follow are translated. Use `/doctor` for the full detail behind any status.
 
 ## The commands
@@ -83,36 +100,51 @@ without a command: type /run <request> to start a run, or /help.` This is delibe
 launch a paid agent run.
 
 ```text
+taskquoin › /help
 Commands (anything else is ignored: nothing runs without /):
-  /run <request>          start a governed run (stops at every approval)
-  /runs                   list the runs
-  /use <run>              select the current run
-  /status                 history of the current run
-  /show [<artifact>]      list the artifacts, or display one (plan, diff-N, verify-N, red-N…)
-  /approve <plan|commit>  approve: shows the pending hash, you retype it
-  /resume                 resume the current run if it was interrupted
-  /agents                 the agents and their rights
-  /doctor                 machine state and agent certification
-  /skills                 installed skills and their status
-  /help                   this help
-  /quit                   quit the console
+  /run <request>                start a governed run (stops at every approval)
+  /runs                         list the runs
+  /use <run>                    select the current run
+  /status                       history of the current run
+  /resume                       resume the current run if it was interrupted
+  /show [<artifact>]            list the artifacts, or display one (plan, diff-N, verify-N, red-N…)
+  /approve <plan|commit>        approve: shows the pending hash, you retype it
+  /agents                       the agents and their rights
+  /doctor                       machine state and agent certification
+  /skills                       installed skills and their status
+  /upgrade [auto|path|install]  AI tool versions: show, choose the one in use, reinstall the measured Claude Code
+  /help                         this help
+  /quit                         quit the console
 Tab completes a command; typing / shows this menu.
 ```
 
 One by one:
 
-**`/run <request>`** starts a governed run, exactly like `taskquoin run "<request>"`. It stops at the first approval and
-makes that run the **current run**: the prompt changes to `taskquoin [7be43f] ›`, showing the last six characters of
-the run id. `/run` without a request prints its usage. Starting a run first forgets the previously selected one, so a
-command can never fall back silently to an older run. If the run could not be created (a dirty working tree, say), no
-run is selected and you are told so.
+**`/run <request>`** starts a governed run, exactly like `taskquoin run "<request>"`. It prints one line per step as
+the run goes, stops at the first approval and makes that run the **current run**. The prompt then shows the last six
+characters of the run id and, while the run waits for an approval, `◆` and the gate: `taskquoin [235eaf ◆ plan] ›`.
+`/run` without a request prints its usage. Starting a run first forgets the previously selected one, so a command can
+never fall back silently to an older run. If the run could not be created (a dirty working tree, say), no run is
+selected and you are told so.
 
 ```text
 taskquoin › /run Add a sum function
-Run run-20261122T132829-7be43f — waiting-approval at approve-plan (attempt 0, branch taskquoin/run-20261122T132829-7be43f)
+  ✔ 21:19:04  recall  no-memory  →  plan
+  ◉ 21:19:04  started: planner · claude
+  ✔ 21:19:04  finished: planner · claude  0 s
+  ✔ 21:19:04  plan  planned  →  challenge
+  ◉ 21:19:04  started: challenger · codex
+  ✔ 21:19:04  finished: challenger · codex  0 s
+  ✔ 21:19:04  challenge  challenged:APPROVE  →  approve-plan
+Run run-20261122T211904-235eaf — waiting-approval at approve-plan (attempt 0, branch taskquoin/run-20261122T211904-235eaf)
+  plan approval required
+  ✔ Planning              done  planner · claude  21:19:04  0 s  /show plan
+  ✔ Adversarial critique  done  challenger · codex  21:19:04  0 s  /show challenge
+  ◆ Plan approval         waiting  0 s  964c04e09ebe
+  · Implementation        pending
   …
-(current run: run-20261122T132829-7be43f)
-taskquoin [7be43f] ›
+(current run: run-20261122T211904-235eaf)
+taskquoin [235eaf ◆ plan] ›
 ```
 
 **`/runs`** lists every run with its status, node and request, like `taskquoin status`.
@@ -145,22 +177,51 @@ challenger   codex   fs.read  — skills: code-review
 
 **`/skills`** is `taskquoin skills list`: the pinned first-party skills and any you imported.
 
-**`/help`** prints the list above, in your language. **`/quit`** (or `/exit`) leaves the console.
+**`/help`** prints the list above, in your language; **`/help <command>`** explains one (`/help approve`). **`/quit`**
+(or `/exit`) leaves the console.
 
 Commands that need a run (`/status`, `/show`, `/approve`, `/resume`) answer `no run selected: /run <request> or /use <run>`
-until you have started or selected one. An unknown command answers `unknown command: /foo — /help for the list`.
+until you have started or selected one. An unknown command suggests the closest one when it is a typo away, and
+otherwise points to `/help`:
+
+```text
+taskquoin › /stauts
+unknown command /stauts — did you mean /status?
+taskquoin › /zzz
+unknown command: /zzz — /help for the list
+taskquoin › /help approve
+/approve <plan|commit>
+  approve: shows the pending hash, you retype it
+```
 
 Imports, risk acceptances and OpenCode connection stay on the command line (`taskquoin skills import`,
 `taskquoin accept-risk`, `taskquoin connect opencode`): they are setup decisions, not part of the day-to-day loop.
 
-## Tab completion and the / menu
+## Completion, history and the prompt
 
-Type `/` and a menu of the commands appears under the input line. It narrows as you type: `/s` shows `/status`,
-`/show` and `/skills`, with their descriptions. The menu is only drawn while the prompt is waiting for input and
-disappears when you press Enter.
+Type `/` and a menu of the commands appears under the input line, grouped under **Run**, **Review**, **Diagnose** and
+**Console**, each command with its description. It narrows as you type: `/s` shows `/status`, `/show` and `/skills`.
+The menu is only drawn while the prompt is waiting for input, disappears when you press Enter or type a space (you
+are then in the arguments), and is never drawn with `TERM=dumb`, in plain mode or in a pipe.
 
-**Tab** completes a command name: `/ap` then Tab gives `/approve `. Only command names are completed. Free text, run
-ids and artifact names are not, and the menu disappears as soon as you type a space (you are now in the arguments).
+**Tab** completes the command name (`/ap` then Tab gives `/approve `), then its argument:
+
+| You type | Tab proposes |
+|---|---|
+| `/use ` | the run ids |
+| `/show ` | the artifacts of the current run (`plan`, `diff-1`, `verify-1`…) |
+| `/approve ` | the gate the current run really waits for, and nothing when it waits for none |
+| `/help ` | the command names |
+
+Free text gets no completion.
+
+**↑ and ↓** recall the commands you typed before in this repository, in a terminal (piped input is not recorded). The
+history is kept per repository in the control store (`console-history`, readable by you only, the last 500 commands).
+Only lines starting with `/` are ever kept: your name typed at the approval, a retyped hash and free text never are,
+neither in the file nor in the session's ↑.
+
+**The prompt** says where you are: `taskquoin ›` with no run selected, `taskquoin [235eaf] ›` with a current run, and
+`taskquoin [235eaf ◆ commit] ›` while that run waits for the commit approval (`◆ plan` for the plan).
 
 The command list, the menu, the completion and `/help` all come from one table in `apps/cli/src/console.ts`, so they
 cannot disagree. Command names are never translated, only their descriptions.
@@ -171,13 +232,44 @@ Approval is where the console is stricter than the command line. In the command 
 In the console you must **retype it**, which forces you to look at it.
 
 ```text
-taskquoin [7be43f] › /show plan
-…
-taskquoin [7be43f] › /approve plan
+taskquoin [235eaf ◆ plan] › /show plan
+PLAN
+- Goal: Add a sum function
+- Test first: sum.test.js already fails (RED)
+- Step: create sum.js
+SKILLS-RECEIVED: planning-contract
+taskquoin [235eaf ◆ plan] › /approve plan
 Your name (recorded in the approval): alice
-To approve: plan of run run-20261122T132829-7be43f — hash 964c04e09ebe
-Read first: /show plan  (and: challenge)
-Retype 964c04e09ebe to approve (Enter to cancel):
+  ◆ Plan approval  run 235eaf
+    Bound to the plan  964c04e09ebe   (964c04e09ebe1c44125a…)
+    Plan               · to read  /show plan
+    Critique           ✔ APPROVE  /show challenge
+    Policy             agents never commit · 1 accepted risk (connector.write)
+    Read this session  ✔ plan  · challenge
+
+    Approver           alice (via taskquoin console)
+Retype 964c04e09ebe to approve (Enter to cancel): 964c04e09ebe
+```
+
+At the commit gate the same screen is bound to the git tree and lists the diff, Verify, the RED proof and the review
+(`Read this session` remembers the `plan` you read at the first gate):
+
+```text
+taskquoin [235eaf ◆ commit] › /show diff-1
+diff --git a/sum.js b/sum.js
+…
+taskquoin [235eaf ◆ commit] › /approve commit
+  ◆ Commit approval  run 235eaf
+    Bound to the git tree  909645eeb0a1   (909645eeb0a1716e60fd…)
+    Diff                   · to read  /show diff-1
+    Verify                 ✔ passed   /show verify-1
+    RED proof              ✔ proven   /show red-1
+    Review                 ✔ APPROVE  /show review-1
+    Policy                 agents never commit · 1 accepted risk (connector.write)
+    Read this session      ✔ diff-1  · verify-1  · red-1  · review-1  ✔ plan
+
+    Approver               alice (via taskquoin console)
+Retype 909645eeb0a1 to approve (Enter to cancel): 909645eeb0a1
 ```
 
 What happens, step by step:
@@ -189,20 +281,30 @@ What happens, step by step:
    hash. It is recorded with the approval as `alice (via taskquoin console)`, which tells a reader which door was used.
    A line starting with `/` is never accepted as a name: it cancels (`cancelled: a command is not a name — nothing is
    approved.`). Later `/approve` calls in the same session do not ask again.
-3. **The pending hash is re-read** just before it is shown, so what you see is what can be approved. The prompt tells
-   you which artifacts to read first (`/show plan`, or `diff-N, verify-N, red-N, review-N`).
+3. **The pending approval is re-read** just before it is shown. The screen says what the approval is **bound to**, as
+   the run recorded it: the hash of the plan, or the git tree that Verify and the review saw. It lists **what there is
+   to read** with the state of each item (to read, passed, failed, proven…: `plan`, `critique`, or `diff`, `verify`,
+   `RED proof`, `review`, and `Ignored files` with `outside the diff` when the agent created, changed or removed
+   git-ignored files: they are not in the diff, not verified and not committed), **what you read in this session**
+   with `/show`, the policy (agents never commit, the accepted risks) and the approver. "Read this session" is
+   a reminder, not a gate: the typed hash is the gate.
 4. **You retype the 12-character hash.** An empty line cancels (`cancelled: nothing is approved.`). Any other text that is
    not exactly the hash answers `the hash does not match: nothing is approved.`, and nothing happens.
-5. **If it matches**, the console runs the same approval as `taskquoin approve <run> <gate> --expect <hash>` and
-   prints the result: for the plan, the run continues through implementation, Verify and review and stops at the commit
-   gate; for the commit, it prints the commit.
+5. **The pending approval is read again after your last key.** If it changed since the screen was shown (another session
+   approved, or a re-review recorded a new tree), nothing is approved: `the tree waiting for approval changed after it
+   was shown: nothing is approved — run /approve commit again to see the new one.` (or the same for the plan).
+6. **Otherwise the console runs the same approval as `taskquoin approve <run> <gate> --expect <hash>`**, with the same
+   checks and the same messages, and prints the result. On another branch it answers `switch to taskquoin/<run id>
+   first`. If your working tree differs from the tree that was reviewed (an untracked file, a `coverage/` folder left by
+   a local test run), the approval is recorded and the commit step sees the difference: it re-verifies and re-reviews the
+   new tree, commits nothing, and waits for a new approval (`working tree changed after approval — re-verified and
+   re-reviewed; approve the new tree`); `/approve commit` again shows the new tree. For the plan, the run continues
+   through implementation, Verify and review and stops at the commit gate; for the commit, it prints the commit.
 
-```text
-taskquoin [7be43f] › /approve commit
-To approve: commit of run run-20261122T132829-7be43f — hash 909645eeb0a1
-Read first: /show diff-N, verify-N, red-N, review-N (and ignored-N if it exists)
-Retype 909645eeb0a1 to approve (Enter to cancel):
-```
+![A console session: /show diff-1, then /approve commit shows what is bound, what to read and what was read, cancelled at the retype](../assets/screens/en/console-approve.svg)
+
+The timeline (`/status`, and the steps shown after `/run`) lists the real steps of the run with their state, the agent
+that ran, the duration and the artifact to read. **Times are your local clock** (the timezone of your machine), not UTC.
 
 > [!WARNING]
 > Read before you retype. The hash binds your approval to the artifact (the plan, or the git tree), but only reading it
@@ -254,7 +356,7 @@ as the answer to the prompt that is waiting: a `/show` sent where the hash was e
 cancels the approval.
 
 ```shell
-$ printf '/use run-20261122T132829-7be43f\n/approve plan\nalice\n964c04e09ebe\n/quit\n' | taskquoin console
+$ printf '/use run-20261122T211904-235eaf\n/approve plan\nalice\n964c04e09ebe\n/quit\n' | taskquoin console
 ```
 
 > [!TIP]

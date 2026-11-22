@@ -4,31 +4,37 @@
  * Exit codes: 0 ok · 1 refused / failed check · 2 usage error.
  */
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { accessSync, constants, existsSync, lstatSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { validateCapabilityMatrix, type CapabilityMatrix, type HostFacts, type RuntimeId } from '@taskquoin/domain';
 import { API_RUNTIME_VERSION } from '@taskquoin/runtime-api';
-import { failureDigest, isReady, isRealDate, pendingApproval, prepareRun, type GateResult, type OwnerException, type RunState } from '@taskquoin/application';
+import { failureDigest, isReady, isRealDate, pendingApproval, prepareRun, projectRun, type GateResult, type OwnerException, type RunState } from '@taskquoin/application';
 import { defaultConfig, keyEnvName, KNOWN_KEY_VARS, MAX_CONFIG_BYTES, parseConfig, providerOf, renderConfig, workflowOf, type Stack, type TaskquoinConfig } from '@taskquoin/config';
 import { findOnPath, probeHost, probeOllama, type HostReport } from '@taskquoin/host-probe';
 import { connectedProviders, connectEnv, LOCAL_PROVIDERS, LOGIN_ARGS, MEASURED_CONNECTIONS, measuredHosts, OPENCODE_VERSION, userOpenCodeDirs, userOpenCodePaths } from '@taskquoin/runtime-opencode';
-import { ensureTrustedDir, listRuns, loadRiskAcceptances, loadRunState, repoStore, saveRiskAcceptance, stateBase } from '@taskquoin/store-fs';
+import { ensureTrustedDir, listRuns, loadRiskAcceptances, loadRunState, readEvents, repoStore, saveRiskAcceptance, stateBase } from '@taskquoin/store-fs';
 import { codexSandboxFor } from '@taskquoin/runtime-codex';
 import { ClaudeMemMemory } from '@taskquoin/memory-claude-mem';
 import { GitWorkspace } from '@taskquoin/git';
 import { cmdApprove, cmdResume, cmdRun, requestFrom, cmdShow, cmdStatus, configDigest, type CliContext } from './workflow-cli.ts';
 import { jsonOut, n as nz, nLog } from './tui/neutral.ts';
-import { animateLogo, completeCommand, drawSlashMenu, lineReader, renderBanner, runConsole, slashMenu, squadOf, withTerminalReleased, type ConsoleCommands, type ConsoleIO } from './console.ts';
+import { animateLogo, completeCommand, consoleSurface, drawSlashMenu, lineReader, runConsole, slashMenu, squadOf, withTerminalReleased, type ConsoleCommands, type ConsoleIO, type SquadMember } from './console.ts';
 import { sandboxedToolAvailable } from '@taskquoin/local-tool';
 import { installShortcut, removeShortcut, type ShortcutEnv } from './shortcut.ts';
 import { runtimeNotices } from './runtime-notices.ts';
 import { layoutOf } from './layout.ts';
-import { english, loadPreferences, resolveLanguage, setLanguage, t } from './i18n/index.ts';
+import { detectCaps } from './tui/caps.ts';
+import { homeMode, LOGO_ROWS, renderHome, type HomeModel } from './tui/components/home.ts';
+import { shownRun } from './tui/view.ts';
+import { timelineLine } from './tui/components/timeline.ts';
+import { en, english, ENGLISH_ONLY, loadPreferences, resolveLanguage, setLanguage, t, translate, type ParamNames, type Params } from './i18n/index.ts';
 import { alignColumns } from './i18n/width.ts';
 import { createInterface } from 'node:readline';
+import { appendHistory, loadHistory, scrubReadlineHistory } from './history.ts';
+import { displayWidth } from './i18n/width.ts';
 
 import { cmdSkills, resolveAgentSkills } from './skills-cli.ts';
 import { cmdUpgrade, type UpgradeEnv } from './upgrade-cli.ts';
@@ -324,7 +330,8 @@ async function ctx(): Promise<{ c: CliContext; git: GitWorkspace }> {
   const h = await host(); const root = requireRepo(h); const cfg = loadConfig(root);
   if (!h.git) throw new Error(t('cli.gitMissing'));
   const store = repoStore(root);
-  const c: CliContext = { cfg, h, root, store, gate: (id) => gate(cfg, c.h, id), hookEntry: HOOK_ENTRY, out, err };
+  const c: CliContext = { cfg, h, root, store, gate: (id) => gate(cfg, c.h, id), hookEntry: HOOK_ENTRY, out, err,
+    caps: detectCaps({ stdinTTY: !!process.stdin.isTTY, stdout: process.stdout, env: process.env }) };
   return { c, git: new GitWorkspace({ gitBin: h.git, cwd: root, env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? homedir() }, scratchDir: ensureTrustedDir(join(store.root, 'scratch')) }) };
 }
 
@@ -367,24 +374,35 @@ const isOffline = (flag?: boolean) => !!flag || process.env.TASKQUOIN_OFFLINE ==
 async function cmdConsole(offline: boolean): Promise<number> {
   const { c, git } = await ctx();
   const tty = !!process.stdin.isTTY;
-  const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: tty, ...(tty ? { completer: completeCommand } : {}) });
-  const color = !!process.stdout.isTTY && !process.env.NO_COLOR;
+  let currentRun: string | undefined; let cmdsRef: ConsoleCommands | undefined;
+  const completer = (line: string) => {
+    const r = currentRun; const p = r ? cmdsRef?.pending(r) : undefined;
+    return completeCommand(line, { runs: cmdsRef?.runs() ?? [], artifacts: r ? cmdsRef?.artifacts?.(r) ?? [] : [], ...(p ? { pendingGate: p.gate } : {}) });
+  };
+  // A run in the console reports its progress as it goes: one line per event, before the gate report.
+  c.onEvent = (e) => { const line = timelineLine(e, c.caps!); if (line !== undefined) out(line); };
+  const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: tty, ...(tty ? { completer, history: loadHistory(c.store).reverse(), historySize: 500 } : {}) });
+  // The menu and the colours of the error lines follow the caps (AC-2): nothing drawn with TERM=dumb, in a pipe or plain mode.
+  const surface = consoleSurface(c.caps!, !!process.stderr.isTTY);
   rl.on('SIGINT', () => out('\n' + t('cli.console.sigint')));
+  // History keeps `/` commands only: readline's in-memory copy drops names and hashes, the file never gets them.
+  if (tty) rl.on('line', (l) => { scrubReadlineHistory(rl as unknown as { history?: string[] }, l); appendHistory(c.store, l); });
   // readline owns the prompt (redrawn correctly); the "/" menu is drawn only while a prompt waits for input.
   const reader = lineReader(rl, (s) => process.stdout.write(s), { discardTypeAhead: tty, showPrompt: (q) => { rl.setPrompt(q); rl.prompt(); } });
   let prompting = false; let menuShown = false;
   const io: ConsoleIO = {
     ask: async (q) => { prompting = true; try { return await reader.ask(q); } finally { prompting = false; } },
-    out, err: (s) => err(process.stderr.isTTY && !process.env.NO_COLOR ? `\x1b[38;2;247;118;142m${s}\x1b[0m` : s),
+    setCurrent: (r) => { currentRun = r; },
+    out, err: (s) => err(surface.error(s)),
   };
-  if (tty) {
+  if (surface.menu) {
     process.stdin.on('keypress', (_ch, key: { name?: string } | undefined) => {
       if (key?.name === 'return' || key?.name === 'enter') return;
       setImmediate(() => {
         if (!prompting) return;
-        const items = slashMenu(rl.line);
+        const items = slashMenu(rl.line, process.stdout.columns || 80);
         if (!items.length && !menuShown) return;
-        process.stdout.write(drawSlashMenu({ promptWidth: rl.getPrompt().length, line: rl.line, cursor: rl.cursor, items, color }));
+        process.stdout.write(drawSlashMenu({ promptWidth: displayWidth(rl.getPrompt()), line: rl.line, cursor: rl.cursor, items, caps: c.caps! }));
         menuShown = items.length > 0;
       });
     });
@@ -409,6 +427,13 @@ async function cmdConsole(offline: boolean): Promise<number> {
     }),
     pending: (r) => { const s = loadRunState<RunState>(c.store, r); const p = s && pendingApproval(s); return p ? { gate: p.node === 'approve-plan' ? 'plan' : 'commit', binding: p.binding } : undefined; },
     runs: () => listRuns(c.store),
+    approval: (r) => {
+      const s = loadRunState<RunState>(c.store, r); if (!s) return undefined;
+      let events: Record<string, unknown>[] = []; try { events = readEvents(c.store, r).events; } catch { /* no log yet: the view shows what the state holds */ }
+      const today = new Date().toISOString().slice(0, 10);
+      return { run: shownRun(projectRun(s, events)).view, acceptedRisks: loadRiskAcceptances(c.store).filter(x => x.expires >= today).map(x => x.capability) };
+    },
+    artifacts: (r) => Object.keys(loadRunState<RunState>(c.store, r)?.artifacts ?? {}).sort(),
     // The installer gets the terminal (Ctrl+C stops it); --offline given to `taskquoin console` holds for /upgrade.
     upgrade: async (a, ask) => {
       const r = await cmdUpgradeWith(a, { h: c.h, offline, ask, surface: 'console',
@@ -416,13 +441,32 @@ async function cmdConsole(offline: boolean): Promise<number> {
       c.h = await host(); return r.code;
     },
   };
+  cmdsRef = cmds;
   // The squad as it really is: each agent's gate verdict, and Taskquoin's own sandboxed Verify as the tester.
   // Computed while the logo animation plays (terminal with colours only; TASKQUOIN_NO_ANIMATION=1 turns it off).
-  const animate = tty && color && !process.env.TASKQUOIN_NO_ANIMATION;
-  const playing = animate ? animateLogo((s) => process.stdout.write(s), (ms) => new Promise(r => setTimeout(r, ms))) : Promise.resolve();
-  const squad = squadOf(c.cfg.agents, (id) => ({ ...gate(c.cfg, c.h, id), skillErrors: resolveAgentSkills(c.cfg, repoStore(c.root), id).errors }), await sandboxedToolAvailable());
-  await playing;
-  try { return await runConsole(io, cmds, renderBanner(squad, { color, logo: !animate, notices: runtimeNotices(c.h, loadMatrix('claude').runtimeVersion) })); } finally { rl.close(); }
+  const caps = c.caps!;
+  const sandbox = await sandboxedToolAvailable();
+  const squad = squadOf(c.cfg.agents, (id) => ({ ...gate(c.cfg, c.h, id), skillErrors: resolveAgentSkills(c.cfg, repoStore(c.root), id).errors }), sandbox);
+  const model = await homeModel(c, git, squad, sandbox);
+  const lines = renderHome(model, caps);
+  // The logo is revealed while the screen is built (a terminal with colours, Full or Compact; TASKQUOIN_NO_ANIMATION=1 turns it off).
+  const animate = caps.motion && caps.colorDepth > 0 && homeMode(caps) !== 'minimal';
+  if (animate) await animateLogo((s) => process.stdout.write(s), (ms) => new Promise(r => setTimeout(r, ms)), lines.slice(0, LOGO_ROWS));
+  try { return await runConsole(io, cmds, (animate ? lines.slice(LOGO_ROWS) : lines).join('\n'), caps); } finally { rl.close(); }
+}
+
+/** What the home screen shows about this repository, read once at start-up. Nothing here is a verdict: READY comes from the gates. */
+async function homeModel(c: CliContext, git: GitWorkspace, squad: SquadMember[], bubblewrap: boolean): Promise<HomeModel> {
+  const home = process.env.HOME ?? homedir();
+  const repo = c.root === home ? '~' : c.root.startsWith(home + '/') ? '~' + c.root.slice(home.length) : c.root;
+  let branch: string | undefined; let clean: boolean | undefined;
+  try { branch = await git.currentBranch(); clean = await git.isClean(); } catch { /* a detached or broken tree: shown without */ }
+  const today = new Date().toISOString().slice(0, 10);
+  const acceptedRisks = loadRiskAcceptances(c.store).filter(r => r.expires >= today).map(r => ({ capability: r.capability, expires: r.expires }));
+  const socat = (process.env.PATH ?? '').split(':').some(d => { try { accessSync(join(d || '.', 'socat'), constants.X_OK); return true; } catch { return false; } });
+  return { version: LAYOUT.version, repo, ...(branch ? { branch } : {}), ...(clean === undefined ? {} : { clean }),
+    sandbox: { bubblewrap, socat, verify: bubblewrap }, policy: { digest: configDigest(c.root).replace(/^sha256:/, ''), acceptedRisks },
+    squad, notices: runtimeNotices(c.h, loadMatrix('claude').runtimeVersion) };
 }
 
 /** Source checkouts only: an npm install has no launcher to link — npm already put `taskquoin` on the PATH. */

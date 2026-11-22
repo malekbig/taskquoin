@@ -33,6 +33,21 @@ commands) would let a model type them through its own tools: the human gate woul
    `TASKQUOIN_NO_ANIMATION=1`, cursor always restored) plays while the squad status is computed. `taskquoin` alone
    opens the console in a terminal (scripts still get the help).
 
+   > **Amended by Console V2 ([ADR-0019](0019-native-ansi-tui.md)), 2026-11-22.** The TASK / Q U O I N banner and its
+   > slogan are replaced by the V2 home: the quoin logo with the version and `✦ YOUR AI DEV SQUAD ✦`, the context
+   > (repository, sandbox, policy), the squad with each agent's real gate verdict (`●` READY, `◐` READY with an accepted
+   > risk, `○` NOT READY with the reason; the tester is still Taskquoin's sandboxed Verify) and an action line. It is
+   > Full, Compact or Minimal by the terminal's size and capabilities. The logo animation plays once the home is
+   > computed, not while. Colours follow the terminal (16, 256 or 24-bit colours); there are none with `NO_COLOR`,
+   > `TERM=dumb` or a pipe, and with `TERM=dumb` there is no `/` menu and no cursor movement either. The `/` menu groups
+   > the commands by category. Tab also completes the run id (`/use`), the artifact (`/show`), the pending gate
+   > (`/approve`) and the command (`/help`). An unknown command suggests the closest one, and `/help <command>`
+   > explains one. The prompt shows `◆ <gate>` when the current run waits for an approval. `/approve` shows what the
+   > approval is bound to, what there is to read and what was read in the session before the unchanged retype. The
+   > pending binding is read again after the last keystroke, and a change refuses: nothing is approved. Everything else
+   > is the same approve path as `taskquoin approve`. History (↑/↓) keeps `/` commands only, per repository: never a
+   > name, a hash or free text.
+
 ## Consequences
 ### Positive
 - Daily use without long commands; the hash-retyping step makes "approve what you read" explicit.

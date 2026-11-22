@@ -2,6 +2,8 @@
  *  over the streams' facts and the environment; nothing here reads process state. */
 export interface Caps {
   interactive: boolean;
+  /** The cursor may move (a live menu, a redraw): interactive and not `TERM=dumb`. `NO_COLOR` removes colour only. */
+  cursor: boolean;
   colorDepth: 0 | 4 | 8 | 24;
   charset: 'utf8' | 'ascii';
   theme: 'dark' | 'light';
@@ -45,7 +47,7 @@ export function detectCaps(o: {
 
   const motion = interactive && !dumb && env.TASKQUOIN_NO_ANIMATION !== '1' && !plain;
   return {
-    interactive, colorDepth, charset, theme, motion, plain,
+    interactive, cursor: interactive && !dumb, colorDepth, charset, theme, motion, plain,
     columns: stdout.columns && stdout.columns > 0 ? stdout.columns : 80,
     rows: stdout.rows && stdout.rows > 0 ? stdout.rows : 24,
   };
