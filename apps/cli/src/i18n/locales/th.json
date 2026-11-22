@@ -183,6 +183,7 @@
   "workflow.mustBeReadOnly": "เอเจนต์ {agent} ต้องอ่านได้อย่างเดียว (วางแผนหรือรีวิวอย่างอิสระ) แต่ได้รับสิทธิ์ {granted}",
   "workflow.judgeCannotStart": "เอเจนต์ {agent} เริ่มไม่ได้ — {reasons}",
   "workflow.busy": "รัน {run} กำลังถูกใช้งาน (โปรเซส taskquoin อื่น, pid {pid})",
+  "workflow.lockStuck": "รัน {run} ถูกบล็อกโดย {file}: หากไม่มีโปรเซส taskquoin ทำงานอยู่ ให้ลบไฟล์นั้นแล้วลองอีกครั้ง",
   "workflow.runtimeMissing": "ยังไม่ได้ติดตั้งรันไทม์ {runtime} สำหรับเอเจนต์ {agent}",
   "workflow.skillsUnusable": "เอเจนต์ {agent}: ใช้สกิลไม่ได้ — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -253,5 +254,10 @@
   "upgrade.noHome": "ไม่มีโฟลเดอร์โฮมแบบสัมบูรณ์ ($HOME ว่างหรือเป็นแบบสัมพัทธ์ และของบัญชีก็เช่นกัน): ตัวติดตั้งต้องรันนอกรีโพซิทอรี — ตั้ง HOME เป็นพาธสัมบูรณ์ ไม่ได้รันอะไร",
   "upgrade.unsafeCommand": "ปฏิเสธ: ไม่สามารถแสดงคำสั่งให้ตรงกับที่จะรันได้ (มีอักขระควบคุมหรืออักขระที่มองไม่เห็นใน {command}) — ไม่ได้รันอะไร",
   "upgrade.failed": "✖ ตัวติดตั้งจบการทำงานด้วยรหัส {code}",
-  "upgrade.usage": "วิธีใช้: /upgrade [auto|path|install]"
+  "upgrade.usage": "วิธีใช้: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "หากต้องการยอมรับความเสี่ยงนี้: taskquoin accept-risk {agent} {capability} --reason \"<เหตุผล>\" --expires YYYY-MM-DD --as <ชื่อ>",
+  "workflow.hint.upgrade": "เวอร์ชันของรันไทม์ไม่ใช่เวอร์ชันที่วัดไว้: รัน taskquoin upgrade",
+  "workflow.hint.configure": "หากต้องการเริ่ม {agent}: กำหนด shell.run (คำสั่งที่เอเจนต์รันได้) และ verify.command (คำสั่งทดสอบของคุณ) ใน {config}",
+  "cli.init.unknownStack": "ℹ ไม่รู้จักสแตก: กำหนด shell.run (คำสั่งที่เอเจนต์รันได้) และ verify.command (คำสั่งทดสอบของคุณ) ใน {config} มิฉะนั้นจะตรวจสอบการรันไม่ได้",
+  "cli.init.unknownStackOpencode": "ℹ ไม่รู้จักสแตก: กำหนด verify.command (คำสั่งทดสอบของคุณ) ใน {config} มิฉะนั้นจะตรวจสอบการรันไม่ได้"
 }

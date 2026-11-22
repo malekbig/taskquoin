@@ -10,6 +10,7 @@ import { createServer, type Server } from 'node:http';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runProcess } from '@taskquoin/process-runner';
 import { bwrapArgs, dnsBinds, runSandboxedTool, sandboxedToolAvailable } from '../src/index.ts';
 
@@ -33,22 +34,25 @@ mkdirSync(repo); mkdirSync(outside); mkdirSync(join(home, '.ssh'), { recursive: 
 const env = { PATH: process.env.PATH ?? '', HOME: home };
 const js = (code: string) => ({ bin: process.execPath, args: ['-e', code] });
 const available = await sandboxedToolAvailable();
+// The sandbox masks /tmp: a repository checked out under /tmp cannot host the fixtures above, so skip with the reason.
+const repoUnderTmp = realpathSync(fileURLToPath(import.meta.url)).startsWith('/tmp/');
+const sandboxSkip = !available ? 'bubblewrap unavailable' : repoUnderTmp ? 'the sandbox masks /tmp; run the suite from a checkout outside /tmp' : false;
 
-test('writes: inside the root only', { skip: !available && 'bubblewrap unavailable' }, async () => {
+test('writes: inside the root only', { skip: sandboxSkip }, async () => {
   const r = await runSandboxedTool({ ...js(`const f=require('fs');f.writeFileSync(${JSON.stringify(join(repo, 'in.txt'))},'x');try{f.writeFileSync(${JSON.stringify(join(outside, 'out.txt'))},'x');console.log('OUT-WRITTEN')}catch(e){console.log('OUT-BLOCKED',e.code)}`), cwd: repo, env, timeoutMs: 20_000, maxOutputBytes: 10_000 }, { writableRoot: repo, home });
   assert.equal(r.status, 'completed', r.stderr);
   assert.ok(existsSync(join(repo, 'in.txt')));
   assert.match(r.stdout, /OUT-BLOCKED/); assert.equal(existsSync(join(outside, 'out.txt')), false);
 });
 
-test('network: none (0 hits); positive control reaches the server', { skip: !available && 'bubblewrap unavailable' }, async () => {
+test('network: none (0 hits); positive control reaches the server', { skip: sandboxSkip }, async () => {
   const code = `fetch('http://127.0.0.1:${port}/').then(()=>console.log('REACHED')).catch(()=>console.log('BLOCKED'))`;
   hits = 0; await runProcess({ ...js(code), cwd: repo, env, timeoutMs: 10_000, maxOutputBytes: 1000 }); assert.equal(hits, 1);
   hits = 0; const r = await runSandboxedTool({ ...js(code), cwd: repo, env, timeoutMs: 20_000, maxOutputBytes: 1000 }, { writableRoot: repo, home });
   assert.match(r.stdout, /BLOCKED/); assert.equal(hits, 0);
 });
 
-test('HOME secret directories are masked', { skip: !available && 'bubblewrap unavailable' }, async () => {
+test('HOME secret directories are masked', { skip: sandboxSkip }, async () => {
   const r = await runSandboxedTool({ ...js(`console.log(JSON.stringify(require('fs').readdirSync(${JSON.stringify(join(home, '.ssh'))})))`), cwd: repo, env, timeoutMs: 20_000, maxOutputBytes: 1000 }, { writableRoot: repo, home });
   assert.equal(r.stdout.trim(), '[]');
   assert.deepEqual(readdirSync(join(home, '.ssh')), ['id_test'], 'host files untouched');
@@ -58,7 +62,7 @@ test('writable root must be absolute and is required', async () => {
   await assert.rejects(runSandboxedTool({ ...js('0'), cwd: repo, env, timeoutMs: 1000, maxOutputBytes: 100 }, { writableRoot: 'rel', home }), /absolute/);
 });
 
-test('Unix sockets under masked runtime dirs are unreachable (ro-bind does not stop connect())', { skip: !available && 'bubblewrap unavailable' }, async () => {
+test('Unix sockets under masked runtime dirs are unreachable (ro-bind does not stop connect())', { skip: sandboxSkip }, async () => {
   const { createServer: net } = await import('node:net');
   // Outside /tmp (which the sandbox already replaces with a private tmpfs) so the positive control is meaningful.
   const { rmSync } = await import('node:fs');
@@ -81,7 +85,7 @@ test('default masks include /run and XDG_RUNTIME_DIR', async () => {
   assert.ok(a.join(' ').includes('--tmpfs /run'));
 });
 
-test('a HOME secret dir that is a SYMLINK (e.g. WSL ~/.aws → /mnt/c/…) is masked at its real target', { skip: !available && 'bubblewrap unavailable' }, async () => {
+test('a HOME secret dir that is a SYMLINK (e.g. WSL ~/.aws → /mnt/c/…) is masked at its real target', { skip: sandboxSkip }, async () => {
   const { symlinkSync } = await import('node:fs');
   const { rmSync } = await import('node:fs');
   const real = mkdtempSync(join(outsideTmp(), 'winaws-')); writeFileSync(join(real, 'credentials'), 'SECRET'); // outside /tmp (already a private tmpfs)
@@ -92,7 +96,7 @@ test('a HOME secret dir that is a SYMLINK (e.g. WSL ~/.aws → /mnt/c/…) is ma
   rmSync(real, { recursive: true, force: true }); rmSync(h2, { recursive: true, force: true });
 });
 
-test('R4.1 verify profile: .git read-only, HOME hidden, repo still usable, secret files masked', { skip: !available && 'bubblewrap unavailable' }, async () => {
+test('R4.1 verify profile: .git read-only, HOME hidden, repo still usable, secret files masked', { skip: sandboxSkip }, async () => {
   const base = mkdtempSync(join(outsideTmp(), 'verify-'));
   const home2 = join(base, 'home'); const repo2 = join(home2, 'proj'); mkdirSync(join(repo2, '.git', 'hooks'), { recursive: true });
   writeFileSync(join(home2, 'private.txt'), 'PRIVATE'); writeFileSync(join(repo2, '.env'), 'TOKEN=SECRET-ENV');
@@ -112,7 +116,7 @@ test('R4.1 verify profile: .git read-only, HOME hidden, repo still usable, secre
   const { rmSync } = await import('node:fs'); rmSync(base, { recursive: true, force: true });
 });
 
-test('R4.1 verify profile: own PID namespace — a setsid() descendant dies with the sandbox', { skip: !available && 'bubblewrap unavailable' }, async () => {
+test('R4.1 verify profile: own PID namespace — a setsid() descendant dies with the sandbox', { skip: sandboxSkip }, async () => {
   const base = mkdtempSync(join(outsideTmp(), 'pidns-'));
   const marker = join(base, 'LATE');
   const inner = `setTimeout(()=>require('fs').writeFileSync(${JSON.stringify(marker)},'x'),1500)`;
@@ -125,7 +129,7 @@ test('R4.1 verify profile: own PID namespace — a setsid() descendant dies with
   const { rmSync } = await import('node:fs'); rmSync(base, { recursive: true, force: true });
 });
 
-test('clean room (ADR-0014): the room is mounted AT the repository path; inherited dirs read-only from the real repo; the store stays masked', { skip: !available && 'bubblewrap unavailable' }, async () => {
+test('clean room (ADR-0014): the room is mounted AT the repository path; inherited dirs read-only from the real repo; the store stays masked', { skip: sandboxSkip }, async () => {
   const base = outsideTmp(); const r0 = realpathSync(mkdtempSync(join(base, 'room-')));
   const realRepo = join(r0, 'real'); const store = join(r0, 'store'); const room = join(store, 'verify', 'run-1');
   mkdirSync(join(realRepo, 'node_modules', 'dep'), { recursive: true }); mkdirSync(room, { recursive: true });

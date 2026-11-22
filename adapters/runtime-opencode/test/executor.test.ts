@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { capabilitiesDigest, type RunRequest } from '@taskquoin/application';
 import { ALLOWED_ENV_KEYS } from '@taskquoin/process-runner';
@@ -23,7 +24,9 @@ import { userOpenCodeDirs } from '../src/credentials.ts';
 import { authPath, modelsPath, pluginDir } from '../src/facts.ts';
 
 const live = await sandboxedToolAvailable();
-const needs = live ? {} : { skip: 'bubblewrap unavailable' };
+// The sandbox masks /tmp: a repository checked out under /tmp cannot host the fixtures below, so skip with the reason.
+const repoUnderTmp = realpathSync(fileURLToPath(import.meta.url)).startsWith('/tmp/');
+const needs = !live ? { skip: 'bubblewrap unavailable' } : repoUnderTmp ? { skip: 'the sandbox masks /tmp; run the suite from a checkout outside /tmp' } : {};
 const repoRoot = new URL('../../../', import.meta.url).pathname;
 // Outside /tmp (the sandbox hides /tmp): HOME and the control store must be hidden BY the profile, not by accident.
 const outsideRoot = (() => {

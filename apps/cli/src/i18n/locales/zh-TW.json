@@ -183,6 +183,7 @@
   "workflow.mustBeReadOnly": "代理程式 {agent} 必須是唯讀的（它獨立地規劃或審查），但被授予了 {granted}",
   "workflow.judgeCannotStart": "代理程式 {agent} 無法啟動 — {reasons}",
   "workflow.busy": "執行 {run} 忙碌中（另一個 taskquoin 程序，pid {pid}）",
+  "workflow.lockStuck": "執行 {run} 被 {file} 封鎖：若沒有正在執行的 taskquoin 程序，請刪除該檔案後再試一次",
   "workflow.runtimeMissing": "代理程式 {agent} 所需的執行環境 {runtime} 未安裝",
   "workflow.skillsUnusable": "代理程式 {agent}：技能無法使用 — {errors}",
   "workflow.cmdError": "taskquoin {command}：{message}",
@@ -253,5 +254,10 @@
   "upgrade.noHome": "沒有絕對路徑的家目錄（$HOME 為空或為相對路徑，帳戶的家目錄也是）：安裝程式必須在儲存庫之外執行 — 請將 HOME 設為絕對路徑。未執行任何內容。",
   "upgrade.unsafeCommand": "已拒絕：無法依實際執行的樣子準確顯示該命令（{command} 中含有控制字元或不可見字元）— 未執行任何內容。",
   "upgrade.failed": "✖ 安裝程式以代碼 {code} 結束。",
-  "upgrade.usage": "用法：/upgrade [auto|path|install]"
+  "upgrade.usage": "用法：/upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "要接受此風險：taskquoin accept-risk {agent} {capability} --reason \"<原因>\" --expires YYYY-MM-DD --as <姓名>",
+  "workflow.hint.upgrade": "執行階段版本不是已量測的版本：請執行 taskquoin upgrade",
+  "workflow.hint.configure": "要啟動 {agent}：請在 {config} 中設定 shell.run（代理可執行的指令）與 verify.command（您的測試指令）",
+  "cli.init.unknownStack": "ℹ 未辨識技術堆疊：請在 {config} 中設定 shell.run（代理可執行的指令）與 verify.command（您的測試指令），否則無法驗證執行",
+  "cli.init.unknownStackOpencode": "ℹ 未辨識技術堆疊：請在 {config} 中設定 verify.command（您的測試指令），否則無法驗證執行"
 }

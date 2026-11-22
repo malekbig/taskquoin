@@ -184,6 +184,7 @@
   "workflow.mustBeReadOnly": "Agent {agent} muss schreibgeschützt sein (er plant oder prüft unabhängig), hat aber {granted} erhalten",
   "workflow.judgeCannotStart": "Agent {agent} kann nicht starten — {reasons}",
   "workflow.busy": "Run {run} ist belegt (ein anderer taskquoin-Prozess, pid {pid})",
+  "workflow.lockStuck": "Run {run} ist durch {file} blockiert: wenn kein taskquoin-Prozess läuft, löschen Sie diese Datei und versuchen Sie es erneut",
   "workflow.runtimeMissing": "die Runtime {runtime} für Agent {agent} ist nicht installiert",
   "workflow.skillsUnusable": "Agent {agent}: Skill(s) nicht verwendbar — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -254,5 +255,10 @@
   "upgrade.noHome": "Kein absolutes Home-Verzeichnis ($HOME ist leer oder relativ, ebenso das des Kontos): Der Installer muss außerhalb des Repositorys laufen — setzen Sie HOME auf einen absoluten Pfad. Nichts wurde ausgeführt.",
   "upgrade.unsafeCommand": "Abgelehnt: Der Befehl kann nicht genau so angezeigt werden, wie er ausgeführt würde (Steuer- oder unsichtbare Zeichen in {command}) — nichts wurde ausgeführt.",
   "upgrade.failed": "✖ Der Installer wurde mit Code {code} beendet.",
-  "upgrade.usage": "Verwendung: /upgrade [auto|path|install]"
+  "upgrade.usage": "Verwendung: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "So akzeptieren Sie dieses Risiko: taskquoin accept-risk {agent} {capability} --reason \"<Grund>\" --expires YYYY-MM-DD --as <Name>",
+  "workflow.hint.upgrade": "Die Runtime-Version ist nicht die gemessene: führen Sie taskquoin upgrade aus",
+  "workflow.hint.configure": "Um {agent} zu starten: legen Sie shell.run (die Befehle, die Agenten ausführen dürfen) und verify.command (Ihren Testbefehl) in {config} fest",
+  "cli.init.unknownStack": "ℹ Stack nicht erkannt: legen Sie shell.run (die Befehle, die Agenten ausführen dürfen) und verify.command (Ihren Testbefehl) in {config} fest, sonst können Läufe nicht verifiziert werden",
+  "cli.init.unknownStackOpencode": "ℹ Stack nicht erkannt: legen Sie verify.command (Ihren Testbefehl) in {config} fest, sonst können Läufe nicht verifiziert werden"
 }

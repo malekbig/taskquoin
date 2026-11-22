@@ -184,6 +184,7 @@
   "workflow.mustBeReadOnly": "agent {agent} moet alleen-lezen zijn (hij plant of beoordeelt onafhankelijk) maar heeft {granted} gekregen",
   "workflow.judgeCannotStart": "agent {agent} kan niet starten — {reasons}",
   "workflow.busy": "run {run} is bezet (een ander taskquoin-proces, pid {pid})",
+  "workflow.lockStuck": "run {run} wordt geblokkeerd door {file}: als er geen taskquoin-proces draait, verwijder dat bestand en probeer het opnieuw",
   "workflow.runtimeMissing": "runtime {runtime} voor agent {agent} is niet geïnstalleerd",
   "workflow.skillsUnusable": "agent {agent}: skill(s) niet bruikbaar — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -254,5 +255,10 @@
   "upgrade.noHome": "Geen absolute thuismap ($HOME is leeg of relatief, en die van het account ook): het installatieprogramma moet buiten de repository draaien — stel HOME in op een absoluut pad. Er is niets uitgevoerd.",
   "upgrade.unsafeCommand": "Geweigerd: de opdracht kan niet precies zo worden getoond als hij zou draaien (stuur- of onzichtbare tekens in {command}) — er is niets uitgevoerd.",
   "upgrade.failed": "✖ Het installatieprogramma is gestopt met code {code}.",
-  "upgrade.usage": "gebruik: /upgrade [auto|path|install]"
+  "upgrade.usage": "gebruik: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "Om dit risico te accepteren: taskquoin accept-risk {agent} {capability} --reason \"<reden>\" --expires YYYY-MM-DD --as <naam>",
+  "workflow.hint.upgrade": "De runtimeversie is niet de gemeten versie: voer taskquoin upgrade uit",
+  "workflow.hint.configure": "Om {agent} te starten: stel shell.run (de opdrachten die agents mogen uitvoeren) en verify.command (uw testopdracht) in in {config}",
+  "cli.init.unknownStack": "ℹ stack niet herkend: stel shell.run (de opdrachten die agents mogen uitvoeren) en verify.command (uw testopdracht) in in {config}, anders kunnen runs niet worden geverifieerd",
+  "cli.init.unknownStackOpencode": "ℹ stack niet herkend: stel verify.command (uw testopdracht) in in {config}, anders kunnen runs niet worden geverifieerd"
 }

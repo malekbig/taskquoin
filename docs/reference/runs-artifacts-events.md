@@ -26,7 +26,7 @@ A **run** is one governed pass of the `feature-governed` workflow for one reques
 | `completed` | committed on the run's branch | merge it yourself when ready (nothing is pushed) |
 | `failed` | an agent ended abnormally or its gate refused it (the reason is printed) | fix the cause, start a new run |
 | `needs-human` | Taskquoin stopped for a decision it will not take: tests still failing after the allowed attempts, review still requesting changes, a refusal by Verify, protected configuration changed, a diff too large to review, submodules, dependencies changed during the run | read the reason, decide, start a new run |
-| `interrupted` | an adapter failed (git, the store, a provider timeout); the state is saved | `taskquoin resume <run>` |
+| `interrupted` | an adapter failed (git, the store, a provider timeout) and the state was saved; or the Taskquoin process running it was killed (Ctrl+C, a closed terminal, SIGKILL): its state still says `running` but its lock names a dead process, so `status` shows `interrupted` with the reason `process gone (the run was killed)` | `taskquoin resume <run>`: it continues at the same node, approvals kept |
 
 A run id looks like `run-20261122T132603-7b8841`; its work happens on the branch `taskquoin/<run-id>`.
 
@@ -147,7 +147,7 @@ free text or file content (`prompt`, `task`, `output`, `content`, `stdin`, `stdo
 | `node.transition` | a node finishes | `runId`, `node`, `outcome`, `next`, `attempts` |
 | `agent.finished` | an agent ran | `runId`, `agent`, `runtime`, `label`, `status`, `costUsd` (`null` when the runtime does not report it), `digest` (digest of the effective invocation) |
 | `risk.accepted` | an agent ran thanks to an accepted risk | `runId`, `agent`, `capability`, `approvedBy`, `expires` |
-| `run.waiting-approval`, `run.failed`, `run.needs-human`, `run.interrupted` | the run stops | `runId`, `node` |
+| `run.waiting-approval`, `run.failed`, `run.needs-human`, `run.interrupted` | the run stops (`run.interrupted` is also written by `resume` when it recovers a killed run, before continuing) | `runId`, `node` |
 | `approval` | you approved a gate | `node` (`approve-plan` or `approve-commit`), `approvedBy`, `binding` (the full hash) |
 | `verify.result` | Verify finished | `runId`, `attempt`, `passed`, `exitCode`, `tree`, `ignoredChanges` |
 | `red.result` | the RED proof finished | `runId`, `attempt`, `redFailed` (`true`, `false` or `null`), `inconclusive` (when true), `tree` |

@@ -183,6 +183,7 @@
   "workflow.mustBeReadOnly": "에이전트 {agent}은(는) 읽기 전용이어야 하지만(독립적으로 계획하거나 리뷰함) {granted} 권한이 부여되었습니다",
   "workflow.judgeCannotStart": "에이전트 {agent}을(를) 시작할 수 없습니다 — {reasons}",
   "workflow.busy": "실행 {run}이(가) 사용 중입니다 (다른 taskquoin 프로세스, pid {pid})",
+  "workflow.lockStuck": "실행 {run}이(가) {file}에 의해 막혀 있습니다. 실행 중인 taskquoin 프로세스가 없다면 그 파일을 삭제한 뒤 다시 시도하세요",
   "workflow.runtimeMissing": "에이전트 {agent}의 런타임 {runtime}이(가) 설치되어 있지 않습니다",
   "workflow.skillsUnusable": "에이전트 {agent}: 사용할 수 없는 스킬 — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -253,5 +254,10 @@
   "upgrade.noHome": "절대 경로 홈 폴더가 없습니다($HOME이 비어 있거나 상대 경로이며, 계정의 홈도 마찬가지): 설치 프로그램은 저장소 밖에서 실행되어야 합니다 — HOME을 절대 경로로 설정하세요. 아무것도 실행하지 않았습니다.",
   "upgrade.unsafeCommand": "거부됨: 명령을 실행될 모습 그대로 정확히 표시할 수 없습니다({command}에 제어 문자 또는 보이지 않는 문자) — 아무것도 실행하지 않았습니다.",
   "upgrade.failed": "✖ 설치 프로그램이 코드 {code}(으)로 종료되었습니다.",
-  "upgrade.usage": "사용법: /upgrade [auto|path|install]"
+  "upgrade.usage": "사용법: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "이 위험을 수락하려면: taskquoin accept-risk {agent} {capability} --reason \"<사유>\" --expires YYYY-MM-DD --as <이름>",
+  "workflow.hint.upgrade": "런타임 버전이 측정된 버전이 아닙니다: taskquoin upgrade를 실행하세요",
+  "workflow.hint.configure": "{agent}을(를) 시작하려면: {config}에 shell.run(에이전트가 실행할 수 있는 명령)과 verify.command(테스트 명령)를 설정하세요",
+  "cli.init.unknownStack": "ℹ 스택을 인식하지 못했습니다: {config}에 shell.run(에이전트가 실행할 수 있는 명령)과 verify.command(테스트 명령)를 설정하세요. 그렇지 않으면 실행을 검증할 수 없습니다",
+  "cli.init.unknownStackOpencode": "ℹ 스택을 인식하지 못했습니다: {config}에 verify.command(테스트 명령)를 설정하세요. 그렇지 않으면 실행을 검증할 수 없습니다"
 }

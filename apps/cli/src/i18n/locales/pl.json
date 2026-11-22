@@ -186,6 +186,7 @@
   "workflow.mustBeReadOnly": "agent {agent} musi mieć dostęp tylko do odczytu (planuje lub recenzuje niezależnie), a ma przyznane: {granted}",
   "workflow.judgeCannotStart": "agent {agent} nie może wystartować — {reasons}",
   "workflow.busy": "run {run} jest zajęty (inny proces taskquoin, pid {pid})",
+  "workflow.lockStuck": "run {run} jest zablokowany przez {file}: jeśli nie działa żaden proces taskquoin, usuń ten plik i spróbuj ponownie",
   "workflow.runtimeMissing": "runtime {runtime} agenta {agent} nie jest zainstalowany",
   "workflow.skillsUnusable": "agent {agent}: skill(e) nie nadają się do użycia — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -256,5 +257,10 @@
   "upgrade.noHome": "Brak bezwzględnego katalogu domowego ($HOME jest pusty lub względny, podobnie jak katalog konta): instalator musi działać poza repozytorium — ustaw HOME na ścieżkę bezwzględną. Nic nie uruchomiono.",
   "upgrade.unsafeCommand": "Odmowa: polecenia nie można pokazać dokładnie tak, jak zostałoby uruchomione (znaki sterujące lub niewidoczne w {command}) — nic nie uruchomiono.",
   "upgrade.failed": "✖ Instalator zakończył się kodem {code}.",
-  "upgrade.usage": "użycie: /upgrade [auto|path|install]"
+  "upgrade.usage": "użycie: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "Aby zaakceptować to ryzyko: taskquoin accept-risk {agent} {capability} --reason \"<powód>\" --expires YYYY-MM-DD --as <nazwa>",
+  "workflow.hint.upgrade": "Wersja środowiska uruchomieniowego nie jest tą zmierzoną: uruchom taskquoin upgrade",
+  "workflow.hint.configure": "Aby uruchomić {agent}: ustaw shell.run (polecenia, które agenci mogą uruchamiać) i verify.command (Twoje polecenie testowe) w {config}",
+  "cli.init.unknownStack": "ℹ nierozpoznany stos: ustaw shell.run (polecenia, które agenci mogą uruchamiać) i verify.command (Twoje polecenie testowe) w {config}, inaczej przebiegi nie mogą być weryfikowane",
+  "cli.init.unknownStackOpencode": "ℹ nierozpoznany stos: ustaw verify.command (Twoje polecenie testowe) w {config}, inaczej przebiegi nie mogą być weryfikowane"
 }

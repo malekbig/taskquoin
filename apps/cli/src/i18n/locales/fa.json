@@ -184,6 +184,7 @@
   "workflow.mustBeReadOnly": "عامل {agent} باید فقط‌خواندنی باشد (مستقل برنامه‌ریزی یا بازبینی می‌کند) اما {granted} به آن داده شده",
   "workflow.judgeCannotStart": "عامل {agent} نمی‌تواند شروع شود — {reasons}",
   "workflow.busy": "اجرای {run} مشغول است (فرایند taskquoin دیگر، pid {pid})",
+  "workflow.lockStuck": "اجرای {run} توسط {file} مسدود شده است: اگر هیچ فرایند taskquoin در حال اجرا نیست، آن فایل را حذف کنید و دوباره تلاش کنید",
   "workflow.runtimeMissing": "محیط اجرای {runtime} برای عامل {agent} نصب نشده است",
   "workflow.skillsUnusable": "عامل {agent}: مهارت(های) غیرقابل‌استفاده — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -254,5 +255,10 @@
   "upgrade.noHome": "هیچ پوشه خانگی مطلقی نیست ($HOME خالی یا نسبی است، پوشه حساب هم): نصب کننده باید بیرون از مخزن اجرا شود — HOME را روی یک مسیر مطلق بگذارید. چیزی اجرا نشد.",
   "upgrade.unsafeCommand": "رد شد: فرمان را نمی توان دقیقا همان طور که اجرا می شود نشان داد (نویسه های کنترلی یا نامرئی در {command}) — چیزی اجرا نشد.",
   "upgrade.failed": "✖ نصب کننده با کد {code} پایان یافت.",
-  "upgrade.usage": "کاربرد: /upgrade [auto|path|install]"
+  "upgrade.usage": "کاربرد: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "برای پذیرفتن این ریسک: taskquoin accept-risk {agent} {capability} --reason \"<دلیل>\" --expires YYYY-MM-DD --as <نام>",
+  "workflow.hint.upgrade": "نسخه‌ی محیط اجرا همان نسخه‌ی اندازه‌گیری‌شده نیست: taskquoin upgrade را اجرا کنید",
+  "workflow.hint.configure": "برای راه‌اندازی {agent}: در {config} مقدار shell.run (دستورهایی که عامل‌ها می‌توانند اجرا کنند) و verify.command (دستور آزمون شما) را تنظیم کنید",
+  "cli.init.unknownStack": "ℹ پشته شناسایی نشد: در {config} مقدار shell.run (دستورهایی که عامل‌ها می‌توانند اجرا کنند) و verify.command (دستور آزمون شما) را تنظیم کنید، وگرنه اجراها قابل راستی‌آزمایی نیستند",
+  "cli.init.unknownStackOpencode": "ℹ پشته شناسایی نشد: در {config} مقدار verify.command (دستور آزمون شما) را تنظیم کنید، وگرنه اجراها قابل راستی‌آزمایی نیستند"
 }

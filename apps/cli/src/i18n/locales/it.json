@@ -184,6 +184,7 @@
   "workflow.mustBeReadOnly": "l'agente {agent} deve essere in sola lettura (pianifica o revisiona in modo indipendente) ma ha ricevuto {granted}",
   "workflow.judgeCannotStart": "l'agente {agent} non può partire — {reasons}",
   "workflow.busy": "il run {run} è occupato (un altro processo taskquoin, pid {pid})",
+  "workflow.lockStuck": "il run {run} è bloccato da {file}: se nessun processo taskquoin è in esecuzione, elimina quel file e riprova",
   "workflow.runtimeMissing": "il runtime {runtime} dell'agente {agent} non è installato",
   "workflow.skillsUnusable": "agente {agent}: skill non utilizzabili — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -254,5 +255,10 @@
   "upgrade.noHome": "Nessuna cartella home assoluta ($HOME è vuota o relativa, e così quella dell'account): il programma di installazione deve girare fuori dal repository — imposta HOME su un percorso assoluto. Nulla è stato eseguito.",
   "upgrade.unsafeCommand": "Rifiutato: il comando non può essere mostrato esattamente come verrebbe eseguito (caratteri di controllo o invisibili in {command}) — nulla è stato eseguito.",
   "upgrade.failed": "✖ Il programma di installazione è terminato con il codice {code}.",
-  "upgrade.usage": "uso: /upgrade [auto|path|install]"
+  "upgrade.usage": "uso: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "Per accettare questo rischio: taskquoin accept-risk {agent} {capability} --reason \"<motivo>\" --expires YYYY-MM-DD --as <nome>",
+  "workflow.hint.upgrade": "La versione del runtime non è quella misurata: esegui taskquoin upgrade",
+  "workflow.hint.configure": "Per avviare {agent}: imposta shell.run (i comandi che gli agenti possono eseguire) e verify.command (il tuo comando di test) in {config}",
+  "cli.init.unknownStack": "ℹ stack non riconosciuto: imposta shell.run (i comandi che gli agenti possono eseguire) e verify.command (il tuo comando di test) in {config}, altrimenti le esecuzioni non possono essere verificate",
+  "cli.init.unknownStackOpencode": "ℹ stack non riconosciuto: imposta verify.command (il tuo comando di test) in {config}, altrimenti le esecuzioni non possono essere verificate"
 }

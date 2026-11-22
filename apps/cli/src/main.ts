@@ -19,14 +19,14 @@ import { ensureTrustedDir, listRuns, loadRiskAcceptances, loadRunState, repoStor
 import { codexSandboxFor } from '@taskquoin/runtime-codex';
 import { ClaudeMemMemory } from '@taskquoin/memory-claude-mem';
 import { GitWorkspace } from '@taskquoin/git';
-import { cmdApprove, cmdResume, cmdRun, cmdShow, cmdStatus, configDigest, type CliContext } from './workflow-cli.ts';
+import { cmdApprove, cmdResume, cmdRun, requestFrom, cmdShow, cmdStatus, configDigest, type CliContext } from './workflow-cli.ts';
 import { jsonOut, n as nz, nLog } from './tui/neutral.ts';
 import { animateLogo, completeCommand, drawSlashMenu, lineReader, renderBanner, runConsole, slashMenu, squadOf, withTerminalReleased, type ConsoleCommands, type ConsoleIO } from './console.ts';
 import { sandboxedToolAvailable } from '@taskquoin/local-tool';
 import { installShortcut, removeShortcut, type ShortcutEnv } from './shortcut.ts';
 import { runtimeNotices } from './runtime-notices.ts';
 import { layoutOf } from './layout.ts';
-import { en, ENGLISH_ONLY, loadPreferences, resolveLanguage, setLanguage, t, translate, type ParamNames, type Params } from './i18n/index.ts';
+import { english, loadPreferences, resolveLanguage, setLanguage, t } from './i18n/index.ts';
 import { alignColumns } from './i18n/width.ts';
 import { createInterface } from 'node:readline';
 
@@ -42,8 +42,6 @@ const err = (s: string) => process.stderr.write(s + '\n');
 const sha = (s: string | Buffer) => createHash('sha256').update(s).digest('hex');
 const LAYOUT = layoutOf(import.meta.url);
 const HOOK_ENTRY = LAYOUT.hookEntry;
-/** Failure messages end up in `check --json` (byte-identical whatever the language), so they stay English. */
-const english = <K extends (typeof ENGLISH_ONLY)[number]>(key: K, ...args: Params<ParamNames<(typeof en)[K]>>) => translate('en', en, undefined, key, args[0]);
 
 function loadMatrix(rt: RuntimeId): CapabilityMatrix {
   return validateCapabilityMatrix(JSON.parse(readFileSync(new URL(`../../../adapters/runtime-${rt}/src/capabilities.json`, import.meta.url), 'utf8')));
@@ -130,6 +128,8 @@ async function cmdInit(): Promise<number> {
     out(t('cli.init.opencodeOnly', { config: CONFIG, providers: ps.length ? ps.map(nz).join(', ') : t('cli.init.noProvider') }));
   } else if (!tools.claude) out(t('cli.init.needImplementer'));
   else if (!tools.codex) out(t('cli.init.claudeOnly'));
+  // OpenCode has no commands (the parser refuses shell.run for it): Taskquoin runs the tests with verify.command alone.
+  if (stack === 'unknown') out(cfg0.agents.implementer?.runtime === 'opencode' ? t('cli.init.unknownStackOpencode', { config: CONFIG }) : t('cli.init.unknownStack', { config: CONFIG }));
   out(t('cli.init.next'));
   return 0;
 }
@@ -257,7 +257,12 @@ function cmdConnect(target: string | undefined, remove: boolean): number {
 async function cmdUninstall(purge: boolean): Promise<number> {
   const h = await host(); const root = requireRepo(h);
   const store = repoStore(root); const mf = join(store.root, 'manifest.json');
-  if (!existsSync(mf)) { err(t('cli.uninstall.noManifest')); return 1; }
+  if (!existsSync(mf)) {
+    if (!purge) { err(t('cli.uninstall.noManifest')); return 1; }
+    // A previous uninstall already removed the manifest: the purge still has to remove the store.
+    if (!store.root.startsWith(stateBase() + '/')) { err(t('cli.uninstall.refusePurge', { path: nz(store.root), base: nz(stateBase()) })); return 1; }
+    rmSync(store.root, { recursive: true, force: true }); out(t('cli.uninstall.purged', { path: nz(store.root) })); return 0;
+  }
   // Validate before touching anything (Codex R3): known schema, only files Taskquoin can create, contained, no symlinks.
   const OWNED = new Set([CONFIG]);
   let manifest: { files: { path: string; sha256: string }[] };
@@ -454,7 +459,7 @@ async function main(): Promise<number> {
       if (values.remove) { const r = removeShortcut(shortcutEnv(LAYOUT.launcher)); out(r.message); return 0; }
       const r = installShortcut(shortcutEnv(LAYOUT.launcher), { auto: false }); (r.status === 'conflict' ? err : out)(r.message); return r.status === 'conflict' ? 1 : 0;
     }
-    case 'run': { const { c, git } = await ctx(); return cmdRun(c, git, arg); }
+    case 'run': { const { c, git } = await ctx(); return cmdRun(c, git, requestFrom(positionals)); }
     case 'approve': { const { c, git } = await ctx(); return cmdApprove(c, git, arg, arg2, values.expect, values.as); }
     case 'resume': { const { c, git } = await ctx(); return cmdResume(c, git, arg); }
     case 'status': { const { c } = await ctx(); return cmdStatus(c, arg, !!values.json); }

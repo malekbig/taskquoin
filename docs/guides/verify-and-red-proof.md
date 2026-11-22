@@ -50,6 +50,27 @@ A test run is **conclusive** only if the sandbox started, the command exited by 
 Consequences you will notice:
 
 - Tests that need the network, files in HOME, or secret files **fail in Verify**, by design.
+- **The test toolchain must be visible inside the clean room.** The clean room has no HOME (a temporary folder is
+  mounted over it) and no network. A runner that lives under your HOME (Node from nvm or volta, `~/.npm-global`,
+  pyenv, `~/.m2`, `~/.gradle`, the Go module cache) is invisible there. Install the toolchain outside HOME (for
+  example under `/usr/local` or `/opt`, on the `PATH`) or inside the repository (`node_modules/.bin`, a virtualenv),
+  and list its directory in `verify.inherit` if it is ignored by git. The Maven and Gradle wrappers (`./mvnw`,
+  `./gradlew`) download their distribution under HOME over the network, so they do not work as such: they run only
+  offline, with the distribution and the caches inside the repository (`MAVEN_USER_HOME` or `GRADLE_USER_HOME` set in
+  `verify.command` to a folder listed in `verify.inherit`).
+  To check before a run: `taskquoin doctor` for the agents, then run your `verify.command` by hand from a shell with
+  an empty HOME, for example `env -i PATH="$PATH" HOME=/nonexistent sh -c '<your command>'`. This is only an
+  approximation of the clean room (no mount namespace, no network cut): if it says `not found` there, Verify cannot
+  run it either, but a pass there does not prove Verify will.
+- **A command that cannot run is not red tests.** Any exit code of 126 or more (126 not executable, 127 `not found`,
+  134 or 139 for a crash, 255 for a runner that gave up), a kill other than the timeout, or a sandbox that did not
+  start make the run unrunnable. Verify stops once with `needs-human` and the reason
+  `Verify could not run the test command (exit <n>): <first line of its output>`, without using any rework attempt,
+  because no change to the code could fix it. A runner whose exit code counts its failures (mocha, for example) stops
+  the same way once 126 or more tests fail.
+- **A timeout is red tests** (a rework, within the attempt limit). **A log too large to keep is judged by its exit
+  code**: a red run whose log was cut reworks, and a green run whose log was cut passes (exit 0 is the authority; the
+  RED proof still needs a complete run of its own).
 - A test that works on your machine but fails in Taskquoin usually reads an ignored file that is not in the clean
   room: add it to `verify.inherit`.
 - If the dependencies change during a run (`npm install` while an agent works), the run stops: nothing can be verified
@@ -104,6 +125,7 @@ to inspect (`taskquoin show <run>`). The reasons, exactly as printed:
 | `tests still failing after N attempts` | the limit above was reached |
 | `no failing test demonstrates the change (attempt N)` | the RED proof never held |
 | `RED proof inconclusive: <why>` | the proof could not run properly |
+| `Verify could not run the test command (exit <n>): <first line of output>` | the command exited with 126 or more (not executable, not found, a crash), was killed other than by the timeout, or the sandbox did not start: fix the toolchain, no attempt was used |
 | `Verify refused: <why>` | a link outside the repository, an incomplete secret scan, an inherited path behind a symlink |
 | `dependencies changed during the run: <paths> — Verify inherits them…` | reinstall them and start a new run |
 | `protected configuration changed: <paths> — Taskquoin never commits such changes` | the agent touched a protected file |

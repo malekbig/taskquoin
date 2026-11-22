@@ -183,6 +183,7 @@
   "workflow.mustBeReadOnly": "agent {agent} phải chỉ-đọc (nó lập kế hoạch hoặc đánh giá độc lập) nhưng lại được cấp {granted}",
   "workflow.judgeCannotStart": "agent {agent} không thể khởi động — {reasons}",
   "workflow.busy": "run {run} đang bận (tiến trình taskquoin khác, pid {pid})",
+  "workflow.lockStuck": "run {run} bị chặn bởi {file}: nếu không có tiến trình taskquoin nào đang chạy, hãy xóa tệp đó rồi thử lại",
   "workflow.runtimeMissing": "runtime {runtime} cho agent {agent} chưa được cài",
   "workflow.skillsUnusable": "agent {agent}: skill không dùng được — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -253,5 +254,10 @@
   "upgrade.noHome": "Không có thư mục home tuyệt đối ($HOME trống hoặc tương đối, của tài khoản cũng vậy): trình cài đặt phải chạy bên ngoài kho mã — hãy đặt HOME thành một đường dẫn tuyệt đối. Không có gì được chạy.",
   "upgrade.unsafeCommand": "Bị từ chối: không thể hiển thị lệnh đúng như khi nó chạy (ký tự điều khiển hoặc vô hình trong {command}) — không có gì được chạy.",
   "upgrade.failed": "✖ Trình cài đặt kết thúc với mã {code}.",
-  "upgrade.usage": "cách dùng: /upgrade [auto|path|install]"
+  "upgrade.usage": "cách dùng: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "Để chấp nhận rủi ro này: taskquoin accept-risk {agent} {capability} --reason \"<lý do>\" --expires YYYY-MM-DD --as <tên>",
+  "workflow.hint.upgrade": "Phiên bản runtime không phải phiên bản đã đo: hãy chạy taskquoin upgrade",
+  "workflow.hint.configure": "Để khởi động {agent}: hãy đặt shell.run (các lệnh mà agent được phép chạy) và verify.command (lệnh kiểm thử của bạn) trong {config}",
+  "cli.init.unknownStack": "ℹ không nhận ra stack: hãy đặt shell.run (các lệnh mà agent được phép chạy) và verify.command (lệnh kiểm thử của bạn) trong {config}, nếu không các lượt chạy không thể được xác minh",
+  "cli.init.unknownStackOpencode": "ℹ không nhận ra stack: hãy đặt verify.command (lệnh kiểm thử của bạn) trong {config}, nếu không các lượt chạy không thể được xác minh"
 }

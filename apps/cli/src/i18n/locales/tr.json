@@ -184,6 +184,7 @@
   "workflow.mustBeReadOnly": "{agent} ajanı salt okunur olmalıdır (bağımsız olarak planlar veya gözden geçirir) ancak {granted} yetkisi verilmiş",
   "workflow.judgeCannotStart": "{agent} ajanı başlatılamıyor — {reasons}",
   "workflow.busy": "{run} çalıştırması meşgul (başka bir taskquoin işlemi, pid {pid})",
+  "workflow.lockStuck": "{run} çalıştırması {file} tarafından engellendi: çalışan bir taskquoin işlemi yoksa bu dosyayı silip yeniden deneyin",
   "workflow.runtimeMissing": "{agent} ajanı için {runtime} çalışma zamanı kurulu değil",
   "workflow.skillsUnusable": "{agent} ajanı: beceri(ler) kullanılamıyor — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -254,5 +255,10 @@
   "upgrade.noHome": "Mutlak bir ev dizini yok ($HOME boş veya göreli, hesabınki de öyle): yükleyici deponun dışında çalışmalı — HOME değişkenini mutlak bir yola ayarlayın. Hiçbir şey çalıştırılmadı.",
   "upgrade.unsafeCommand": "Reddedildi: komut çalışacağı haliyle tam olarak gösterilemiyor ({command} içinde kontrol veya görünmez karakterler) — hiçbir şey çalıştırılmadı.",
   "upgrade.failed": "✖ Yükleyici {code} koduyla sonlandı.",
-  "upgrade.usage": "kullanım: /upgrade [auto|path|install]"
+  "upgrade.usage": "kullanım: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "Bu riski kabul etmek için: taskquoin accept-risk {agent} {capability} --reason \"<neden>\" --expires YYYY-MM-DD --as <ad>",
+  "workflow.hint.upgrade": "Çalışma zamanı sürümü ölçülen sürüm değil: taskquoin upgrade çalıştırın",
+  "workflow.hint.configure": "{agent} ajanını başlatmak için: {config} içinde shell.run (ajanların çalıştırabileceği komutlar) ve verify.command (test komutunuz) ayarlayın",
+  "cli.init.unknownStack": "ℹ yığın tanınmadı: {config} içinde shell.run (ajanların çalıştırabileceği komutlar) ve verify.command (test komutunuz) ayarlayın, aksi halde çalıştırmalar doğrulanamaz",
+  "cli.init.unknownStackOpencode": "ℹ yığın tanınmadı: {config} içinde verify.command (test komutunuz) ayarlayın, aksi halde çalıştırmalar doğrulanamaz"
 }

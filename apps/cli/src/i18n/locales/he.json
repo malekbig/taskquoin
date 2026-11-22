@@ -185,6 +185,7 @@
   "workflow.mustBeReadOnly": "הסוכן {agent} חייב להיות לקריאה בלבד (הוא מתכנן או סוקר באופן עצמאי) אך ניתנה לו הרשאה: {granted}",
   "workflow.judgeCannotStart": "הסוכן {agent} לא יכול להתחיל — {reasons}",
   "workflow.busy": "ההרצה {run} תפוסה (תהליך taskquoin אחר, pid {pid})",
+  "workflow.lockStuck": "ההרצה {run} חסומה על ידי {file}: אם אין תהליך taskquoin פעיל, מחקו את הקובץ ונסו שוב",
   "workflow.runtimeMissing": "סביבת הריצה {runtime} של הסוכן {agent} אינה מותקנת",
   "workflow.skillsUnusable": "הסוכן {agent}: מיומנויות שאינן שמישות — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -255,5 +256,10 @@
   "upgrade.noHome": "אין תיקיית בית מוחלטת ($HOME ריק או יחסי, וכך גם זו של החשבון): המתקין חייב לרוץ מחוץ למאגר — הגדירו את HOME לנתיב מוחלט. דבר לא הורץ.",
   "upgrade.unsafeCommand": "נדחה: לא ניתן להציג את הפקודה בדיוק כפי שתורץ (תווי בקרה או תווים בלתי נראים ב-{command}) — דבר לא הורץ.",
   "upgrade.failed": "✖ המתקין הסתיים עם הקוד {code}.",
-  "upgrade.usage": "שימוש: /upgrade [auto|path|install]"
+  "upgrade.usage": "שימוש: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "כדי לקבל סיכון זה: taskquoin accept-risk {agent} {capability} --reason \"<סיבה>\" --expires YYYY-MM-DD --as <שם>",
+  "workflow.hint.upgrade": "גרסת סביבת הריצה אינה הגרסה שנמדדה: הריצו taskquoin upgrade",
+  "workflow.hint.configure": "כדי להפעיל את {agent}: הגדירו את shell.run (הפקודות שסוכנים רשאים להריץ) ואת verify.command (פקודת הבדיקה שלכם) ב-{config}",
+  "cli.init.unknownStack": "ℹ הסטאק לא זוהה: הגדירו את shell.run (הפקודות שסוכנים רשאים להריץ) ואת verify.command (פקודת הבדיקה שלכם) ב-{config}, אחרת לא ניתן לאמת ריצות",
+  "cli.init.unknownStackOpencode": "ℹ הסטאק לא זוהה: הגדירו את verify.command (פקודת הבדיקה שלכם) ב-{config}, אחרת לא ניתן לאמת ריצות"
 }

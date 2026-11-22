@@ -31,11 +31,37 @@ Fonctionnalité: Workflow gouverné — de la demande au commit vérifié
     Et le dernier commit contient le fichier "sum.js"
 
   @sandbox
+  Scénario: Une demande tapée sans guillemets est prise en entier
+    Quand le propriétaire exécute "run Ajouter une fonction sum"
+    Alors le run attend l'approbation "approve-plan"
+    Et la demande du run est "Ajouter une fonction sum"
+
+  @sandbox
+  Scénario: Un run dont le processus a été tué est signalé interrompu et se reprend au même nœud
+    Quand le propriétaire lance la demande "Ajouter une fonction sum"
+    Alors le run attend l'approbation "approve-plan"
+    Soit le processus du run tué pendant le nœud "plan"
+    Alors le run est "interrupted" avec la raison contenant "process gone"
+    Quand le propriétaire reprend le run
+    Alors le run attend l'approbation "approve-plan"
+    Et l'historique du run contient "interrupted"
+
+  @sandbox
   Scénario: Des tests rouges déclenchent au plus deux reprises, puis la main revient à l'humain
     Quand le propriétaire lance la demande "Ajouter une fonction sum CASSÉE"
     Et le propriétaire approuve en tant que "alice"
     Alors le run est "needs-human" avec la raison contenant "tests still failing after 3 attempts"
     Et l'artefact "verify-3" contient "exit=1"
+    Et aucun commit n'a été créé sur la branche du run
+
+  @sandbox
+  Scénario: Une commande de test introuvable dans la salle blanche arrête le run une fois, sans reprise
+    Soit le propriétaire configure la commande de test "mytest"
+    Quand le propriétaire lance la demande "Ajouter une fonction sum"
+    Et le propriétaire approuve en tant que "alice"
+    Alors le run est "needs-human" avec la raison contenant "Verify could not run the test command (exit 127)"
+    Et l'historique du run contient "implemented:1"
+    Et l'historique du run ne contient pas "implemented:2"
     Et aucun commit n'a été créé sur la branche du run
 
   @sandbox

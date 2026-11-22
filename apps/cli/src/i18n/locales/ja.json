@@ -183,6 +183,7 @@
   "workflow.mustBeReadOnly": "エージェント {agent} は読み取り専用（独立して計画またはレビューする）である必要がありますが、{granted} が付与されています",
   "workflow.judgeCannotStart": "エージェント {agent} を開始できません — {reasons}",
   "workflow.busy": "実行 {run} は使用中です（別の taskquoin プロセス、pid {pid}）",
+  "workflow.lockStuck": "実行 {run} は {file} によってブロックされています。taskquoin のプロセスが動いていなければ、このファイルを削除してから再試行してください",
   "workflow.runtimeMissing": "エージェント {agent} 用のランタイム {runtime} がインストールされていません",
   "workflow.skillsUnusable": "エージェント {agent}：使用できないスキル — {errors}",
   "workflow.cmdError": "taskquoin {command}：{message}",
@@ -253,5 +254,10 @@
   "upgrade.noHome": "絶対パスのホームフォルダーがありません（$HOME が空または相対パスで、アカウントのものも同様）：インストーラーはリポジトリの外で実行する必要があります — HOME を絶対パスに設定してください。何も実行していません。",
   "upgrade.unsafeCommand": "拒否しました：コマンドを実行されるとおりに正確に表示できません（{command} に制御文字または不可視文字）— 何も実行していません。",
   "upgrade.failed": "✖ インストーラーはコード {code} で終了しました。",
-  "upgrade.usage": "使い方：/upgrade [auto|path|install]"
+  "upgrade.usage": "使い方：/upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "このリスクを受け入れるには: taskquoin accept-risk {agent} {capability} --reason \"<理由>\" --expires YYYY-MM-DD --as <名前>",
+  "workflow.hint.upgrade": "ランタイムのバージョンが計測済みのものではありません: taskquoin upgrade を実行してください",
+  "workflow.hint.configure": "{agent} を起動するには: {config} に shell.run（エージェントが実行できるコマンド）と verify.command（テストコマンド）を設定してください",
+  "cli.init.unknownStack": "ℹ スタックを認識できません: {config} に shell.run（エージェントが実行できるコマンド）と verify.command（テストコマンド）を設定してください。設定しないと実行を検証できません",
+  "cli.init.unknownStackOpencode": "ℹ スタックを認識できません: {config} に verify.command（テストコマンド）を設定してください。設定しないと実行を検証できません"
 }

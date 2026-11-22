@@ -183,6 +183,7 @@
   "workflow.mustBeReadOnly": "智能体 {agent} 必须是只读的（它独立地规划或评审），但被授予了 {granted}",
   "workflow.judgeCannotStart": "智能体 {agent} 无法启动 — {reasons}",
   "workflow.busy": "运行 {run} 正忙（另一个 taskquoin 进程，pid {pid}）",
+  "workflow.lockStuck": "运行 {run} 被 {file} 阻塞：如果没有正在运行的 taskquoin 进程，请删除该文件后重试",
   "workflow.runtimeMissing": "智能体 {agent} 所需的运行时 {runtime} 未安装",
   "workflow.skillsUnusable": "智能体 {agent}：技能不可用 — {errors}",
   "workflow.cmdError": "taskquoin {command}：{message}",
@@ -253,5 +254,10 @@
   "upgrade.noHome": "没有绝对路径的主目录（$HOME 为空或为相对路径，账户的主目录也是）：安装程序必须在仓库之外运行 — 请将 HOME 设为绝对路径。未运行任何内容。",
   "upgrade.unsafeCommand": "已拒绝：无法按实际运行的样子准确显示该命令（{command} 中含有控制字符或不可见字符）— 未运行任何内容。",
   "upgrade.failed": "✖ 安装程序以代码 {code} 退出。",
-  "upgrade.usage": "用法：/upgrade [auto|path|install]"
+  "upgrade.usage": "用法：/upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "要接受此风险：taskquoin accept-risk {agent} {capability} --reason \"<原因>\" --expires YYYY-MM-DD --as <姓名>",
+  "workflow.hint.upgrade": "运行时版本不是已测量的版本：请运行 taskquoin upgrade",
+  "workflow.hint.configure": "要启动 {agent}：请在 {config} 中设置 shell.run（代理可运行的命令）和 verify.command（您的测试命令）",
+  "cli.init.unknownStack": "ℹ 未识别技术栈：请在 {config} 中设置 shell.run（代理可运行的命令）和 verify.command（您的测试命令），否则无法验证运行",
+  "cli.init.unknownStackOpencode": "ℹ 未识别技术栈：请在 {config} 中设置 verify.command（您的测试命令），否则无法验证运行"
 }

@@ -72,6 +72,8 @@ export const en = {
   'cli.init.opencodeOnly': 'ℹ OpenCode only: choose the model in {config} (agents.*.model, provider/model format) — connected providers: {providers}',
   'cli.init.needImplementer': '⚠ the implementer needs Claude Code or OpenCode: install Claude Code or OpenCode to start runs',
   'cli.init.claudeOnly': 'ℹ Claude Code only: the reviewer is also Claude (same model as the implementer) — an independent judge is proposed as a comment if an AI was detected',
+  'cli.init.unknownStack': 'ℹ stack not recognised: set shell.run (the commands agents may run) and verify.command (your test command) in {config}, or runs cannot be verified',
+  'cli.init.unknownStackOpencode': 'ℹ stack not recognised: set verify.command (your test command) in {config}, or runs cannot be verified',
   'cli.init.next': 'Next: taskquoin doctor',
   'cli.gate.agent': 'Agent {id} ({runtime})',
   'cli.gate.notInstalled': ' — runtime NOT INSTALLED',
@@ -195,8 +197,13 @@ export const en = {
   'workflow.missingAgent': 'taskquoin.yaml must define agent "{agent}"',
   'workflow.skillsUnusableStart': 'agent {agent} cannot start — skill(s) not usable: {errors}',
   'workflow.mustBeReadOnly': 'agent {agent} must be read-only (it plans or reviews independently) but is granted {granted}',
+  'workflow.hint.acceptRisk': 'To accept this risk: taskquoin accept-risk {agent} {capability} --reason "<why>" --expires YYYY-MM-DD --as <name>',
+  'workflow.hint.upgrade': 'The runtime version is not the one measured: run taskquoin upgrade',
+  'workflow.hint.configure': 'To start {agent}: set shell.run (the commands agents may run) and verify.command (your test command) in {config}',
   'workflow.judgeCannotStart': 'agent {agent} cannot start — {reasons}',
+  'workflow.processGone': 'process gone (the run was killed)',
   'workflow.busy': 'run {run} is busy (another taskquoin process, pid {pid})',
+  'workflow.lockStuck': 'run {run} is blocked by {file}: if no taskquoin process is running, delete that file and try again',
   'workflow.runtimeMissing': 'runtime {runtime} for agent {agent} is not installed',
   'workflow.skillsUnusable': 'agent {agent}: skill(s) not usable — {errors}',
   'workflow.cmdError': 'taskquoin {command}: {message}',
@@ -270,8 +277,9 @@ export const en = {
   'upgrade.usage': 'usage: /upgrade [auto|path|install]',
 } as const;
 
-/** Keys whose text lands in `check --json` (byte-identical in every language): English only, absent from every locale. */
-export const ENGLISH_ONLY = ['cli.opencode.notConnected', 'cli.opencode.unmeasured', 'cli.apiKeyMissing'] as const;
+/** Keys whose text lands in `check --json` or in a run's reason (`status --json`, byte-identical in every language):
+ * English only, absent from every locale. */
+export const ENGLISH_ONLY = ['cli.opencode.notConnected', 'cli.opencode.unmeasured', 'cli.apiKeyMissing', 'workflow.processGone'] as const;
 
 /** The banner's brand (tagline, slogan, squad role names, READY / NOT READY): English in every language (owner's
  * decision), absent from every locale. The notes after a status (accepted risk, why not ready) stay translated. */

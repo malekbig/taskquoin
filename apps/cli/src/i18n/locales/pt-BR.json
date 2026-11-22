@@ -184,6 +184,7 @@
   "workflow.mustBeReadOnly": "o agente {agent} deve ser somente leitura (ele planeja ou revisa de forma independente), mas recebeu {granted}",
   "workflow.judgeCannotStart": "o agente {agent} não pode iniciar — {reasons}",
   "workflow.busy": "o run {run} está ocupado (outro processo taskquoin, pid {pid})",
+  "workflow.lockStuck": "o run {run} está bloqueado por {file}: se nenhum processo taskquoin estiver em execução, exclua esse arquivo e tente novamente",
   "workflow.runtimeMissing": "o runtime {runtime} do agente {agent} não está instalado",
   "workflow.skillsUnusable": "agente {agent}: skill(s) inutilizável(is) — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -254,5 +255,10 @@
   "upgrade.noHome": "Nenhuma pasta pessoal absoluta ($HOME está vazio ou é relativo, assim como a da conta): o instalador deve rodar fora do repositório — defina HOME com um caminho absoluto. Nada foi executado.",
   "upgrade.unsafeCommand": "Recusado: o comando não pode ser mostrado exatamente como seria executado (caracteres de controle ou invisíveis em {command}) — nada foi executado.",
   "upgrade.failed": "✖ O instalador terminou com o código {code}.",
-  "upgrade.usage": "uso: /upgrade [auto|path|install]"
+  "upgrade.usage": "uso: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "Para aceitar este risco: taskquoin accept-risk {agent} {capability} --reason \"<motivo>\" --expires YYYY-MM-DD --as <nome>",
+  "workflow.hint.upgrade": "A versão do runtime não é a medida: execute taskquoin upgrade",
+  "workflow.hint.configure": "Para iniciar {agent}: defina shell.run (os comandos que os agentes podem executar) e verify.command (seu comando de teste) em {config}",
+  "cli.init.unknownStack": "ℹ stack não reconhecida: defina shell.run (os comandos que os agentes podem executar) e verify.command (seu comando de teste) em {config}, ou as execuções não poderão ser verificadas",
+  "cli.init.unknownStackOpencode": "ℹ stack não reconhecida: defina verify.command (seu comando de teste) em {config}, ou as execuções não poderão ser verificadas"
 }

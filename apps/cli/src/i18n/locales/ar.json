@@ -188,6 +188,7 @@
   "workflow.mustBeReadOnly": "يجب أن يكون الوكيل {agent} للقراءة فقط (فهو يخطط أو يراجع باستقلالية) لكنه مُنح {granted}",
   "workflow.judgeCannotStart": "لا يمكن بدء الوكيل {agent} — {reasons}",
   "workflow.busy": "عملية التشغيل {run} مشغولة (عملية taskquoin أخرى، pid {pid})",
+  "workflow.lockStuck": "عملية التشغيل {run} محجوبة بالملف {file}: إذا لم تكن أي عملية taskquoin قيد التشغيل، فاحذف هذا الملف ثم أعد المحاولة",
   "workflow.runtimeMissing": "بيئة التشغيل {runtime} للوكيل {agent} غير مثبّتة",
   "workflow.skillsUnusable": "الوكيل {agent}: مهارة (مهارات) غير قابلة للاستخدام — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -258,5 +259,10 @@
   "upgrade.noHome": "لا يوجد مجلد منزلي مطلق ($HOME فارغ أو نسبي، وكذلك مجلد الحساب): يجب أن يعمل المثبِّت خارج المستودع — اضبط HOME على مسار مطلق. لم يُنفَّذ شيء.",
   "upgrade.unsafeCommand": "مرفوض: لا يمكن عرض الأمر تمامًا كما سيُنفَّذ (أحرف تحكم أو أحرف غير مرئية في {command}) — لم يُنفَّذ شيء.",
   "upgrade.failed": "✖ انتهى المثبِّت بالرمز {code}.",
-  "upgrade.usage": "الاستخدام: /upgrade [auto|path|install]"
+  "upgrade.usage": "الاستخدام: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "لقبول هذه المخاطرة: taskquoin accept-risk {agent} {capability} --reason \"<السبب>\" --expires YYYY-MM-DD --as <الاسم>",
+  "workflow.hint.upgrade": "إصدار بيئة التشغيل ليس الإصدار الذي تم قياسه: شغّل taskquoin upgrade",
+  "workflow.hint.configure": "لتشغيل {agent}: حدّد shell.run (الأوامر التي يمكن للوكلاء تشغيلها) وverify.command (أمر الاختبار لديك) في {config}",
+  "cli.init.unknownStack": "ℹ لم يتم التعرف على حزمة التقنيات: حدّد shell.run (الأوامر التي يمكن للوكلاء تشغيلها) وverify.command (أمر الاختبار لديك) في {config}، وإلا تعذّر التحقق من عمليات التشغيل",
+  "cli.init.unknownStackOpencode": "ℹ لم يتم التعرف على حزمة التقنيات: حدّد verify.command (أمر الاختبار لديك) في {config}، وإلا تعذّر التحقق من عمليات التشغيل"
 }

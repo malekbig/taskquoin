@@ -15,6 +15,10 @@
 
 ### Fixed
 - An install path containing a space: the Claude hook entry and the first-party skills were looked up with `%20`.
+- **A refused run costs nothing**: `run` checks the gate of every agent the workflow will call (planner, implementer, every challenger and reviewer) before the planner is called and before the run branch exists. The line after the refusal names the remedy: `taskquoin upgrade` for an unmeasured runtime version, `accept-risk` only for a read-only agent (one line per capability), the configuration (`shell.run`, `verify.command`) for an implementer without commands. A runtime that is not installed is said as such.
+- **A test command that cannot run is not red tests**: an exit of 126 or more (not found, not executable, a crash), a kill other than the timeout or a sandbox that did not start stops the run once with `needs-human … Verify could not run the test command (exit <n>): <first line>`, without spending the reworks. A timeout is still red tests.
+- **A killed run can be resumed**: a run whose Taskquoin process was killed is shown `interrupted` with the reason `process gone (the run was killed)` (English in every language, `--json` included), and `resume` records the interruption and continues at the same node. The workspace baseline is saved before the first implementer starts, so a run killed during its implementation still detects what the killed attempt changed (ADR-0014). The lock of a dead process is taken over under a second lock; a live lock is never displaced, and a takeover that was itself killed is never cleared automatically: the command names the file to delete.
+- `taskquoin run Add a sum function` without quotes takes the whole request; `uninstall --purge-state` purges the control store even after a previous `uninstall`; `init` on an unrecognised stack says to set `verify.command` (and `shell.run`, except for an OpenCode implementer); `status <run> --json` has a `reason` field.
 
 ## 2026.11.1 — 2026-11-17
 

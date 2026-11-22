@@ -45,6 +45,10 @@ Creates `taskquoin.yaml` in the repository root, for the stack it detects (`pack
 Claude Code and Codex give the default `planner`, `implementer` (Claude) and `challenger` (Codex); Claude Code alone
 makes the challenger a Claude agent too; OpenCode alone puts every role on OpenCode.
 
+On an `unknown` stack, `init` cannot guess the test command: it says to set `shell.run` (the commands the implementer
+may run) and `verify.command` (your test command) in `taskquoin.yaml`, or only `verify.command` when the implementer is
+an OpenCode agent (OpenCode has no commands). Until then a run is refused before it starts (see [`run`](#run)).
+
 It also creates the [control store](runs-artifacts-events.md#where-the-control-store-lives) outside the repository and a manifest of
 what it created. If it finds AI provider keys in your environment (`DEEPSEEK_API_KEY`, `MISTRAL_API_KEY`,
 `OPENROUTER_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`; values are never read into the file) or a
@@ -199,15 +203,24 @@ in the session failed (so a piped session is usable in scripts).
 
 ```console
 $ taskquoin run "<request>"
+$ taskquoin run Add a sum function
 ```
 
-Starts the governed workflow for a request. Before anything changes, Taskquoin checks that:
+Starts the governed workflow for a request. Every word after `run` is the request, joined by single spaces, so the
+quotes are optional; quote it anyway when it holds a word that starts with `--` (it would be read as an option) or
+characters your shell interprets. Before anything changes, Taskquoin checks that:
 
 - the configuration defines `planner` and `implementer`, and every agent named in `workflow` (or `challenger` by default);
 - every skill of those agents can be loaded;
 - the planner, the challengers and the reviewers are read-only (no `fs.write`, `shell.run`, `net.egress`, `vcs.commit`,
   `vcs.push`, `connector.write` or `config.modify`);
 - every `api` or OpenCode judge can run (key present, provider connected);
+- the gate of **every** agent the workflow will call (planner, implementer, challengers, reviewers) passes, so a refusal
+  known in advance costs no model call and creates no branch. When a remedy exists, the line after the refusal names
+  it: `taskquoin upgrade` for a runtime version that was not measured; `taskquoin accept-risk <agent> <capability> …`
+  for an unmeasured restriction of a **read-only** agent (one line per capability); for an implementer without
+  `shell.run`, the configuration (`shell.run` and `verify.command`), never a waiver for the agent that writes. A runtime
+  that is not installed is said as such (`runtime codex for agent challenger is not installed`);
 - the working tree is clean: Taskquoin never mixes its changes with yours.
 
 It then creates the branch `taskquoin/<run-id>` and drives the workflow (recall, plan, challenge) up to the **plan gate**,
@@ -243,7 +256,12 @@ $ taskquoin status [<run>] [--json]
 - With a run: the report (status, node, attempt, branch, what to review and approve), the judges when the project
   configures `workflow`, then the history `<time>  <node>  <outcome>`.
 - `--json` without a run: a list of `{ runId, status, current, attempts, branch, commit, request }`. With a run: the same
-  fields plus `history` and `pendingApproval` (`{ gate, expectedHash }` or `null`). Every key is always present (`null` when unset).
+  fields plus `history`, `pendingApproval` (`{ gate, expectedHash }` or `null`) and `reason` (why the run stopped, as in
+  the report: English engine text whatever the language, `null` when unset). Every key is always present (`null` when unset).
+- A run whose Taskquoin process was killed (Ctrl+C, a closed terminal, SIGKILL, a reboot) still reads `running` in its
+  state; `status` reports it as `interrupted` with the reason `process gone (the run was killed)`, in the text and in
+  `--json`. It is detected from the run's lock: the pid it names no longer exists, or now belongs to a process that
+  started later. A run whose lock holder is alive stays `running`.
 
 ![taskquoin status](../assets/screens/en/status.svg)
 
@@ -310,9 +328,17 @@ the run started, when the run is not waiting for that gate, or when another Task
 $ taskquoin resume <run>
 ```
 
-Continues an `interrupted` run from the node where it stopped (an adapter failure, a provider timeout). Judges that already
-answered are not asked, or paid, again. Only an interrupted run can be resumed; the same branch and configuration checks
-as `approve` apply.
+Continues an `interrupted` run from the node where it stopped (an adapter failure, a provider timeout, or a Taskquoin
+process that was killed). Judges that already answered are not asked, or paid, again. Only an interrupted run can be
+resumed; the same branch and configuration checks as `approve` apply.
+
+For a killed run, `resume` first takes the run's lock (a lock whose holder is dead is taken over; a live one never is:
+`run <id> is busy`), records the interruption (a `run.interrupted` event and an `interrupted` history entry), then
+continues at the same node with the approvals kept. A run killed during its implementation keeps the workspace
+baseline taken before the implementer started, so what the killed attempt changed in the dependencies or the ignored
+files is still detected ([ADR-0014](../adr/0014-verify-in-a-clean-room.md)). A lock that names no process, or a takeover
+that was itself killed, is never cleared automatically: the command answers `run <id> is blocked by <file>` and you
+delete that file once no Taskquoin process is running.
 
 | Exit | When |
 |---|---|
@@ -384,12 +410,12 @@ $ taskquoin uninstall [--purge-state]
 
 Removes what `init` created (`taskquoin.yaml`) **if you did not modify it** since: a modified file, or a symlink, is kept
 and reported. The manifest is validated before anything is touched. The control store (runs, artifacts, approvals, skills)
-is kept for audit; `--purge-state` deletes it.
+is kept for audit; `--purge-state` deletes it, also after a previous `uninstall` already removed the manifest.
 
 | Exit | When |
 |---|---|
 | `0` | everything recorded was removed |
-| `1` | no manifest, an invalid manifest, a file was kept (modified or a link), or a purge was refused outside the state directory |
+| `1` | no manifest (without `--purge-state`), an invalid manifest, a file was kept (modified or a link), or a purge was refused outside the state directory |
 
 ## Environment variables
 

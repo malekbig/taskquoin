@@ -183,6 +183,7 @@
   "workflow.mustBeReadOnly": "agen {agent} harus hanya-baca (ia merencanakan atau mereview secara independen) tetapi diberi {granted}",
   "workflow.judgeCannotStart": "agen {agent} tidak dapat dimulai — {reasons}",
   "workflow.busy": "run {run} sedang sibuk (proses taskquoin lain, pid {pid})",
+  "workflow.lockStuck": "run {run} terblokir oleh {file}: jika tidak ada proses taskquoin yang berjalan, hapus file itu lalu coba lagi",
   "workflow.runtimeMissing": "runtime {runtime} untuk agen {agent} belum terpasang",
   "workflow.skillsUnusable": "agen {agent}: skill tidak dapat dipakai — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -253,5 +254,10 @@
   "upgrade.noHome": "Tidak ada folder home absolut ($HOME kosong atau relatif, begitu pula milik akun): penginstal harus berjalan di luar repositori — setel HOME ke path absolut. Tidak ada yang dijalankan.",
   "upgrade.unsafeCommand": "Ditolak: perintah tidak dapat ditampilkan persis seperti yang akan dijalankan (karakter kontrol atau tak terlihat di {command}) — tidak ada yang dijalankan.",
   "upgrade.failed": "✖ Penginstal berhenti dengan kode {code}.",
-  "upgrade.usage": "penggunaan: /upgrade [auto|path|install]"
+  "upgrade.usage": "penggunaan: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "Untuk menerima risiko ini: taskquoin accept-risk {agent} {capability} --reason \"<alasan>\" --expires YYYY-MM-DD --as <nama>",
+  "workflow.hint.upgrade": "Versi runtime bukan versi yang diukur: jalankan taskquoin upgrade",
+  "workflow.hint.configure": "Untuk memulai {agent}: atur shell.run (perintah yang boleh dijalankan agen) dan verify.command (perintah pengujian Anda) di {config}",
+  "cli.init.unknownStack": "ℹ stack tidak dikenali: atur shell.run (perintah yang boleh dijalankan agen) dan verify.command (perintah pengujian Anda) di {config}, jika tidak run tidak dapat diverifikasi",
+  "cli.init.unknownStackOpencode": "ℹ stack tidak dikenali: atur verify.command (perintah pengujian Anda) di {config}, jika tidak run tidak dapat diverifikasi"
 }

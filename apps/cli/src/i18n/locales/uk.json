@@ -186,6 +186,7 @@
   "workflow.mustBeReadOnly": "агент {agent} має бути лише для читання (він планує або перевіряє незалежно), але йому надано права: {granted}",
   "workflow.judgeCannotStart": "агент {agent} не може запуститися — {reasons}",
   "workflow.busy": "запуск {run} зайнятий (інший процес taskquoin, pid {pid})",
+  "workflow.lockStuck": "запуск {run} заблоковано файлом {file}: якщо жоден процес taskquoin не запущено, видаліть цей файл і спробуйте ще раз",
   "workflow.runtimeMissing": "runtime {runtime} для агента {agent} не встановлено",
   "workflow.skillsUnusable": "агент {agent}: skill(s) непридатні — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -256,5 +257,10 @@
   "upgrade.noHome": "Немає абсолютного домашнього каталогу ($HOME порожній або відносний, як і каталог облікового запису): інсталятор має працювати поза репозиторієм — задайте HOME абсолютним шляхом. Нічого не запущено.",
   "upgrade.unsafeCommand": "Відмовлено: команду не можна показати точно так, як її буде запущено (керівні або невидимі символи в {command}) — нічого не запущено.",
   "upgrade.failed": "✖ Інсталятор завершився з кодом {code}.",
-  "upgrade.usage": "використання: /upgrade [auto|path|install]"
+  "upgrade.usage": "використання: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "Щоб прийняти цей ризик: taskquoin accept-risk {agent} {capability} --reason \"<причина>\" --expires YYYY-MM-DD --as <ім'я>",
+  "workflow.hint.upgrade": "Версія середовища виконання не збігається з виміряною: виконайте taskquoin upgrade",
+  "workflow.hint.configure": "Щоб запустити {agent}: задайте shell.run (команди, які можуть запускати агенти) і verify.command (вашу команду тестів) у {config}",
+  "cli.init.unknownStack": "ℹ стек не розпізнано: задайте shell.run (команди, які можуть запускати агенти) і verify.command (вашу команду тестів) у {config}, інакше запуски не можна перевірити",
+  "cli.init.unknownStackOpencode": "ℹ стек не розпізнано: задайте verify.command (вашу команду тестів) у {config}, інакше запуски не можна перевірити"
 }

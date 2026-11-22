@@ -15,7 +15,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { advance, approve, MAX_ATTEMPTS, MAX_ATTEMPTS_NO_COMMANDS, MAX_REVIEW_REWORKS, newRun, pendingApproval, resume, type RunState, type WorkflowDeps } from '../src/workflow/feature-governed.ts';
+import { advance, approve, interrupt, MAX_ATTEMPTS, MAX_ATTEMPTS_NO_COMMANDS, MAX_REVIEW_REWORKS, newRun, pendingApproval, resume, type RunState, type WorkflowDeps } from '../src/workflow/feature-governed.ts';
 import { parseVerdict } from '../src/workflow/prompts.ts';
 import type { RunRequest, RunResult, RuntimeExecutor } from '../src/ports/runtime-executor.ts';
 import type { MemoryPort } from '../src/ports/memory.ts';
@@ -39,7 +39,7 @@ type Judge = { replies: (string | RunResult | Error)[]; textOnly?: boolean; labe
 
 type Snap = { roots: string[]; deps: Record<string, string>; ignored: Record<string, string>; refusal?: string };
 const SNAP: Snap = { roots: ['node_modules'], deps: { node_modules: 'r', 'node_modules/yaml': 'h1' }, ignored: {} };
-function harness(o: { noCommands?: boolean; fileText?: string; judges?: Record<string, Judge>; workflow?: { challengers: string[]; reviewers: string[] }; budgets?: Record<string, number>; claude: (string | RunResult)[]; codex: (string | RunResult)[]; verify: (boolean | 'inconclusive' | { passed: boolean; log?: string; treeChanged?: boolean; refusal?: string })[]; snapshots?: Snap[]; trees?: string[]; refuse?: string; memory?: MemoryPort; changes?: { status: string; path: string }[]; diffSize?: number; redTree?: (t: string) => string }) {
+function harness(o: { noCommands?: boolean; fileText?: string; judges?: Record<string, Judge>; workflow?: { challengers: string[]; reviewers: string[] }; budgets?: Record<string, number>; claude: (string | RunResult)[]; codex: (string | RunResult)[]; verify: (boolean | 'inconclusive' | { passed: boolean; log?: string; treeChanged?: boolean; refusal?: string; exitCode?: number | null; conclusive?: boolean; couldNotRun?: boolean; firstLine?: string })[]; snapshots?: Snap[]; trees?: string[]; refuse?: string; memory?: MemoryPort; changes?: { status: string; path: string }[]; diffSize?: number; redTree?: (t: string) => string }) {
   const store = new Map<string, string>(); const saved: string[] = []; const events: { type: string }[] = [];
   const claude = new Scripted('claude', o.claude); const codex = new Scripted('codex', o.codex);
   const trees = [...(o.trees ?? [])]; let treeNow = T1;
@@ -59,7 +59,7 @@ function harness(o: { noCommands?: boolean; fileText?: string; judges?: Record<s
       verified.push({ tree, roots });
       const p = o.verify.shift(); if (p === undefined) throw new Error('unexpected verify');
       if (p === 'inconclusive') return { passed: false, exitCode: null, conclusive: false, treeChanged: false, log: 'status=timeout exit=null' };
-      if (typeof p === 'object') return { passed: p.passed, exitCode: p.passed ? 0 : 1, conclusive: !p.refusal, treeChanged: !!p.treeChanged, log: p.log ?? (p.passed ? 'all green' : 'FAIL'), ...(p.refusal ? { refusal: p.refusal } : {}) };
+      if (typeof p === 'object') return { passed: p.passed, exitCode: p.exitCode !== undefined ? p.exitCode : p.passed ? 0 : 1, conclusive: p.conclusive ?? !p.refusal, ...(p.couldNotRun ? { couldNotRun: true } : {}), ...(p.firstLine !== undefined ? { firstLine: p.firstLine } : {}), treeChanged: !!p.treeChanged, log: p.log ?? (p.passed ? 'all green' : 'FAIL'), ...(p.refusal ? { refusal: p.refusal } : {}) };
       return { passed: p, exitCode: p ? 0 : 1, conclusive: true, treeChanged: false, log: p ? 'all green' : 'FAIL: expected 2 got 3' };
     },
     workspace: { snapshot: async (roots) => { lastSnap = snapshots.shift() ?? lastSnap; return roots ? { ...lastSnap, roots } : lastSnap; } },
@@ -144,6 +144,34 @@ test('verify failure → rework with the log; ≤ 2 reworks then needs-human', a
   assert.equal(s.status, 'needs-human'); assert.equal(s.attempts, 3);
   assert.match(s.reason ?? '', /tests still failing after 3 attempts/);
   assert.match(h.claude.calls[2].task, /FAIL: expected 2 got 3/);
+});
+
+test('verify that cannot run the test command (exit 127) stops needs-human once: no rework attempt is consumed', async () => {
+  const h = harness({ claude: ['PLAN', 'impl1', 'impl2'], codex: ['VERDICT: APPROVE'], verify: [{ passed: false, exitCode: 127, conclusive: false, couldNotRun: true, firstLine: '/bin/sh: 1: mytest: not found' }] });
+  const s = await advance(yes(await advance(newRun('run-nr', 'x'), h.deps), 'approve-plan'), h.deps);
+  assert.equal(s.status, 'needs-human'); assert.equal(s.attempts, 1);
+  assert.equal(s.reason, 'Verify could not run the test command (exit 127): /bin/sh: 1: mytest: not found');
+  assert.equal(h.claude.calls.length, 2, 'planner + one implementation, no rework');
+  assert.ok(!s.history.some(x => x.outcome.includes('tests-red')));
+  const ev = h.events.find(e => e.type === 'verify.result') as { inconclusive?: boolean } | undefined;
+  assert.equal(ev?.inconclusive, true);
+});
+
+test('verify inconclusive: the first line of output is cut to 200 characters and kept raw', async () => {
+  const h = harness({ claude: ['PLAN', 'impl1'], codex: ['VERDICT: APPROVE'], verify: [{ passed: false, exitCode: null, conclusive: false, couldNotRun: true, firstLine: 'x'.repeat(500) }] });
+  const s = await advance(yes(await advance(newRun('run-nr2', 'x'), h.deps), 'approve-plan'), h.deps);
+  assert.equal(s.status, 'needs-human');
+  assert.equal(s.reason, `Verify could not run the test command (exit none): ${'x'.repeat(200)}`);
+});
+
+test('a truncated red (exit 1, log cut) or a timeout is red: rework, bounded by the attempt limit', async () => {
+  for (const r of [{ passed: false, exitCode: 1, conclusive: false }, { passed: false, exitCode: null, conclusive: false }]) {
+    const h = harness({ claude: ['PLAN', 'i1', 'i2', 'i3'], codex: ['VERDICT: APPROVE'], verify: [r, r, r] });
+    const s = await advance(yes(await advance(newRun('run-tr', 'x'), h.deps), 'approve-plan'), h.deps);
+    assert.equal(s.status, 'needs-human'); assert.equal(s.attempts, 3);
+    assert.match(s.reason ?? '', /tests still failing after 3 attempts/);
+    assert.ok(s.history.some(x => x.outcome.includes('tests-red:rework')));
+  }
 });
 
 test('strict verdict: missing, non-final or duplicated VERDICT lines are CHANGES_REQUESTED', () => {
@@ -314,6 +342,42 @@ test('ADR-0014: one workspace baseline per run — a resumed implementation is c
   assert.equal(s.artifacts['workspace-baseline'], baseline, 'baseline not retaken on resume');
   assert.equal(s.status, 'needs-human'); assert.match(s.reason ?? '', /dependencies changed/);
   void crash;
+});
+
+/**
+ * A run killed (SIGKILL, Ctrl+C) during its FIRST implement leaves only what was saved before the implementer started;
+ * the resume (`interrupt` then `resume`, as the CLI does) must compare with the ORIGINAL baseline, exactly like a run
+ * whose adapter threw (which saves its in-memory state) — never with a new one taken after the killed attempt.
+ */
+async function firstImplementStopped(how: 'killed' | 'crashed', after: Snap, verify: (boolean | { passed: boolean })[]) {
+  const h = harness({ claude: ['PLAN', 'impl'], codex: ['VERDICT: APPROVE', APPROVE], verify, snapshots: [SNAP, after] });
+  let s = yes(await advance(newRun('run-k', 'x'), h.deps), 'approve-plan');
+  const real = h.deps.agents.implementer.executor; let first = true; let onDisk: RunState | undefined;
+  h.deps.agents.implementer.executor = { runtime: 'claude', run: async (r) => {
+    if (!first) return real.run(r);
+    first = false;
+    if (how === 'crashed') throw new Error('runtime crashed');
+    onDisk = JSON.parse(h.saved.at(-1)!) as RunState; // what a SIGKILL leaves: the last save, then nothing
+    return new Promise<never>(() => {});
+  } };
+  if (how === 'crashed') { s = await advance(s, h.deps); assert.equal(s.status, 'interrupted'); s = resume(s); }
+  else { void advance(s, h.deps); await new Promise(r => setImmediate(r)); assert.ok(onDisk, 'the implementer was called'); s = resume(interrupt(onDisk!, 'process gone (the run was killed)', h.deps.now())); }
+  return { s: await advance(s, h.deps), h };
+}
+
+test('ADR-0014: a run killed during its first implement is saved with its baseline before the implementer starts; the resume stops on a tampered dependency exactly like a crashed one', async () => {
+  const tampered: Snap = { ...SNAP, deps: { ...SNAP.deps, 'node_modules/x': 'tampered' }, ignored: { '.envrc': 'planted' } };
+  const killed = await firstImplementStopped('killed', tampered, []);
+  const control = await firstImplementStopped('crashed', tampered, []);
+  assert.equal(control.s.status, 'needs-human'); assert.match(control.s.reason ?? '', /dependencies changed during the run: node_modules\/x/);
+  assert.equal(killed.s.status, control.s.status); assert.equal(killed.s.reason, control.s.reason);
+  assert.equal(killed.h.verified.length, 0, 'never verified with a tampered dependency');
+  // and a planted ignored file is disclosed to the reviewer and the human, as in the control case
+  const planted: Snap = { ...SNAP, ignored: { '.envrc': 'planted' } };
+  const k2 = await firstImplementStopped('killed', planted, [true, false]), c2 = await firstImplementStopped('crashed', planted, [true, false]);
+  assert.equal(c2.s.current, 'approve-commit'); assert.equal(k2.s.current, c2.s.current);
+  const ignored = (r: typeof k2) => r.h.store.get(r.s.artifacts[`ignored-${r.s.attempts}`]); // the crashed attempt counted, the killed one did not
+  assert.match(ignored(k2) ?? '', /\+ \.envrc/); assert.equal(ignored(k2), ignored(c2));
 });
 
 test('ADR-0014 (Codex CR #1/#2): Verify refusing a tree (links outside the repository…) is needs-human at once — no rework, never evidence', async () => {

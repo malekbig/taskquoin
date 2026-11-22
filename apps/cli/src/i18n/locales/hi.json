@@ -184,6 +184,7 @@
   "workflow.mustBeReadOnly": "एजेंट {agent} केवल-पठन होना चाहिए (वह स्वतंत्र रूप से योजना बनाता या समीक्षा करता है) पर उसे {granted} दिया गया है",
   "workflow.judgeCannotStart": "एजेंट {agent} शुरू नहीं हो सकता — {reasons}",
   "workflow.busy": "रन {run} व्यस्त है (अन्य taskquoin प्रोसेस, pid {pid})",
+  "workflow.lockStuck": "रन {run} को {file} ने रोक रखा है: यदि कोई taskquoin प्रोसेस नहीं चल रहा है, तो वह फ़ाइल हटाएँ और फिर से प्रयास करें",
   "workflow.runtimeMissing": "एजेंट {agent} के लिए रनटाइम {runtime} इंस्टॉल नहीं है",
   "workflow.skillsUnusable": "एजेंट {agent}: स्किल उपयोग योग्य नहीं — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -254,5 +255,10 @@
   "upgrade.noHome": "कोई निरपेक्ष होम फ़ोल्डर नहीं ($HOME खाली या सापेक्ष है, और खाते का भी): इंस्टॉलर को रिपॉज़िटरी के बाहर चलना चाहिए — HOME को निरपेक्ष पथ पर सेट करें। कुछ नहीं चलाया गया।",
   "upgrade.unsafeCommand": "अस्वीकृत: कमांड को ठीक वैसे नहीं दिखाया जा सकता जैसे वह चलेगी ({command} में नियंत्रण या अदृश्य वर्ण) — कुछ नहीं चलाया गया।",
   "upgrade.failed": "✖ इंस्टॉलर कोड {code} के साथ समाप्त हुआ।",
-  "upgrade.usage": "उपयोग: /upgrade [auto|path|install]"
+  "upgrade.usage": "उपयोग: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "इस जोखिम को स्वीकार करने के लिए: taskquoin accept-risk {agent} {capability} --reason \"<कारण>\" --expires YYYY-MM-DD --as <नाम>",
+  "workflow.hint.upgrade": "रनटाइम संस्करण मापा गया संस्करण नहीं है: taskquoin upgrade चलाएँ",
+  "workflow.hint.configure": "{agent} शुरू करने के लिए: {config} में shell.run (वे कमांड जो एजेंट चला सकते हैं) और verify.command (आपका टेस्ट कमांड) सेट करें",
+  "cli.init.unknownStack": "ℹ स्टैक पहचाना नहीं गया: {config} में shell.run (वे कमांड जो एजेंट चला सकते हैं) और verify.command (आपका टेस्ट कमांड) सेट करें, अन्यथा रन सत्यापित नहीं हो सकते",
+  "cli.init.unknownStackOpencode": "ℹ स्टैक पहचाना नहीं गया: {config} में verify.command (आपका टेस्ट कमांड) सेट करें, अन्यथा रन सत्यापित नहीं हो सकते"
 }

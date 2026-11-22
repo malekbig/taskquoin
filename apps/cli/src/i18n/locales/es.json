@@ -184,6 +184,7 @@
   "workflow.mustBeReadOnly": "el agente {agent} debe ser de solo lectura (planifica o revisa de forma independiente) pero tiene concedido {granted}",
   "workflow.judgeCannotStart": "el agente {agent} no puede iniciarse — {reasons}",
   "workflow.busy": "el run {run} está ocupado (otro proceso taskquoin, pid {pid})",
+  "workflow.lockStuck": "el run {run} está bloqueado por {file}: si no hay ningún proceso taskquoin en ejecución, elimine ese archivo e inténtelo de nuevo",
   "workflow.runtimeMissing": "el runtime {runtime} del agente {agent} no está instalado",
   "workflow.skillsUnusable": "agente {agent}: skill(s) no utilizable(s) — {errors}",
   "workflow.cmdError": "taskquoin {command}: {message}",
@@ -254,5 +255,10 @@
   "upgrade.noHome": "No hay carpeta personal absoluta ($HOME está vacío o es relativo, y también la de la cuenta): el instalador debe ejecutarse fuera del repositorio — defina HOME con una ruta absoluta. No se ejecutó nada.",
   "upgrade.unsafeCommand": "Rechazado: el comando no se puede mostrar exactamente como se ejecutaría (caracteres de control o invisibles en {command}) — no se ejecutó nada.",
   "upgrade.failed": "✖ El instalador terminó con el código {code}.",
-  "upgrade.usage": "uso: /upgrade [auto|path|install]"
+  "upgrade.usage": "uso: /upgrade [auto|path|install]",
+  "workflow.hint.acceptRisk": "Para aceptar este riesgo: taskquoin accept-risk {agent} {capability} --reason \"<motivo>\" --expires YYYY-MM-DD --as <nombre>",
+  "workflow.hint.upgrade": "La versión del runtime no es la medida: ejecute taskquoin upgrade",
+  "workflow.hint.configure": "Para iniciar {agent}: defina shell.run (los comandos que los agentes pueden ejecutar) y verify.command (su comando de pruebas) en {config}",
+  "cli.init.unknownStack": "ℹ pila no reconocida: defina shell.run (los comandos que los agentes pueden ejecutar) y verify.command (su comando de pruebas) en {config}, o las ejecuciones no podrán verificarse",
+  "cli.init.unknownStackOpencode": "ℹ pila no reconocida: defina verify.command (su comando de pruebas) en {config}, o las ejecuciones no podrán verificarse"
 }

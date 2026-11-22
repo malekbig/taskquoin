@@ -11,10 +11,10 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { newRun, type RunState } from '@taskquoin/application';
@@ -202,7 +202,7 @@ test('status <run> --json prints one object with history and the pending approva
   const a = tq('status', 'run-a', '--json');
   assert.equal(a.status, 0, a.stderr);
   assert.deepEqual(JSON.parse(a.stdout), { runId: 'run-a', status: 'waiting-approval', current: 'approve-plan', attempts: 0, branch: 'taskquoin/run-a', commit: null, request: 'Add X',
-    history: HISTORY_A, pendingApproval: { gate: 'plan', expectedHash: PLAN_HASH } });
+    history: HISTORY_A, pendingApproval: { gate: 'plan', expectedHash: PLAN_HASH }, reason: null });
   const b = JSON.parse(tq('status', 'run-b', '--json').stdout);
   assert.equal(b.pendingApproval, null); assert.equal(b.commit, 'abc123def456'); assert.deepEqual(b.history, []);
   const c = JSON.parse(tq('status', 'run-c', '--json').stdout);
@@ -648,6 +648,260 @@ test('show: hostile artifact names and content are neutralised (content keeps it
   assert.equal(missing.status, 1); assert.ok(hostileClean(missing.stderr), JSON.stringify(missing.stderr));
 });
 
+test('run refusals neutralise untrusted text: markers, no raw control or bidi byte; French accents stay unmarked', () => {
+  const ESC = String.fromCharCode(0x1b), RLO = String.fromCharCode(0x202e);
+  const raw = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
+  const { ws, root, env, tq } = sandbox();
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'package.json'), '{}'); assert.equal(tq('init').status, 0);
+  writeFileSync(join(ws, 'taskquoin.yaml'), readFileSync(join(ws, 'taskquoin.yaml'), 'utf8').replace(/enabled: true/, 'enabled: false').replace('- planning-contract', '- style'));
+  git(ws, 'add', '.'); git(ws, '-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'cfg');
+  // an approved skill whose copy holds a link with a hostile file name: the refusal names that file
+  const hash = 'sha256:' + 'ab'.repeat(32);
+  const skills = join(repoStore(ws, join(root, 'state', 'taskquoin')).root, 'skills');
+  const copy = join(skills, 'approved', `style-${hash.slice(7, 19)}`); mkdirSync(copy, { recursive: true });
+  symlinkSync('/etc/hostname', join(copy, `evil${ESC}[2J${RLO}x`));
+  writeFileSync(join(skills, 'skills.lock.json'), JSON.stringify([{ name: 'style', status: 'approved', treeHash: hash }]));
+  const r = tq('run', 'add sum');
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.doesNotMatch(r.stderr, raw, 'no raw control or bidi byte');
+  assert.match(r.stderr, /\u2039ESC\u203a/); assert.match(r.stderr, /\u2039U\+202E\u203a/);
+  // French: the translated text keeps its accents, unmarked; only the hostile characters are marked
+  const fr = spawnSync(process.execPath, [main, 'run', 'add sum'], { cwd: ws, env: { ...env, TASKQUOIN_LANG: 'fr' }, encoding: 'utf8' });
+  assert.equal(fr.status, 1); assert.doesNotMatch(fr.stderr, raw);
+  assert.match(fr.stderr, /[éèàêç]/, fr.stderr);
+  assert.equal((fr.stderr.match(/\u2039/g) ?? []).length, 2, fr.stderr);
+});
+
+test('Verify that cannot start (no test command, tree not materialized) is flagged couldNotRun with the helper message as first line, so the run stops instead of reworking', async () => {
+  const { verifyNotRun } = await import('../src/workflow-cli.ts');
+  const r = verifyNotRun('no test command configured (verify.command, or the implementer\'s shell.run) — cannot verify, failing closed');
+  assert.equal(r.couldNotRun, true); assert.equal(r.passed, false); assert.equal(r.exitCode, null);
+  assert.match(r.firstLine, /^no test command configured/);
+  const m = verifyNotRun(`could not materialize tree abc in the clean room: boom\nsecond line`);
+  assert.equal(m.firstLine, 'could not materialize tree abc in the clean room: boom');
+});
+
+test('resume refuses a running run whose lock names a live process, and leaves it untouched (a live lock is never taken over)', () => {
+  const { ws, root, tq } = sandbox(); git(ws, 'init', '-q', '-b', 'main'); tq('init');
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, 'run-live', { ...newRun('run-live', 'x'), status: 'running', current: 'implement', branch: 'main' });
+  const lock = join(store.runs, 'run-live', 'lock'); writeFileSync(lock, `${process.pid}\n`);
+  const st = tq('status', 'run-live');
+  assert.match(st.stdout, /running/); assert.doesNotMatch(st.stdout, /interrupted/);
+  const r = tq('resume', 'run-live');
+  assert.equal(r.status, 1); assert.match(r.stderr, new RegExp(`busy.*pid ${process.pid}|pid ${process.pid}`));
+  assert.equal(readFileSync(lock, 'utf8'), `${process.pid}\n`, 'the live lock is untouched');
+  assert.equal(JSON.parse(readFileSync(join(store.runs, 'run-live', 'state.json'), 'utf8')).status, 'running');
+});
+
+test('status reports a running run with a dead lock as interrupted (process gone), in --json too', () => {
+  const { ws, root, tq } = sandbox(); git(ws, 'init', '-q', '-b', 'main'); tq('init');
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, 'run-dead', { ...newRun('run-dead', 'x'), status: 'running', current: 'implement', branch: 'main' });
+  writeFileSync(join(store.runs, 'run-dead', 'lock'), `${spawnSync(process.execPath, ['-e', '']).pid}\n`);
+  const st = tq('status', 'run-dead');
+  assert.match(st.stdout, /interrupted at implement/); assert.match(st.stdout, /process gone/);
+  assert.equal(JSON.parse(tq('status', 'run-dead', '--json').stdout).status, 'interrupted');
+  assert.match(tq('status').stdout, /run-dead\s+interrupted/);
+});
+
+test('a killed run\'s reason is engine text: status <run> --json is byte-identical under en and fr', () => {
+  const { ws, root, env, tq } = sandbox(); git(ws, 'init', '-q', '-b', 'main'); tq('init');
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, 'run-dead', { ...newRun('run-dead', 'x'), status: 'running', current: 'implement', branch: 'main' });
+  writeFileSync(join(store.runs, 'run-dead', 'lock'), `${spawnSync(process.execPath, ['-e', '']).pid}\n`);
+  const en = tq('status', 'run-dead', '--json').stdout;
+  const fr = spawnSync(process.execPath, [main, 'status', 'run-dead', '--json'], { cwd: ws, env: { ...env, TASKQUOIN_LANG: 'fr' }, encoding: 'utf8' }).stdout;
+  assert.equal(JSON.parse(en).reason, 'process gone (the run was killed)');
+  assert.equal(fr, en);
+  // the text output keeps its French frame around the same English reason
+  const text = spawnSync(process.execPath, [main, 'status', 'run-dead'], { cwd: ws, env: { ...env, TASKQUOIN_LANG: 'fr' }, encoding: 'utf8' }).stdout;
+  assert.ok(text.includes('process gone (the run was killed)'), text);
+});
+
+for (const [label, content] of [['empty', ''], ['non-numeric', 'abc\n']] as const) {
+  test(`a ${label} lock has a holder that cannot be shown dead: status stays running, resume refuses, names the lock file and leaves it`, () => {
+    const { ws, root, tq } = sandbox(); git(ws, 'init', '-q', '-b', 'main'); tq('init');
+    const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+    saveRunState(store, 'run-odd', { ...newRun('run-odd', 'x'), status: 'running', current: 'implement', branch: 'main' });
+    const lock = join(store.runs, 'run-odd', 'lock'); writeFileSync(lock, content);
+    assert.doesNotMatch(tq('status', 'run-odd').stdout, /interrupted/);
+    const r = tq('resume', 'run-odd');
+    // no command can clear it: the message names the lock file and says when deleting it is safe
+    assert.equal(r.status, 1); assert.match(r.stderr, /blocked by \S*run-odd\/lock: if no taskquoin process is running, delete that file/);
+    assert.equal(readFileSync(lock, 'utf8'), content);
+    assert.equal(JSON.parse(readFileSync(join(store.runs, 'run-odd', 'state.json'), 'utf8')).status, 'running');
+  });
+}
+
+// ---- Task 3 fix round: recovery is recorded, pid reuse, takeover mutex ----
+function deadSeed(name: string, lockText?: (deadPid: number) => string) {
+  const { ws, root, tq } = sandbox(); git(ws, 'init', '-q', '-b', 'main'); tq('init');
+  git(ws, 'add', '-A'); git(ws, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init');
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, name, { ...newRun(name, 'x'), status: 'running', current: 'implement', branch: 'main' });
+  const dir = join(store.runs, name); const dead = spawnSync(process.execPath, ['-e', '']).pid!;
+  if (lockText) writeFileSync(join(dir, 'lock'), lockText(dead));
+  return { ws, root, tq, store, dir, dead };
+}
+const stateOf = (dir: string) => JSON.parse(readFileSync(join(dir, 'state.json'), 'utf8')) as RunState;
+const eventsOf = (dir: string) => readdirSync(dir).filter(f => /event/.test(f)).map(f => readFileSync(join(dir, f), 'utf8')).join('\n');
+
+test('resume of a dead lock records the run.interrupted event and an interrupted history entry at the same node, then continues', () => {
+  const { tq, dir } = deadSeed('run-rec', d => `${d}\n`);
+  tq('resume', 'run-rec');
+  const entry = stateOf(dir).history.find(h => h.outcome === 'interrupted');
+  assert.ok(entry, 'history entry'); assert.equal(entry!.node, 'implement');
+  assert.match(eventsOf(dir), /"type":"run\.interrupted"/);
+  assert.ok(!existsSync(join(dir, 'lock')) && !existsSync(join(dir, 'lock.takeover')), 'no lock left behind');
+});
+
+test('pid reuse: a live pid whose start time differs from the one in the lock is a dead holder (Linux)', { skip: !existsSync('/proc/self/stat') }, () => {
+  const { tq, dir } = deadSeed('run-reuse', () => `${process.pid}\n1\n`);
+  assert.match(tq('status', 'run-reuse').stdout, /interrupted at implement/);
+  tq('resume', 'run-reuse');
+  assert.ok(stateOf(dir).history.some(h => h.outcome === 'interrupted'));
+});
+
+test('a stale lock.takeover (its holder died mid-takeover) is never cleared by a resume: it refuses, names the file, and after the owner deletes it the run recovers; a live one makes resume refuse and nothing is displaced', () => {
+  const stale = deadSeed('run-st', d => `${d}\n`); writeFileSync(join(stale.dir, 'lock.takeover'), `${stale.dead}\n`);
+  const r0 = stale.tq('resume', 'run-st');
+  assert.equal(r0.status, 1); assert.match(r0.stderr, /blocked by \S*lock\.takeover: if no taskquoin process is running, delete that file/);
+  assert.equal(readFileSync(join(stale.dir, 'lock.takeover'), 'utf8'), `${stale.dead}\n`, 'the stale mutex is left to the owner');
+  assert.equal(readFileSync(join(stale.dir, 'lock'), 'utf8'), `${stale.dead}\n`);
+  rmSync(join(stale.dir, 'lock.takeover'));
+  stale.tq('resume', 'run-st');
+  assert.ok(stateOf(stale.dir).history.some(h => h.outcome === 'interrupted'), 'recovered once the owner deleted the stale mutex');
+  const live = deadSeed('run-lv', d => `${d}\n`); writeFileSync(join(live.dir, 'lock.takeover'), `${process.pid}\n`);
+  const r = live.tq('resume', 'run-lv');
+  assert.equal(r.status, 1); assert.match(r.stderr, /busy/);
+  assert.equal(readFileSync(join(live.dir, 'lock.takeover'), 'utf8'), `${process.pid}\n`);
+  assert.equal(readFileSync(join(live.dir, 'lock'), 'utf8'), `${live.dead}\n`);
+  assert.equal(stateOf(live.dir).history.length, 0);
+});
+
+/** n processes call withRunLock on one run at the same instant; each winner records its hold as [start, end] (ms). */
+function race(store: { runs: string }, dir: string, runId: string, n = 6): Promise<{ holds: [number, number][]; refused: string[] }> {
+  const src = new URL('../src/workflow-cli.ts', import.meta.url).href;
+  const script = `import { appendFileSync } from 'node:fs';
+const { withRunLock } = await import(${JSON.stringify(src)});
+const [runs, dir] = process.argv.slice(1);
+const t0 = Number(process.env.GO); while (Date.now() < t0) {}
+try { await withRunLock({ store: { runs } }, ${JSON.stringify(runId)}, async () => { const a = Date.now(); await new Promise(r => setTimeout(r, 300)); appendFileSync(dir + '/won', a + ' ' + Date.now() + '\\n'); }); }
+catch (e) { appendFileSync(dir + '/refused', String(e.message).replace(/\\n/g, ' ') + '\\n'); }`;
+  const go = String(Date.now() + 2500);
+  const kids = Array.from({ length: n }, () => spawn(process.execPath, ['--input-type=module', '-e', script, store.runs, dir], { env: { ...process.env, GO: go }, stdio: 'inherit' }));
+  const lines = (f: string) => { try { return readFileSync(join(dir, f), 'utf8').trim().split('\n').filter(Boolean); } catch { return []; } };
+  return Promise.all(kids.map(k => new Promise(r => k.on('exit', r)))).then(() => ({
+    holds: lines('won').map(l => l.split(' ').map(Number) as [number, number]), refused: lines('refused') }));
+}
+/** The property that matters: no two processes ever held the run lock at the same time. */
+function noOverlap(holds: [number, number][]) {
+  const h = [...holds].sort((a, b) => a[0] - b[0]);
+  for (let i = 1; i < h.length; i++) assert.ok(h[i][0] >= h[i - 1][1], `two holders overlapped: ${JSON.stringify(h)}`);
+}
+
+test('parallel takeovers of one dead lock: no two holds ever overlap, the others are told busy', async () => {
+  const { dir, store } = deadSeed('run-par', d => `${d}\n`);
+  const { holds, refused } = await race(store, dir, 'run-par');
+  assert.ok(holds.length >= 1, 'someone took the dead lock over'); noOverlap(holds);
+  assert.equal(holds.length + refused.length, 6); for (const m of refused) assert.match(m, /busy/);
+  assert.ok(!existsSync(join(dir, 'lock')) && !existsSync(join(dir, 'lock.takeover')));
+});
+
+test('one crash mid-takeover plus racing resumes never yields two holders: a dead lock behind a stale lock.takeover refuses them all, untouched', async () => {
+  const { dir, store, dead } = deadSeed('run-crash', d => `${d}\n`); writeFileSync(join(dir, 'lock.takeover'), `${dead}\n`);
+  const { holds, refused } = await race(store, dir, 'run-crash');
+  assert.deepEqual(holds, [], 'nobody holds a run whose takeover crashed');
+  assert.equal(refused.length, 6); for (const m of refused) assert.match(m, /blocked by \S*lock\.takeover/);
+  assert.equal(readFileSync(join(dir, 'lock'), 'utf8'), `${dead}\n`); assert.equal(readFileSync(join(dir, 'lock.takeover'), 'utf8'), `${dead}\n`);
+});
+
+test('a crash between removing the dead lock and installing the new one (lock absent, stale lock.takeover): status says interrupted, racing resumes hold one at a time and the stale mutex is cleared', async () => {
+  const { dir, store, dead, tq } = deadSeed('run-gap'); writeFileSync(join(dir, 'lock.takeover'), `${dead}\n`);
+  assert.match(tq('status', 'run-gap').stdout, /interrupted at implement/);
+  const { holds } = await race(store, dir, 'run-gap');
+  assert.ok(holds.length >= 1); noOverlap(holds);
+  assert.ok(!existsSync(join(dir, 'lock.takeover')), 'the stale mutex is cleared by the holder of the run lock');
+});
+
+test('status during a takeover (lock absent, live lock.takeover) does not report the run as interrupted', () => {
+  const { tq, dir } = deadSeed('run-mid'); writeFileSync(join(dir, 'lock.takeover'), `${process.pid}\n`);
+  const o = tq('status', 'run-mid').stdout; assert.match(o, /running/); assert.doesNotMatch(o, /interrupted/);
+});
+
+test('run: every positional after the command is the request, joined by single spaces', async () => {
+  const { requestFrom } = await import('../src/workflow-cli.ts');
+  assert.equal(requestFrom(['run', 'Add', 'a', 'sum', 'function']), 'Add a sum function');
+  assert.equal(requestFrom(['run', 'Add a sum function']), 'Add a sum function');
+  assert.equal(requestFrom(['run']), undefined);
+  const { ws, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0);
+  assert.equal(tq('run').status, 2, 'no request: usage');
+  assert.match(tq('run', 'Add', 'a', 'sum', 'function').stderr, /^taskquoin run: (?!usage)/i, 'the request reaches the run (refused here: dirty tree or preflight)');
+});
+
+test('uninstall --purge-state purges the store even when a previous uninstall already removed the manifest', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0);
+  assert.equal(tq('uninstall').status, 0);
+  const find = () => execFileSync('sh', ['-c', `find ${join(root, 'state')} -mindepth 3 -maxdepth 3 -type d | wc -l`], { encoding: 'utf8' }).trim();
+  assert.notEqual(find(), '0', 'the store directory is still there');
+  const r = tq('uninstall', '--purge-state');
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(find(), '0');
+});
+
+test('init on an unknown stack says how to set shell.run and verify.command', () => {
+  const { ws, tq } = sandbox();
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'Cargo.toml'), '[package]\n');
+  const r = tq('init');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /verify\.command/); assert.match(r.stdout, /shell\.run/);
+});
+
+test('init on an unknown stack with an OpenCode implementer names only verify.command (the parser refuses shell.run for OpenCode)', () => {
+  const { ws, tq } = sandbox({ opencode: '1.19.5' } as never);
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'Cargo.toml'), '[package]\n');
+  const r = tq('init');
+  assert.equal(r.status, 0, r.stderr); assert.match(readFileSync(join(ws, 'taskquoin.yaml'), 'utf8'), /runtime: opencode/);
+  assert.match(r.stdout, /verify\.command/); assert.doesNotMatch(r.stdout, /shell\.run/);
+});
+
+test('run on a Cargo.toml-only repository: the implementer refusal gives the config remedy (shell.run, verify.command), never an accept-risk waiver for the writing agent', () => {
+  const { ws, env, tq } = sandbox();
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'Cargo.toml'), '[package]\n'); assert.equal(tq('init').status, 0); noMemory(ws);
+  git(ws, 'add', '.'); git(ws, '-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'cfg');
+  const r = tq('run', 'Add a sum');
+  assert.equal(r.status, 1, r.stdout + r.stderr); assert.match(r.stderr, /agent implementer cannot start/);
+  assert.doesNotMatch(r.stderr, /accept-risk/);
+  assert.match(r.stderr, /shell\.run/); assert.match(r.stderr, /verify\.command/);
+  const fr = spawnSync(process.execPath, [main, 'run', 'Add a sum'], { cwd: ws, env: { ...env, TASKQUOIN_LANG: 'fr' }, encoding: 'utf8' });
+  assert.doesNotMatch(fr.stderr, /accept-risk/); assert.match(fr.stderr, /shell\.run/); assert.match(fr.stderr, /verify\.command/);
+});
+
+test('run with a runtime that is not installed says so, and never sends the owner to taskquoin upgrade', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'package.json'), '{}'); assert.equal(tq('init').status, 0); noMemory(ws);
+  editConfig(ws, raw => { raw.agents.planner.runtime = 'codex'; }); // the first agent the run calls is a Codex one
+  rmSync(join(root, 'bin', 'codex')); // Codex uninstalled after init
+  const r = tq('run', 'Add a sum');
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stderr, /runtime codex for agent planner is not installed/);
+  assert.doesNotMatch(r.stderr, /upgrade/); assert.doesNotMatch(r.stderr, /capability matrix measured for/);
+});
+
+test('status <run> --json carries the reason of a failed run (null when unset)', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, 'run-f', { ...newRun('run-f', 'Fix Z'), status: 'failed', current: 'verify', reason: 'no test command' });
+  saveRunState(store, 'run-g', { ...newRun('run-g', 'Fix W'), status: 'failed', current: 'verify' });
+  assert.equal(JSON.parse(tq('status', 'run-f', '--json').stdout).reason, 'no test command');
+  assert.equal(JSON.parse(tq('status', 'run-g', '--json').stdout).reason, null);
+  assert.ok(Object.keys(JSON.parse(tq('status', 'run-f', '--json').stdout)).pop() === 'reason', 'appended last');
+});
+
 // ---- fix round 1 of the task 2 security review ----
 const CH = (c: number) => String.fromCharCode(c);
 const MK = (name: string) => CH(0x2039) + name + CH(0x203a);
@@ -729,15 +983,16 @@ test('status --json: exact bytes for a plain run, and inert (\\u escapes, same p
   const plain = JSON.stringify([{ runId: 'run-p', status: 'failed', current: 'plan', attempts: 0, branch: null, commit: null, request: 'Add X' }], null, 2) + '\n';
   assert.equal(tq('status', '--json').stdout, plain, 'byte-identical for a non-hostile run');
   const one = JSON.stringify({ runId: 'run-p', status: 'failed', current: 'plan', attempts: 0, branch: null, commit: null, request: 'Add X',
-    history: [{ node: 'plan', outcome: 'ok', at: '2026-11-01T10:00:00.000Z' }], pendingApproval: null }, null, 2) + '\n';
+    history: [{ node: 'plan', outcome: 'ok', at: '2026-11-01T10:00:00.000Z' }], pendingApproval: null, reason: null }, null, 2) + '\n';
   assert.equal(tq('status', 'run-p', '--json').stdout, one);
   // DEL, C1, bidi controls and U+2028/U+2029 are escaped by jsonOut, C0 (ESC) by JSON.stringify itself.
   const evil = 'a' + CH(0x2028) + 'b' + CH(0x202e) + 'c' + CH(0x2066) + 'd' + CH(0x9b) + 'e' + CH(0x7f) + 'f' + CH(0x1b) + 'g' + CH(0x61c) + 'h';
-  saveRunState(store, 'run-h', { ...newRun('run-h', evil), status: 'failed', current: 'plan', history: [{ node: 'plan', outcome: evil, at: 'now' }] });
+  saveRunState(store, 'run-h', { ...newRun('run-h', evil), status: 'failed', current: 'plan', reason: evil, history: [{ node: 'plan', outcome: evil, at: 'now' }] });
   const raw = tq('status', 'run-h', '--json').stdout;
   assert.ok(/^[\x20-\x7e\n]*$/.test(raw), 'ASCII only: ' + JSON.stringify(raw));
   assert.ok(raw.includes('a\\u2028b\\u202ec\\u2066d\\u009be\\u007ff\\u001bg\\u061ch'), raw);
   assert.deepEqual(JSON.parse(raw).history[0].outcome, evil);
+  assert.equal(JSON.parse(raw).reason, evil, 'the reason goes through jsonOut too');
   assert.ok(/^[\x20-\x7e\n]*$/.test(tq('status', '--json').stdout));
 });
 
@@ -752,7 +1007,7 @@ test('status --json: the full snapshot, byte for byte, for a run in Persian with
   saveRunState(store, 'run-i', { ...newRun('run-i', `${request}\nsecond line`), status: 'waiting-approval', current: 'approve-commit', attempts: 1, branch: `taskquoin/${fa}`,
     commit: 'c'.repeat(40), reviewedTree: tree, history });
   const summary = { runId: 'run-i', status: 'waiting-approval', current: 'approve-commit', attempts: 1, branch: `taskquoin/${fa}`, commit: 'c'.repeat(40), request };
-  assert.equal(tq('status', 'run-i', '--json').stdout, JSON.stringify({ ...summary, history, pendingApproval: { gate: 'commit', expectedHash: tree } }, null, 2) + '\n');
+  assert.equal(tq('status', 'run-i', '--json').stdout, JSON.stringify({ ...summary, history, pendingApproval: { gate: 'commit', expectedHash: tree }, reason: null }, null, 2) + '\n');
   assert.equal(tq('status', '--json').stdout, JSON.stringify([summary], null, 2) + '\n');
 });
 

@@ -27,10 +27,15 @@ export class World {
   /** A fake OpenAI-compatible provider in its own process (multi-LLM A scenarios). */
   provider?: { proc: ChildProcess; url: string; modeFile: string; logFile: string };
 
+  /** One line per real (non-version) call of a fake runtime, in order. */
+  callLog = join(this.root, 'runtime-calls');
+  calls(): string[] { try { return readFileSync(this.callLog, 'utf8').split('\n').filter(Boolean); } catch { return []; } }
+
   constructor() {
     const bin = join(this.root, 'bin'); mkdirSync(bin); mkdirSync(join(this.root, 'home'));
     for (const [name, file] of [['claude', 'fake-claude.cjs'], ['codex', 'fake-codex.cjs']]) {
-      writeFileSync(join(bin, name), `#!/bin/sh\nexec ${process.execPath} ${FAKES}${file} "$@"\n`); chmodSync(join(bin, name), 0o755);
+      // Every call that is not a version probe is recorded: a scenario can prove an agent was never called.
+      writeFileSync(join(bin, name), `#!/bin/sh\ncase "$1" in --version) ;; *) echo "${name}" >> '${this.callLog}' ;; esac\nexec ${process.execPath} ${FAKES}${file} "$@"\n`); chmodSync(join(bin, name), 0o755);
     }
     // OpenCode runs inside Taskquoin's sandbox (HOME hidden): its fake lives next to its shim, outside the repository.
     copyFileSync(`${FAKES}fake-opencode.cjs`, join(bin, 'fake-opencode.cjs'));

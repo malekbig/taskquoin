@@ -39,7 +39,9 @@ Start with `taskquoin doctor`: it explains most refusals about agents, runtimes 
 | `connection "<provider>" (<type>) is not measured with OpenCode 1.19.5 — Taskquoin sends no code through it (measured: …)` | this provider and sign-in type has not been measured | use a measured connection, or a different runtime |
 | `taskquoin: OpenCode is not installed (not found on the PATH)` | `connect` needs the CLI | `npm install -g opencode-ai@1.19.5` |
 | `taskquoin: no provider connected for Taskquoin` | the OpenCode sign-in was cancelled or failed | run `connect opencode` again |
-| `agent <id> cannot start — <reasons>` | an API or OpenCode judge fails its gate, checked before anything is spent | fix the reason shown |
+| `agent <id> cannot start — <reasons>` | an agent the workflow will call (planner, implementer, a challenger, a reviewer) fails its gate; every gate is checked before the planner is called, so nothing is spent and no branch is created | fix the reason shown; the next line, when there is one, names the remedy |
+| `agent implementer cannot start — mandatory restriction "config.modify" (deny-all) on claude …: claimed ENFORCED but the mechanism is not measured (inferred)`, then `To start implementer: set shell.run … and verify.command … in taskquoin.yaml` | the implementer has no `shell.run`, typically on a stack `init` did not recognise; without it, its protection of `.git`, `.claude/` and `taskquoin.yaml` is not measured | set `shell.run` and `verify.command` in `taskquoin.yaml`. Do not accept this risk: it would waive that protection for the agent that writes |
+| `ℹ stack not recognised: set shell.run … and verify.command …` (`init`) | `init` found no `package.json`, `pyproject.toml`, `go.mod`, … | set them before the first run; with an OpenCode implementer `init` names only `verify.command` (OpenCode has no commands) |
 | `agent <id> cannot start — skill(s) not usable: …` | a configured skill is missing or invalid | `taskquoin skills list` |
 | `taskquoin accept-risk: "fs.write" is not currently failing for planner — nothing to accept` | the restriction holds | nothing to do |
 | `taskquoin accept-risk: <agent> is an api judge — its restrictions hold by construction; nothing to accept` | API judges have no risk to accept | fix the real cause (a missing key) |
@@ -56,6 +58,8 @@ Start with `taskquoin doctor`: it explains most refusals about agents, runtimes 
 | `needs-human … no failing test demonstrates the change` | the new tests pass without the production change | read `red-N`; write a test that fails before the change. A refactor or docs-only change ends here: commit it yourself |
 | `needs-human … RED proof inconclusive: …` | the proof could not run properly (timeout, sandbox, tree) | read `red-N`; your working directory was not touched |
 | `needs-human … dependencies changed during the run: …` | `node_modules`, `vendor` or `.venv` changed | reinstall (`npm ci`) and start a new run; do not install during a run |
+| `needs-human … Verify could not run the test command (exit 127): … not found` | the test runner is not visible in the clean room, which has no HOME and no network (nvm, volta, `~/.npm-global`, pyenv, `~/.m2`, `~/.gradle`, the Go module cache live under HOME) | install the toolchain outside HOME or inside the repository, then start a new run ([Verify](verify-and-red-proof.md#the-clean-room)). No rework was used |
+| `needs-human … Verify could not run the test command (exit <n>): …` with `n` of 126 or more (or `exit none`) | the command is not executable, crashed (134, 139), gave up (255), was killed other than by the timeout, or the sandbox did not start. A runner whose exit code counts its failures also stops here once 126 or more tests fail | read `verify-N`, fix the command or the toolchain, then start a new run. No rework was used |
 | `needs-human … Verify refused: … links outside the repository` | a symlink (often `npm link`) points outside | replace it with a real copy (`npm install`) or remove it |
 | `needs-human … Verify refused: clean-room scan incomplete (…)` | Taskquoin could not scan for secrets to mask | fix the cause named, for example an unreadable directory |
 | `needs-human … verification modified tracked files` | the tests rewrite tracked files | fix the tests; they ran in the clean room, your folder is untouched |
@@ -69,6 +73,8 @@ Start with `taskquoin doctor`: it explains most refusals about agents, runtimes 
 | `interrupted … HTTP 503` (or 429, a timeout) | an API judge's provider is down (already retried twice) | `taskquoin resume <run>` later; judges that answered are not asked again |
 | `interrupted` for a git or disk error | a technical error | `taskquoin resume <run>` |
 | `run <id> is busy (another taskquoin process, pid N)` | another command holds the run | wait for it |
+| `interrupted at <node> … process gone (the run was killed)` (`status`) | the Taskquoin process driving the run was killed (Ctrl+C, a closed terminal, SIGKILL, a reboot) | `taskquoin resume <run>`: it records the interruption and continues at the same node, approvals kept |
+| `run <id> is blocked by <dir>/lock: if no taskquoin process is running, delete that file and try again` (or `…/lock.takeover`) | the lock names no process, or a takeover of a dead lock was itself killed; Taskquoin never clears such a file by itself, so that two processes can never hold the run | make sure no Taskquoin process runs (`ps`), delete the named file, run the command again |
 
 ## At the approval gates
 
@@ -91,10 +97,12 @@ Start with `taskquoin doctor`: it explains most refusals about agents, runtimes 
 | `taskquoin check <agent>: known agents: …` | unknown agent id | use one of those listed |
 | `usage: taskquoin approve <run> <plan\|commit> --expect <hash shown by status> --as <name>` | a missing argument | pass all four |
 | `usage: taskquoin connect opencode [--remove]` | only OpenCode has a connection | use that form |
+| a request typed without quotes (`taskquoin run Add a sum function`) | every word after `run` is the request | nothing to do; quote it when it holds a word starting with `--`, which is read as an option |
+| `taskquoin: no manifest for this repository — nothing Taskquoin created is recorded` after a first `uninstall` | the manifest was removed with the files | to delete the control store too, `taskquoin uninstall --purge-state` still works |
 
 > [!TIP]
 > For scripts and CI, `taskquoin status [<run>] --json` and `taskquoin check <agent> --json` give stable output in
-> English whatever the language. Exit codes: `0` ok, `1` refused or failed, `2` usage error.
+> English whatever the language; `status <run> --json` includes the `reason` a run stopped with (`null` when unset). Exit codes: `0` ok, `1` refused or failed, `2` usage error.
 
 ## Learn more
 

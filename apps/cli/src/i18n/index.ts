@@ -89,4 +89,9 @@ export function tn<B extends PluralBase>(base: B, count: number, ...args: Params
   return translate(lang, en, local, base, { ...args[0], count });
 }
 
+/** Engine text (`check --json`, run reasons in `status --json`): English whatever the language — only ENGLISH_ONLY keys. */
+export function english<K extends (typeof ENGLISH_ONLY)[number]>(key: K, ...args: Params<ParamNames<(typeof en)[K]>>): string {
+  return translate('en', en, undefined, key, args[0]);
+}
+
 export { en, ENGLISH_ONLY };
