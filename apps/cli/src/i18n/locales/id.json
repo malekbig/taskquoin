@@ -368,6 +368,7 @@
   "dashboard.center.unchanged": "tidak berubah",
   "dashboard.center.changed": "berubah",
   "dashboard.center.error.slash": "nama tidak pernah diawali /: ketik nama Anda, atau Esc untuk membatalkan",
+  "dashboard.center.error.dash": "nama tidak pernah diawali -: ketik nama Anda, atau Esc untuk membatalkan",
   "dashboard.center.error.controls": "karakter kontrol atau tak terlihat ditolak: tidak ada yang ditambahkan",
   "dashboard.center.error.mismatch": "hash tidak cocok: tidak ada yang disetujui — ketik ulang 12 karakter yang ditampilkan",
   "dashboard.center.notWaiting": "Tidak menunggu lagi — disetujui atau diubah di tempat lain. Tidak ada yang perlu disetujui di sini.",

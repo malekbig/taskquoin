@@ -376,6 +376,7 @@
   "dashboard.center.unchanged": "değişmedi",
   "dashboard.center.changed": "değişti",
   "dashboard.center.error.slash": "bir ad asla / ile başlamaz: adınızı yazın ya da iptal için Esc",
+  "dashboard.center.error.dash": "bir ad asla - ile başlamaz: adınızı yazın ya da iptal için Esc",
   "dashboard.center.error.controls": "kontrol veya görünmez karakterler reddedilir: hiçbir şey eklenmedi",
   "dashboard.center.error.mismatch": "hash eşleşmiyor: hiçbir şey onaylanmadı — gösterilen 12 karakteri yeniden yazın",
   "dashboard.center.notWaiting": "Artık beklemiyor — başka yerde onaylandı veya değişti. Burada onaylanacak bir şey yok.",

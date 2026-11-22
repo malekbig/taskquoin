@@ -368,6 +368,7 @@
   "dashboard.center.unchanged": "ไม่เปลี่ยน",
   "dashboard.center.changed": "เปลี่ยนแล้ว",
   "dashboard.center.error.slash": "ชื่อไม่เคยขึ้นต้นด้วย /: พิมพ์ชื่อของคุณ หรือ Esc เพื่อยกเลิก",
+  "dashboard.center.error.dash": "ชื่อไม่เคยขึ้นต้นด้วย -: พิมพ์ชื่อของคุณ หรือ Esc เพื่อยกเลิก",
   "dashboard.center.error.controls": "อักขระควบคุมหรืออักขระที่มองไม่เห็นถูกปฏิเสธ: ไม่มีอะไรถูกเพิ่ม",
   "dashboard.center.error.mismatch": "hash ไม่ตรงกัน: ไม่มีอะไรถูกอนุมัติ — พิมพ์ 12 อักขระที่แสดงซ้ำ",
   "dashboard.center.notWaiting": "ไม่รออีกแล้ว — ถูกอนุมัติหรือเปลี่ยนจากที่อื่น ไม่มีอะไรให้อนุมัติที่นี่",

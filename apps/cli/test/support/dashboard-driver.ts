@@ -6,6 +6,7 @@
  * `node --permission --allow-fs-read=*` it can write nothing at all: any write to disk throws. Without
  * `--approve-entry` the approval center opens but its process launcher refuses (and says `spawn attempted`): a
  * read-only run never approves. With it, the real `spawnApprove` starts `taskquoin approve` from that entry.
+ * With TQ_DRIVER_TEXT=1 it also prints `text <json>`: everything written to the terminal, escape sequences removed.
  */
 import { readFileSync } from 'node:fs';
 import { openRepoStoreReadOnly } from '@taskquoin/store-fs';
@@ -52,5 +53,6 @@ for (const k of keys) {
 const code = await run;
 process.stdout.write(`frames ${writes.length - 2}\n`);
 process.stdout.write(`center ${writes.some((w) => w.includes('Approval center')) ? 'shown' : 'never'}\n`);
+if (process.env.TQ_DRIVER_TEXT === '1') process.stdout.write(`text ${JSON.stringify(writes.join('').replace(/\x1b\[[0-9;?]*[A-Za-z]/g, ''))}\n`); // what was on screen, escapes removed
 if ((process as unknown as { permission?: { has(s: string): boolean } }).permission?.has('fs.write') === false) process.stdout.write('writes denied\n');
 process.exit(code);

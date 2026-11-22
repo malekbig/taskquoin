@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { appendFileSync, chmodSync, closeSync, existsSync, fstatSync, lstatSync, openSync, readSync, readdirSync, readFileSync, realpathSync, renameSync, writeFileSync } from 'node:fs';
+import { appendFileSync, chmodSync, closeSync, constants, existsSync, fstatSync, openSync, readSync, readdirSync, readFileSync, realpathSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { checkTrustedDir, ensureTrustedDir } from './trusted-dir.ts';
@@ -35,6 +35,33 @@ export function openRepoStoreReadOnly(repoRoot: string, base: string = stateBase
   return { root, runs: sub('runs'), artifacts: sub('artifacts'), policies: sub('policies'), approvals: sub('approvals') };
 }
 
+const READ_FLAGS = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0);
+
+/**
+ * A regular file, read through ONE descriptor: opened without following a symlink (`<file> is a symlink; refusing`)
+ * and without blocking (a FIFO or a device opens at once), then `fstat` must say a regular file (else `ENOTREG`), and
+ * only that descriptor is read — never the path again. `maxBytes`: a larger file is refused unread (`EFBIG`, with its
+ * `size`). `tailBytes`: only its last bytes (`cut` when that is not the whole file). A missing file throws ENOENT.
+ */
+export function readRegularFile(file: string, o: { maxBytes?: number; tailBytes?: number } = {}): { bytes: Buffer; size: number; cut: boolean } {
+  let fd: number;
+  try { fd = openSync(file, READ_FLAGS); } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ELOOP') throw Object.assign(new Error(`${file} is a symlink; refusing`), { code: 'ELOOP' });
+    throw e;
+  }
+  try {
+    const st = fstatSync(fd);
+    if (!st.isFile()) throw Object.assign(new Error(`${file} is not a regular file; refusing`), { code: 'ENOTREG' });
+    const size = st.size;
+    if (o.maxBytes !== undefined && size > o.maxBytes) throw Object.assign(new Error(`${file} is ${size} bytes, over ${o.maxBytes}`), { code: 'EFBIG', size });
+    const len = o.tailBytes === undefined ? size : Math.min(size, Math.max(1, o.tailBytes));
+    const buf = Buffer.alloc(len);
+    let got = 0;
+    while (got < len) { const k = readSync(fd, buf, got, len - got, size - len + got); if (k === 0) break; got += k; }
+    return { bytes: buf.subarray(0, got), size, cut: size > len };
+  } finally { closeSync(fd); }
+}
+
 /**
  * Tolerant reader of runs/<runId>/events.jsonl (appended without lock or fsync: the last line may be partial).
  * Keeps the last `max` (default 1000) well-formed object lines; blank lines are ignored; malformed lines, non-object
@@ -48,18 +75,8 @@ export function readEvents(store: RepoStore, runId: string, o: { max?: number; t
   let text: string;
   let cut = false;
   try {
-    if (lstatSync(file).isSymbolicLink()) throw new Error(`${file} is a symlink; refusing`);
-    const fd = openSync(file, 'r');
-    try {
-      const size = fstatSync(fd).size;
-      const want = Math.max(1, o.tailBytes ?? EVENTS_TAIL_BYTES);
-      const len = Math.min(size, want);
-      cut = size > len;
-      const buf = Buffer.alloc(len);
-      let got = 0;
-      while (got < len) { const k = readSync(fd, buf, got, len - got, size - len + got); if (k === 0) break; got += k; }
-      text = buf.subarray(0, got).toString('utf8');
-    } finally { closeSync(fd); }
+    const r = readRegularFile(file, { tailBytes: o.tailBytes ?? EVENTS_TAIL_BYTES }); // a link, a FIFO or a device is refused
+    text = r.bytes.toString('utf8'); cut = r.cut;
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === 'ENOENT') return { events: [], skipped: 0, cut: false };
     throw e;
@@ -94,10 +111,13 @@ export function putArtifact(store: RepoStore, bytes: Buffer, meta: ArtifactMeta)
   return { sha256, path, size: bytes.length, ...meta };
 }
 
-/** Read and verify. Throws on a malformed id or a hash mismatch (tampering). */
-export function getArtifact(store: RepoStore, sha256: string): Buffer {
+/**
+ * Read and verify. Throws on a malformed id, a hash mismatch (tampering), or a file that is not regular (a symlink, a
+ * FIFO, a device: see readRegularFile); `maxBytes`: a larger artifact is refused unread (`EFBIG`, with its `size`).
+ */
+export function getArtifact(store: RepoStore, sha256: string, o: { maxBytes?: number } = {}): Buffer {
   if (!SHA_RE.test(sha256)) throw new Error(`invalid artifact id ${JSON.stringify(sha256)}`);
-  const bytes = readFileSync(join(store.artifacts, sha256));
+  const { bytes } = readRegularFile(join(store.artifacts, sha256), o.maxBytes !== undefined ? { maxBytes: o.maxBytes } : {});
   const actual = createHash('sha256').update(bytes).digest('hex');
   if (actual !== sha256) throw new Error(`artifact ${sha256} hash mismatch (got ${actual})`);
   return bytes;

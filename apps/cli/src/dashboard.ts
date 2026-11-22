@@ -204,7 +204,19 @@ export async function runDashboard(d: DashDeps): Promise<number> {
     let approver: string | undefined; // asked once per dashboard session, kept in memory only
     let form: { f: ApprovalForm; runId: string } | undefined;
 
-    const draw = (): void => { if (!closed) screen.draw(renderDashboard(watcher.model(), ui, caps, now())); };
+    let loopError: string | undefined; // set by guard(): the footer says the read failed until a poll sees a change
+    const draw = (): void => {
+      if (closed) return;
+      const m = watcher.model();
+      screen.draw(renderDashboard(loopError !== undefined && m.readError === undefined ? { ...m, readError: loopError } : m, ui, caps, now()));
+    };
+    /** A key, a poll or a resize that throws keeps the last frame and says the read failed: the dashboard never dies of it. */
+    const guard = (f: () => void): void => {
+      try { f(); } catch {
+        loopError = t('dashboard.data.stateInvalid');
+        try { draw(); } catch { /* the last frame stays on screen */ }
+      }
+    };
     const wantsTick = (): boolean => {
       const s = watcher.model().selected;
       return s !== undefined && s.view.status === 'running' && s.liveness === 'live' && s.view.steps.some((st) => st.state === 'running');
@@ -242,8 +254,8 @@ export async function runDashboard(d: DashDeps): Promise<number> {
         case 'failed': return `${glyph('failed', caps)} ${t('dashboard.center.notStarted', { message: n(o.message) })}${sep}${t('dashboard.center.nothing')}`;
       }
     };
-    /** Outside the centre, the latest process's outcome is the footer's notice. */
-    const notify = (s: Started): void => { if (ui.screen !== 'center' && started.at(-1) === s) ui = { ...ui, notice: outcomeLine(s.outcome) }; };
+    /** Outside the centre, the latest process's outcome is the footer's notice; an approval recorded by any of them (`recorded`) too. */
+    const notify = (s: Started, recorded = false): void => { if (ui.screen !== 'center' && (recorded || started.at(-1) === s)) ui = { ...ui, notice: outcomeLine(s.outcome) }; };
     /** What the store says now about a started approval: recorded → approved (the process may still run). */
     const recordOf = (s: Started): { at?: string } | undefined => {
       const now = freshApproval(d.store, s.runId);
@@ -262,7 +274,7 @@ export async function runDashboard(d: DashDeps): Promise<number> {
       for (const s of started) {
         if (s.outcome.kind !== 'started') continue;
         const rec = recordOf(s);
-        if (rec) { s.outcome = { kind: 'approved', pid: s.child!.pid, as: s.as, at: rec.at ?? new Date(now()).toISOString() }; notify(s); changed = true; }
+        if (rec) { s.outcome = { kind: 'approved', pid: s.child!.pid, as: s.as, at: rec.at ?? new Date(now()).toISOString() }; notify(s, true); changed = true; }
       }
       return changed;
     };
@@ -274,7 +286,11 @@ export async function runDashboard(d: DashDeps): Promise<number> {
       try {
         const child = spawnApprove({ ...d.approve!, runId, gate, expect, as });
         s.child = child; s.alive = true; s.outcome = { kind: 'started', pid: child.pid };
-        void child.exited.then((r) => { finish(s, r); if (!closed) { notify(s); draw(); } });
+        void child.exited.then((r) => {
+          const was: Outcome['kind'] = s.outcome.kind;
+          finish(s, r);
+          if (!closed) guard(() => { notify(s, was !== 'approved' && s.outcome.kind === 'approved'); draw(); });
+        });
       } catch (e) {
         s.outcome = { kind: 'failed', message: nLog(String((e as Error)?.message ?? e)) };
       }
@@ -286,6 +302,13 @@ export async function runDashboard(d: DashDeps): Promise<number> {
       if (!d.approve || !sel || !gate) { ui = { ...rest, screen: 'main', focus: 'approvals' }; return; }
       decoder.flush(); // input held from before the form: never typed into it
       const runId = sel.runId;
+      // an approval of this run still starting (or its process still running at this gate): its outcome, never a second send
+      const inFlight = started.findLast((s) => s.runId === runId && (s.outcome.kind === 'started' || (s.alive && s.gate === gate)));
+      if (inFlight) {
+        form = { f: inFlight.form, runId };
+        ui = { ...rest, screen: 'center', focus: 'approvals', center: { render: (c, h) => inFlight.form.render(c, h, inFlight.outcome) } };
+        return;
+      }
       const f: ApprovalForm = approvalForm({
         runId, gate, ...(approver !== undefined ? { approver } : {}),
         pending: () => freshPending(d.store, runId),
@@ -364,26 +387,26 @@ export async function runDashboard(d: DashDeps): Promise<number> {
       syncTick();
       return await new Promise<number>((resolve) => {
         done = resolve;
-        poll = timers.setInterval(() => {
+        poll = timers.setInterval(() => guard(() => {
           let changed = false;
           try { changed = watcher.poll(); } catch { /* an unreadable store is the watcher's business; keep the last frame */ }
-          if (changed) { recheck(); syncTick(); }
+          if (changed) { loopError = undefined; recheck(); syncTick(); }
           const outcome = watch();
           if (ui.screen === 'center') form?.f.refresh(); // the binding re-read each poll (shown, never acted on)
           if (changed || outcome || ui.screen === 'center') draw();
-        }, POLL_MS);
-        offs.push(d.tty.onData((chunk) => {
+        }), POLL_MS);
+        offs.push(d.tty.onData((chunk) => guard(() => {
           if (ui.screen === 'center' && form) { clearFlush(); centerKey(chunk); return; }
           apply(decoder.feed(chunk));
           clearFlush();
-          flushTimer = timers.setInterval(() => { clearFlush(); apply(decoder.flush()); }, FLUSH_MS);
-        }));
-        offs.push(d.tty.onResize(() => {
+          flushTimer = timers.setInterval(() => guard(() => { clearFlush(); apply(decoder.flush()); }), FLUSH_MS);
+        })));
+        offs.push(d.tty.onResize(() => guard(() => {
           caps = d.caps(d.tty.size());
           fitViewer();
           screen.invalidate();
           draw();
-        }));
+        })));
       });
     } finally {
       closed = true;

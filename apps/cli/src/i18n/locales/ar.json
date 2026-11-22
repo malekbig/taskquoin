@@ -373,6 +373,7 @@
   "dashboard.center.unchanged": "دون تغيير",
   "dashboard.center.changed": "تغيّر",
   "dashboard.center.error.slash": "لا يبدأ الاسم أبدًا بـ /: اكتب اسمك، أو Esc للإلغاء",
+  "dashboard.center.error.dash": "لا يبدأ الاسم أبدًا بـ -: اكتب اسمك، أو Esc للإلغاء",
   "dashboard.center.error.controls": "تُرفض محارف التحكم والمحارف غير المرئية: لم يُضف شيء",
   "dashboard.center.error.mismatch": "الـ hash غير مطابق: لم تتم الموافقة على شيء — أعد كتابة المحارف الـ 12 المعروضة",
   "dashboard.center.notWaiting": "لم يعد بالانتظار — تمت الموافقة أو التغيير في مكان آخر. لا شيء للموافقة هنا.",

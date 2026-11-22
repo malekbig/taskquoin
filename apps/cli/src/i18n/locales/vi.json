@@ -368,6 +368,7 @@
   "dashboard.center.unchanged": "không đổi",
   "dashboard.center.changed": "đã đổi",
   "dashboard.center.error.slash": "tên không bao giờ bắt đầu bằng /: hãy gõ tên của bạn, hoặc Esc để hủy",
+  "dashboard.center.error.dash": "tên không bao giờ bắt đầu bằng -: hãy gõ tên của bạn, hoặc Esc để hủy",
   "dashboard.center.error.controls": "ký tự điều khiển hoặc vô hình bị từ chối: không thêm gì",
   "dashboard.center.error.mismatch": "hash không khớp: không có gì được phê duyệt — hãy gõ lại 12 ký tự được hiển thị",
   "dashboard.center.notWaiting": "Không còn chờ nữa — đã được phê duyệt hoặc thay đổi ở nơi khác. Không có gì để phê duyệt ở đây.",

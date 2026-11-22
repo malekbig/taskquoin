@@ -376,6 +376,7 @@
   "dashboard.center.unchanged": "अपरिवर्तित",
   "dashboard.center.changed": "बदला हुआ",
   "dashboard.center.error.slash": "नाम कभी / से शुरू नहीं होता: अपना नाम टाइप करें, या रद्द करने के लिए Esc",
+  "dashboard.center.error.dash": "नाम कभी - से शुरू नहीं होता: अपना नाम टाइप करें, या रद्द करने के लिए Esc",
   "dashboard.center.error.controls": "नियंत्रण या अदृश्य वर्ण अस्वीकार किए जाते हैं: कुछ नहीं जोड़ा गया",
   "dashboard.center.error.mismatch": "hash मेल नहीं खाता: कुछ भी अनुमोदित नहीं हुआ — दिखाए गए 12 वर्ण दोबारा टाइप करें",
   "dashboard.center.notWaiting": "अब प्रतीक्षा में नहीं — कहीं और अनुमोदित या बदला गया। यहाँ अनुमोदित करने को कुछ नहीं।",

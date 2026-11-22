@@ -9,6 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chmodSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { appendEvent, openRepoStoreReadOnly, putArtifact, readEvents, repoStore, saveRunState } from '../src/index.ts';
@@ -111,4 +112,34 @@ test('readEvents: cut is true when the tail read stops short of the file start, 
   assert.equal(readEvents(s, 'r1', { max: 199 }).cut, true);
   const r = readEvents(s, 'r1', { tailBytes: 300 });
   assert.equal(r.cut, true); assert.ok(r.events.length > 0 && r.events.length < 200);
+});
+
+test('a FIFO or a device never blocks a read: events.jsonl, an artifact and a link to either are refused through one descriptor; maxBytes refuses unread', (t) => {
+  const { s, file } = store('ev-fifo');
+  if (spawnSync('mkfifo', [file]).status !== 0) { t.skip('no mkfifo'); return; }
+  const fifo = join(root, 'elsewhere.fifo'); assert.equal(spawnSync('mkfifo', [fifo]).status, 0);
+  const shas = { fifo: '1'.repeat(64), linkFifo: '2'.repeat(64), linkZero: '3'.repeat(64), linkFile: '4'.repeat(64) };
+  assert.equal(spawnSync('mkfifo', [join(s.artifacts, shas.fifo)]).status, 0);
+  symlinkSync(fifo, join(s.artifacts, shas.linkFifo));
+  symlinkSync('/dev/zero', join(s.artifacts, shas.linkZero));
+  const real = putArtifact(s, Buffer.from('plan text'), { mediaType: 'text/plain', producer: 'plan' });
+  symlinkSync(real.path, join(s.artifacts, shas.linkFile));
+  // in a child with a deadline: a read that blocks fails this test instead of hanging the suite
+  const code = `const m = await import(process.argv[1]); const s = JSON.parse(process.argv[2]); const out = {};
+    const tryIt = (k, f) => { try { f(); out[k] = 'read'; } catch (e) { out[k] = e.code ?? String(e.message); } };
+    tryIt('events', () => m.readEvents(s, 'r1'));
+    for (const [k, sha] of Object.entries(JSON.parse(process.argv[3]))) tryIt(k, () => m.getArtifact(s, sha));
+    tryIt('real', () => m.getArtifact(s, process.argv[4]));
+    tryIt('big', () => m.getArtifact(s, process.argv[4], { maxBytes: 4 }));
+    try { m.getArtifact(s, process.argv[4], { maxBytes: 4 }); } catch (e) { out.bigSize = e.size; }
+    process.stdout.write(JSON.stringify(out));`;
+  const r = spawnSync(process.execPath, ['--input-type=module', '-e', code, new URL('../src/index.ts', import.meta.url).href, JSON.stringify(s), JSON.stringify(shas), real.sha256], { encoding: 'utf8', timeout: 20_000 });
+  assert.equal(r.status, 0, `never blocks (signal ${r.signal}): ${r.stderr}`);
+  const out = JSON.parse(r.stdout) as Record<string, unknown>;
+  assert.equal(out.events, 'ENOTREG');
+  assert.equal(out.fifo, 'ENOTREG');
+  for (const k of ['linkFifo', 'linkZero', 'linkFile']) assert.equal(out[k], 'ELOOP', k); // never followed
+  assert.equal(out.real, 'read');
+  assert.equal(out.big, 'EFBIG');
+  assert.equal(out.bigSize, 9);
 });

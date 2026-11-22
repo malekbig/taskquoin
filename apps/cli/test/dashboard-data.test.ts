@@ -494,3 +494,55 @@ test('loading documents leaves the control store unchanged', () => {
   loadDocs(s, RID, 'review'); loadDocs(s, RID, 'verify'); freshPending(s, RID);
   assert.deepEqual(snapshot(s.root), before);
 });
+
+// ---- the final review: a hostile or corrupt store ----------------------------------------------------------------
+
+test('I4: a state.json naming another run is unreadable (its row, the selection, freshPending); the selection carries the directory id', () => {
+  const s = fresh();
+  const A = 'run-20261122T101500-aaaaaa', B = 'run-20261122T101500-bbbbbb';
+  put(s, A, state(B, { status: 'waiting-approval', current: 'approve-commit', reviewedTree: 'c'.repeat(40) }));
+  const w = watch(s, A);
+  assert.equal(w.model().runs.find(r => r.runId === A)!.status, 'unreadable');
+  assert.equal(w.model().selected, undefined);
+  assert.ok(w.model().readError);
+  assert.equal(freshPending(s, A), undefined);
+  assert.ok('error' in loadDocs(s, A, 'review'));
+  put(s, B, state(B, { status: 'waiting-approval', current: 'approve-commit', reviewedTree: 'c'.repeat(40) }));
+  w.select(B);
+  assert.equal(w.model().selected!.runId, B);
+  assert.deepEqual(freshPending(s, B)?.binding, 'c'.repeat(40));
+});
+
+test('I1: readStateFile is the shape check — a field of the wrong type is an unreadable row, no selection, no pending, an error from loadDocs, never a throw', () => {
+  const bads: Record<string, unknown>[] = [
+    { status: 'waiting-approval', current: 'approve-commit', reviewedTree: 12345 },
+    { status: 'waiting-approval', current: 'approve-commit', reviewedTree: 'not a hash at all' },
+    { status: 'waiting-approval', current: 'approve-plan', artifacts: { plan: 7 } },
+    { status: 'waiting-approval', current: 'approve-plan', artifacts: { plan: { sha: 'a'.repeat(64) } } },
+    { artifacts: 'x' }, { artifacts: 7 }, { artifacts: ['a'.repeat(64)] }, { artifacts: null }, { artifacts: { plan: null } },
+    { runId: 12345 }, { current: 5 }, { attempts: '1' }, { attempts: null }, { approvals: [] }, { approvals: 'x' },
+    { history: 'x' }, { history: [null] }, { history: [{ node: 1, outcome: 'ok', at: at(1) }] }, { history: [{ node: 'plan', outcome: 'ok', at: 5 }] },
+    { request: 5 }, { reason: {} }, { branch: 1 }, { commit: [] }, { reviewedTree: 7 },
+  ];
+  for (const bad of bads) {
+    const s = fresh(); put(s, RID, { ...state(RID), ...bad });
+    const w = watch(s, RID);
+    const label = JSON.stringify(bad);
+    assert.equal(w.model().runs[0]!.status, 'unreadable', label);
+    assert.equal(w.model().selected, undefined, label);
+    assert.ok(w.model().readError, label);
+    assert.equal(freshPending(s, RID), undefined, label);
+    for (const which of ['review', 'verify'] as const) assert.ok('error' in loadDocs(s, RID, which), label);
+    assert.equal(artifactSha(s, RID, 'plan'), undefined, label);
+  }
+});
+
+test('I2: a binding that is not a hash (U+202E in reviewedTree) is no binding: freshPending nothing, loadDocs no binding on screen', () => {
+  const s = fresh();
+  const RLO = String.fromCharCode(0x202e);
+  put(s, RID, state(RID, { status: 'waiting-approval', current: 'approve-commit', attempts: 1, reviewedTree: `${RLO}${'c'.repeat(40)}`, artifacts: { 'diff-1': art(s, 'd', DIFF) } }));
+  assert.equal(freshPending(s, RID), undefined);
+  const r = loadDocs(s, RID, 'review');
+  assert.ok('error' in r || r.binding === undefined);
+  for (const str of strings(r)) assert.ok(!str.includes(RLO));
+});

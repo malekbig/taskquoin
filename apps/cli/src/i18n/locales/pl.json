@@ -371,6 +371,7 @@
   "dashboard.center.unchanged": "bez zmian",
   "dashboard.center.changed": "zmienione",
   "dashboard.center.error.slash": "imię nigdy nie zaczyna się od /: wpisz swoje imię lub Esc, aby anulować",
+  "dashboard.center.error.dash": "imię nigdy nie zaczyna się od -: wpisz swoje imię lub Esc, aby anulować",
   "dashboard.center.error.controls": "znaki sterujące lub niewidoczne są odrzucane: nic nie dodano",
   "dashboard.center.error.mismatch": "hash się nie zgadza: nic nie zostało zatwierdzone — wpisz ponownie 12 pokazanych znaków",
   "dashboard.center.notWaiting": "Już nie czeka — zatwierdzone lub zmienione gdzie indziej. Nie ma tu nic do zatwierdzenia.",

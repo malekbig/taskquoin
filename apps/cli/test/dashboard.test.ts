@@ -19,7 +19,7 @@
  */
 import { test, mock, after, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { appendFileSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, writeSync } from 'node:fs';
+import { appendFileSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { EventEmitter } from 'node:events';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -613,7 +613,7 @@ test('p, the name, the 12 characters key by key and Enter: one `taskquoin approv
   typeIn(s.tty, TREE.slice(0, 12));
   assert.equal(f.calls.length, 0, 'no key approved on its own');
   send(s.tty, '\r');
-  assert.deepEqual(f.calls, [['/opt/taskquoin/main.ts', 'approve', id, 'commit', '--expect', '9c1e04b7aa31', '--as', 'alice (via taskquoin dashboard)']]);
+  assert.deepEqual(f.calls, [['/opt/taskquoin/main.ts', 'approve', id, 'commit', '--expect=9c1e04b7aa31', '--as=alice (via taskquoin dashboard)']]);
   assert.match(lastFrame(s.tty, n), /◉ taskquoin approve started \(pid 4001\) — waiting for it to record the approval/);
   assert.ok(!/✔ approved/.test(lastFrame(s.tty, n)), 'started is not approved');
   send(s.tty, '\r');
@@ -751,6 +751,123 @@ test('quitting while `taskquoin approve` runs: the question (it continues in pro
   const log = /its output: (\S+)$/.exec(errs[0]!)![1]!;
   assert.equal(lstatSync(log).mode & 0o777, 0o600);
   assert.ok(s.tty.text().indexOf(RESTORE) >= 0, 'said after the terminal was given back');
+});
+
+test('I4: the approval never targets another run: a state.json naming another run opens no centre and starts nothing', async () => {
+  const { store } = mk();
+  const A = ID(1), B = ID(2);
+  put(store, A, state(B, { status: 'waiting-approval', current: 'approve-commit', attempts: 1, reviewedTree: TREE }), [ev('run.waiting-approval', { node: 'approve-commit' })]);
+  const f = fakeApprove();
+  const s = start(store, { approve: f.approve, runId: A });
+  approveKeys(s.tty);
+  assert.ok(!/Approval center/.test(screenText(s.tty)), 'never opened');
+  assert.deepEqual(f.calls, []);
+  send(s.tty, 'q'); assert.equal(await s.done, 0);
+});
+
+test('I1: a state.json with the wrong types is an unreadable row, never a crash — reviewedTree 12345, artifacts "x" then d, a numeric runId', async () => {
+  for (const bad of [{ reviewedTree: 12345 }, { artifacts: 'x' }, { runId: 12345 }]) {
+    const label = JSON.stringify(bad);
+    const { store } = mk();
+    put(store, ID(0), state(ID(0), { status: 'completed', current: 'done' }));
+    put(store, ID(1), { ...state(ID(1), { status: 'waiting-approval', current: 'approve-commit', reviewedTree: TREE }), ...bad });
+    const s = start(store, { approve: fakeApprove().approve });
+    await tick();
+    assert.match(screenText(s.tty), /unreadable/, label);
+    send(s.tty, 'd'); send(s.tty, 'p');
+    assert.ok(!/Approval center/.test(screenText(s.tty)), label);
+    send(s.tty, 'q'); assert.equal(await s.done, 0, label);
+  }
+});
+
+test('I1: an unexpected error in a poll or a key keeps the last frame and says the read failed; q still quits', async (t) => {
+  t.after(() => mock.timers.reset());
+  mock.timers.enable({ apis: ['setInterval'] });
+  const { store } = mk(); commitGate(store);
+  let bomb = false;
+  const s = start(store, { approve: fakeApprove().approve, now: () => { if (bomb) throw new Error('boom'); return Date.parse(at(5)); } });
+  send(s.tty, 'p'); // the centre redraws on every poll
+  assert.match(screenText(s.tty), /Approval center/);
+  bomb = true;
+  const n = s.tty.writes.length;
+  assert.doesNotThrow(() => { mock.timers.tick(500); }, 'a poll that throws');
+  assert.doesNotThrow(() => { send(s.tty, 'a'); }, 'a key that throws');
+  assert.equal(s.tty.writes.length, n, 'the last frame stays');
+  bomb = false;
+  send(s.tty, '\x1b'); send(s.tty, '\x1b'); // cancel, then close the centre
+  assert.match(clean(s.tty.writes.at(-1)!), /read failed/);
+  send(s.tty, 'q'); assert.equal(await s.done, 0);
+});
+
+test('I3: a FIFO events.jsonl, or an artifact that links to a FIFO, never freezes the dashboard: it paints, says what cannot be read, and q quits', (t) => {
+  const fifo = join(root, `fifo-${process.pid}`);
+  if (spawnSync('mkfifo', [fifo]).status !== 0) { t.skip('no mkfifo'); return; }
+  const driver = join(import.meta.dirname, 'support', 'dashboard-driver.ts');
+  const drive = (repo: string, base: string, keys: string[]) => {
+    const keysFile = join(root, `keys-fifo-${keys.length}.json`); writeFileSync(keysFile, JSON.stringify(keys));
+    // a deadline: a read that blocks fails this test instead of hanging the suite
+    return spawnSync(process.execPath, [driver, repo, base, keysFile], { encoding: 'utf8', timeout: 30_000, env: { ...process.env, TZ: 'UTC', TQ_DRIVER_TEXT: '1' } });
+  };
+  const a = mk();
+  put(a.store, ID(1), state(ID(1)));
+  rmSync(join(a.store.runs, ID(1), 'events.jsonl')); assert.equal(spawnSync('mkfifo', [join(a.store.runs, ID(1), 'events.jsonl')]).status, 0);
+  const r1 = drive(a.repo, a.base, ['q']);
+  assert.equal(r1.status, 0, `events.jsonl a FIFO: exit ${r1.status} (signal ${r1.signal})\n${r1.stderr}`);
+  assert.ok(Number(/^frames (\d+)/m.exec(r1.stdout)![1]) >= 1, 'it painted');
+  assert.match(r1.stdout, /read failed/);
+  const b = mk();
+  const sha = 'a'.repeat(64);
+  symlinkSync(fifo, join(b.store.artifacts, sha));
+  put(b.store, ID(1), state(ID(1), { status: 'waiting-approval', current: 'approve-plan', artifacts: { plan: sha } }), [ev('run.waiting-approval', { node: 'approve-plan' })]);
+  const r2 = drive(b.repo, b.base, ['d', 'q']);
+  assert.equal(r2.status, 0, `the plan a link to a FIFO: exit ${r2.status} (signal ${r2.signal})\n${r2.stderr}`);
+  assert.match(r2.stdout, /artifact plan cannot be read/);
+});
+
+test('I5: p while the first approval is still starting shows that approval and starts nothing; its approval, recorded later, is what the footer says', async (t) => {
+  t.after(() => mock.timers.reset());
+  mock.timers.enable({ apis: ['setInterval'] });
+  const { store } = mk(); const id = commitGate(store);
+  const f = fakeApprove();
+  const s = start(store, { approve: f.approve, columns: 200 }); // the footer holds the whole outcome line
+  approveKeys(s.tty);
+  assert.equal(f.calls.length, 1);
+  send(s.tty, '\x1b'); // the centre closes; the process is still starting and the store still says waiting
+  let n = s.tty.writes.length;
+  send(s.tty, 'p');
+  assert.match(lastFrame(s.tty, n).replace(/\s+/g, ' '), /taskquoin approve started \(pid 4001\)/);
+  typeIn(s.tty, TREE.slice(0, 12)); send(s.tty, '\r');
+  assert.equal(f.calls.length, 1, 'no second taskquoin approve');
+  send(s.tty, '\x1b');
+  n = s.tty.writes.length;
+  recordApproval(store, id);
+  mock.timers.tick(500);
+  assert.match(lastFrame(s.tty, n).replace(/\s+/g, ' '), /✔ approved by alice \(via taskquoin dashboard\) at 10:33:05/);
+  f.kids[0]!.emit('exit', 0, null); await tick();
+  send(s.tty, 'q'); assert.equal(await s.done, 0);
+});
+
+test('I5: an approval recorded by an earlier process is reported, even after a later process (another run) was refused', async (t) => {
+  t.after(() => mock.timers.reset());
+  mock.timers.enable({ apis: ['setInterval'] });
+  const { store } = mk(); const older = commitGate(store), newer = ID(2);
+  put(store, newer, state(newer, { status: 'waiting-approval', current: 'approve-commit', attempts: 1, reviewedTree: TREE,
+    history: [{ node: 'recall', outcome: 'ok', at: at(1) }, { node: 'review', outcome: 'review:APPROVE', at: at(2) }, { node: 'approve-commit', outcome: 'waiting-approval', at: at(3) }] }), [ev('run.waiting-approval', { node: 'approve-commit' })]);
+  const f = fakeApprove();
+  const s = start(store, { approve: f.approve, columns: 200 }); // the footer holds the whole outcome line
+  approveKeys(s.tty); // the newest waiting run: process 4001
+  send(s.tty, '\x1b'); send(s.tty, 'r'); send(s.tty, 'j'); // the older run
+  send(s.tty, 'p'); typeIn(s.tty, TREE.slice(0, 12)); send(s.tty, '\r'); // the name is kept: process 4002
+  assert.deepEqual(f.calls.map((c) => c[2]), [newer, older]);
+  send(s.tty, '\x1b');
+  f.kids[1]!.emit('exit', 1, null); await tick();
+  assert.match(clean(s.tty.writes.at(-1)!), /refused \(exit 1\)/);
+  const n = s.tty.writes.length;
+  recordApproval(store, newer);
+  mock.timers.tick(500);
+  assert.match(lastFrame(s.tty, n).replace(/\s+/g, ' '), /✔ approved by alice \(via taskquoin dashboard\) at 10:33:05 · the run continues \(pid 4001/);
+  f.kids[0]!.emit('exit', 0, null); await tick();
+  send(s.tty, 'q'); assert.equal(await s.done, 0);
 });
 
 // ---- read-only under the permission model --------------------------------------------------------------------------

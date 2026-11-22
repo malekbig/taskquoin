@@ -8,11 +8,11 @@
  * store goes through `n()` here, once, and the characters made visible are counted in `marked` (untrusted-text rules
  * 1 and 2); renderers receive neutral text only.
  */
-import { lstatSync, readFileSync, statSync } from 'node:fs';
+import { lstatSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { pendingApproval, projectRun, runIdTime, type RunState, type RunView, type WorkflowStatus } from '@taskquoin/application';
 import type { SquadMember } from '@taskquoin/application';
-import { getArtifact, listRuns, loadRunState, readEvents, type RepoStore } from '@taskquoin/store-fs';
+import { getArtifact, listRuns, readEvents, readRegularFile, type RepoStore } from '@taskquoin/store-fs';
 import { t } from './i18n/index.ts';
 import { parseDiff, textDocs, type Doc } from './tui/components/diff-viewer.ts';
 import { n, neutralize, type Neutral } from './tui/neutral.ts';
@@ -25,6 +25,7 @@ import type { Liveness, RunStatusView } from './tui/components/status-bar.ts';
 /** Computed once when the dashboard opens (Task 6); every string already neutral. */
 export interface DashStatic { version: string; repo: string; branch?: string; clean?: boolean; acceptedRisks: string[]; squad: SquadMember[]; runtimeVersions: Record<string, string>; checkedAt: string }
 export interface RunEntry { runId: string; short: string; status: RunStatusView; request: string; startedAt: string; waiting?: 'plan' | 'commit'; liveness?: Liveness }
+/** `runId` is the run's directory id: what the centre approves (a state.json naming another run is unreadable). */
 export interface SelectedRun { runId: string; view: RunView<Neutral>; request: string; reason?: string; marked: number; events: EventLine[]; skipped: number; cut: boolean; liveness: Liveness; gone?: true }
 export interface DashboardModel { fixed: DashStatic; runs: RunEntry[]; selected?: SelectedRun; lastChange: string; readError?: string }
 
@@ -101,13 +102,13 @@ const defaultIsAlive = (pid: number): boolean | undefined => {
   catch (e) { const c = (e as NodeJS.ErrnoException).code; return c === 'ESRCH' ? false : c === 'EPERM' ? true : undefined; }
 };
 
-/** The pid written in runs/<id>/lock, read only: an integer above 0 or nothing (kill(0) would signal our own group). */
+/**
+ * The pid written in runs/<id>/lock, read only (one descriptor: never a link, never a FIFO, at most 32 bytes): an
+ * integer above 0 or nothing (kill(0) would signal our own group).
+ */
 function lockPid(store: RepoStore, id: string): number | undefined {
   try {
-    const f = join(store.runs, id, 'lock');
-    const st = lstatSync(f);
-    if (!st.isFile() || st.size > 32) return undefined;
-    const text = readFileSync(f, 'utf8').trim();
+    const text = readRegularFile(join(store.runs, id, 'lock'), { maxBytes: 32 }).bytes.toString('utf8').trim();
     if (!/^\d{1,10}$/.test(text)) return undefined;
     const pid = Number(text);
     return Number.isSafeInteger(pid) && pid > 0 ? pid : undefined;
@@ -116,14 +117,30 @@ function lockPid(store: RepoStore, id: string): number | undefined {
 
 // ---- stamps ------------------------------------------------------------------------------------------------------
 
-/** state.json of a run, read now: a regular file of at most 4 MiB holding an object with a string `status`. Throws otherwise. */
+const BINDING_RE = /^[0-9a-f]{40,64}$/;
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const OPTIONAL_STRINGS = ['request', 'reason', 'branch', 'commit', 'reviewedTree'] as const;
+
+/**
+ * state.json of run `id` (its directory), read now, and its shape: the one check between the store and every reader
+ * here. A regular file of at most 4 MiB (opened once, never through a link, never blocking on a FIFO) holding an object whose `runId` is that directory (a state naming another run
+ * would send an approval there), `status` and `current` strings, `attempts` a finite number, `artifacts` an object of
+ * strings, `approvals` an object, `history` an array of `{node, outcome, at}` strings, `request`, `reason`, `branch`,
+ * `commit` and `reviewedTree` strings when present, and a pending binding that is a hash (40 to 64 lowercase hex).
+ * Throws otherwise: the row reads `unreadable` and the selection keeps its last view.
+ */
 function readStateFile(store: RepoStore, id: string): RunState {
-  const f = join(store.runs, id, 'state.json');
-  const st = lstatSync(f);
-  if (!st.isFile() || st.size > STATE_MAX_BYTES) throw new Error('not a regular state file');
-  const v = loadRunState<unknown>(store, id);
-  if (typeof v !== 'object' || v === null || Array.isArray(v) || typeof (v as { status?: unknown }).status !== 'string') throw new Error('invalid state');
-  return v as RunState;
+  if (!validId(id)) throw new Error('invalid run id');
+  const v = JSON.parse(readRegularFile(join(store.runs, id, 'state.json'), { maxBytes: STATE_MAX_BYTES }).bytes.toString('utf8')) as unknown;
+  if (!isObject(v) || typeof v.status !== 'string') throw new Error('invalid state');
+  if (v.runId !== id) throw new Error('the state of another run');
+  if (typeof v.current !== 'string' || typeof v.attempts !== 'number' || !Number.isFinite(v.attempts)) throw new Error('invalid state');
+  if (!isObject(v.artifacts) || !Object.values(v.artifacts).every((x) => typeof x === 'string') || !isObject(v.approvals)) throw new Error('invalid state');
+  if (!Array.isArray(v.history) || !v.history.every((h) => isObject(h) && typeof h.node === 'string' && typeof h.outcome === 'string' && typeof h.at === 'string')) throw new Error('invalid state');
+  if (OPTIONAL_STRINGS.some((k) => v[k] !== undefined && typeof v[k] !== 'string')) throw new Error('invalid state');
+  const p = pendingApproval(v as unknown as RunState);
+  if (p && !BINDING_RE.test(p.binding)) throw new Error('the pending binding is not a hash');
+  return v as unknown as RunState;
 }
 
 // ---- the viewer's data -------------------------------------------------------------------------------------------
@@ -137,7 +154,7 @@ export function freshPending(store: RepoStore, runId: string): { gate: 'plan' | 
     if (!validId(runId)) return undefined;
     const state = readStateFile(store, runId);
     const p = pendingApproval(state);
-    if (!p) return undefined;
+    if (!p || !BINDING_RE.test(p.binding)) return undefined; // a binding is a hash, or there is none
     const at = Array.isArray(state.history) ? state.history.at(-1)?.at : undefined;
     return { gate: p.node === 'approve-plan' ? 'plan' : 'commit', binding: p.binding, ...(typeof at === 'string' ? { at } : {}) };
   } catch { return undefined; }
@@ -175,8 +192,9 @@ const highest = (names: string[], prefix: string): number | undefined => {
 
 /**
  * What the viewer shows, read on demand: `review` is plan + challenge at the plan gate (or before any diff), else the
- * highest `diff-N`; `verify` is the highest `verify-N` and its `red-N`. Each artifact is stat-ed first (over 4 MiB is
- * refused, unread, with the `taskquoin show` route), then read through `getArtifact`, which re-hashes it. `binding` is
+ * highest `diff-N`; `verify` is the highest `verify-N` and its `red-N`. Each artifact is opened once through
+ * `getArtifact` (never through a link, never blocking on a FIFO or a device; over 4 MiB is refused, unread, with the
+ * `taskquoin show` route) and re-hashed. `binding` is
  * the commit gate's tree hash when the run waits at commit and the artifact is its `diff-<attempts>`.
  */
 export function loadDocs(store: RepoStore, runId: string, which: 'review' | 'verify'): { title: string; artifact: string; sha: string; docs: Doc[]; binding?: string } | { error: string } {
@@ -198,26 +216,21 @@ export function loadDocs(store: RepoStore, runId: string, which: 'review' | 'ver
   }
   if (picked.length === 0) return { error: t('dashboard.viewer.none') };
   const shaOf = (name: string): string | undefined => (typeof arts[name] === 'string' && SHA_RE.test(arts[name]!) ? arts[name] : undefined);
-  for (const name of picked) {
-    const sha = shaOf(name);
-    if (sha === undefined) return { error: t('dashboard.viewer.unreadable', { artifact: n(name), run: n(runId) }) };
-    try {
-      const size = statSync(join(store.artifacts, sha)).size;
-      if (size > MAX_ARTIFACT_BYTES) return { error: t('dashboard.viewer.tooBig', { artifact: n(name), size: (size / 1048576).toFixed(1), run: n(runId) }) };
-    } catch { return { error: t('dashboard.viewer.unreadable', { artifact: n(name), run: n(runId) }) }; }
-  }
+  for (const name of picked) if (shaOf(name) === undefined) return { error: t('dashboard.viewer.unreadable', { artifact: n(name), run: n(runId) }) };
   const texts: { name: string; text: string }[] = [];
   for (const name of picked) {
-    try { texts.push({ name, text: getArtifact(store, shaOf(name)!).toString('utf8') }); }
+    try { texts.push({ name, text: getArtifact(store, shaOf(name)!, { maxBytes: MAX_ARTIFACT_BYTES }).toString('utf8') }); }
     catch (e) {
-      const mismatch = /hash mismatch/.test(String((e as Error)?.message));
+      const { code, size, message } = (e ?? {}) as { code?: unknown; size?: unknown; message?: unknown };
+      if (code === 'EFBIG' && typeof size === 'number') return { error: t('dashboard.viewer.tooBig', { artifact: n(name), size: (size / 1048576).toFixed(1), run: n(runId) }) };
+      const mismatch = /hash mismatch/.test(String(message));
       return { error: t(mismatch ? 'dashboard.viewer.mismatch' : 'dashboard.viewer.unreadable', { artifact: n(name), run: n(runId) }) };
     }
   }
   let docs = asDiff ? parseDiff(texts[0]!.text) : textDocs(texts);
   if (docs.length === 0) docs = textDocs(texts);
   const pending = pendingApproval(state);
-  const binding = asDiff && pending?.node === 'approve-commit' && picked[0] === `diff-${state.attempts}` ? pending.binding : undefined;
+  const binding = asDiff && pending?.node === 'approve-commit' && picked[0] === `diff-${state.attempts}` && BINDING_RE.test(pending.binding) ? pending.binding : undefined;
   return { title: t(titleKey, { run: short }), artifact: picked[0]!, sha: shaOf(picked[0]!)!, docs, ...(binding !== undefined ? { binding } : {}) };
 }
 
@@ -271,7 +284,7 @@ export function createWatcher(store: RepoStore, fixed: DashStatic, o: { runId?: 
     const req = neutralize(reqText, { singleLine: true }); marked += req.marked;
     const events = raw.map(eventLine).reverse();
     for (const e of events) marked += e.marked;
-    return { runId: shown.view.runId, view: shown.view, request: req.text, ...(shown.view.reason !== undefined ? { reason: shown.view.reason } : {}), marked, events, skipped, cut, liveness: lv(state.status) };
+    return { runId: id, view: shown.view, request: req.text, ...(shown.view.reason !== undefined ? { reason: shown.view.reason } : {}), marked, events, skipped, cut, liveness: lv(state.status) };
   };
 
   /** Rebuild what the stamps say changed; returns the new composite key. */
