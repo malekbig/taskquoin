@@ -15,6 +15,7 @@
 - [步驟 7：實作、Verify 與審查](#步驟-7實作verify-與審查)
 - [步驟 8：閱讀並核准 commit](#步驟-8閱讀並核准-commit)
 - [步驟 9：合併結果](#步驟-9合併結果)
+- [在 Dashboard 中追蹤一次執行](#在-dashboard-中追蹤一次執行)
 - [當事情沒有按計畫進行](#當事情沒有按計畫進行)
 - [了解更多](#了解更多)
 
@@ -504,6 +505,20 @@ $ npm test
 > Taskquoin 不會執行你儲存庫的 commit hook，因為它們可能包含被代理程式修改過的程式碼。合併時，請自己執行你的 hook、linter 和 CI。
 
 `taskquoin/<run>` 分支歸你所有：不再需要時請刪除它們（`git branch -d taskquoin/<run>`）。
+
+## 在 Dashboard 中追蹤一次執行
+
+執行期間，在同一個儲存庫開啟第二個終端機並啟動 Dashboard。它只讀取：顯示管線、等待您的核准（含其雜湊的開頭）、各個代理與日誌。
+
+```shell
+$ taskquoin dashboard
+```
+
+![提交核准處的 Dashboard](../assets/screens/zh-TW/dashboard.svg)
+
+按 `d` 閱讀 diff：`/` 搜尋，`n` 與 `N` 在符合項之間跳轉；捲動到檔案末尾後，該檔案才算已讀。
+
+按 `p` 開啟核准中心。沒有任何按鍵會自行核准：您輸入姓名，然後重新輸入雜湊的 12 個字元。按 `q` 離開；已核准的執行會繼續。 [Dashboard 指南（英文）](../guides/dashboard.md).
 
 ## 當事情沒有按計畫進行
 

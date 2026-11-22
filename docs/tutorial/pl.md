@@ -18,6 +18,7 @@ Taskquoin, dlaczego się zatrzymuje i pod czym się podpisujesz.
 - [Krok 7: implementacja, Verify i przegląd](#krok-7-implementacja-verify-i-przegląd)
 - [Krok 8: przeczytaj i zatwierdź commit](#krok-8-przeczytaj-i-zatwierdź-commit)
 - [Krok 9: scal wynik](#krok-9-scal-wynik)
+- [Śledzenie przebiegu w Dashboardzie](#śledzenie-przebiegu-w-dashboardzie)
 - [Gdy coś nie idzie zgodnie z planem](#gdy-coś-nie-idzie-zgodnie-z-planem)
 - [Dowiedz się więcej](#dowiedz-się-więcej)
 
@@ -592,6 +593,20 @@ $ npm test
 > hooki, lintery i CI samodzielnie przy scalaniu.
 
 Gałęzie `taskquoin/<run>` są Twoje: usuń je, gdy nie są potrzebne (`git branch -d taskquoin/<run>`).
+
+## Śledzenie przebiegu w Dashboardzie
+
+Gdy przebieg pracuje, otwórz drugi terminal w tym samym repozytorium i uruchom Dashboard. Tylko czyta: pokazuje pipeline, zatwierdzenie, które na Ciebie czeka (z początkiem jego hasha), agentów i dziennik.
+
+```shell
+$ taskquoin dashboard
+```
+
+![Dashboard przy zatwierdzaniu commita](../assets/screens/pl/dashboard.svg)
+
+Naciśnij `d`, aby przeczytać diff: `/` szuka, `n` i `N` przeskakują między trafieniami, a plik liczy się jako przeczytany, gdy dojdziesz do jego końca.
+
+Naciśnij `p`, aby otworzyć centrum zatwierdzania. Żaden klawisz sam nie zatwierdza: wpisujesz swoje imię, a potem ponownie wpisujesz 12 znaków hasha. Zakończ klawiszem `q`; zatwierdzony przebieg trwa dalej. [Przewodnik po Dashboardzie (po angielsku)](../guides/dashboard.md).
 
 ## Gdy coś nie idzie zgodnie z planem
 

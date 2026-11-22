@@ -5,7 +5,7 @@ Every `taskquoin` command with its synopsis, options, what it prints and its exi
 
 - [Conventions](#conventions)
 - [Setup commands](#setup-commands): [`init`](#init), [`doctor`](#doctor), [`upgrade`](#upgrade), [`check`](#check), [`accept-risk`](#accept-risk), [`version`](#version)
-- [Workflow commands](#workflow-commands): [`console`](#console), [`run`](#run), [`status`](#status), [`show`](#show), [`approve`](#approve), [`resume`](#resume)
+- [Workflow commands](#workflow-commands): [`console`](#console), [`run`](#run), [`status`](#status), [`dashboard`](#dashboard), [`show`](#show), [`approve`](#approve), [`resume`](#resume)
 - [Skills](#skills)
 - [Shortcut and connection](#shortcut-and-connection): [`connect`](#connect), [`setup`](#setup)
 - [Removal](#removal): [`uninstall`](#uninstall)
@@ -270,6 +270,27 @@ $ taskquoin status [<run>] [--json]
 | `0` | printed |
 | `1` | unknown run |
 
+### `dashboard`
+
+```console
+$ taskquoin dashboard [<run>]
+```
+
+A live, read-only screen over the control store: the pipeline, what waits for you, the runs, the agents, the log, and a
+diff and artifact viewer. It opens on `<run>`, or on the newest run that is running or waiting. Keys, layouts and the
+approval center are in the [Dashboard guide](../guides/dashboard.md); from the console it is `/dashboard`.
+
+- It never writes the control store and takes no lock. The only process it can start is `taskquoin approve`, from its
+  approval center, after you retype the hash.
+- It needs an interactive terminal (stdin and stdout), not `TERM=dumb`, not `TASKQUOIN_PLAIN=1`. Otherwise it prints
+  `taskquoin dashboard needs an interactive terminal … Use: taskquoin status` and exits `1`, so a script gets the refusal.
+- Below 40 columns × 12 rows it shows one message instead of the panels.
+
+| Exit | When |
+|---|---|
+| `0` | left with `q` or `Ctrl-C` |
+| `1` | no control store yet, unknown run, or no interactive terminal |
+
 ### `show`
 
 ```console
@@ -423,7 +444,7 @@ is kept for audit; `--purge-state` deletes it, also after a previous `uninstall`
 |---|---|
 | `TASKQUOIN_LANG` | Language of the messages, first in the [selection order](../guides/languages.md#how-the-language-is-chosen) |
 | `XDG_STATE_HOME` | Where the control store lives (`$XDG_STATE_HOME/taskquoin`, default `~/.local/state/taskquoin`) |
-| `NO_COLOR` | Console without colours |
+| `NO_COLOR` | Console and Dashboard without colours |
 | `TASKQUOIN_NO_ANIMATION` | Console banner without the start-up animation |
 | `TASKQUOIN_OFFLINE` | `1` skips the registry check of `taskquoin upgrade` and `/upgrade` (same as `--offline`) |
 | `TASKQUOIN_NO_SETUP` | Do not put `taskquoin` on the `PATH` automatically at first launch |
@@ -434,4 +455,4 @@ Provider keys named in `taskquoin.yaml` (`key: env:NAME`) are read from your env
 ## Learn more
 
 - [Console commands](console-commands.md) · [Configuration](configuration.md) · [Runs, artifacts and events](runs-artifacts-events.md)
-- [Upgrade guide](../guides/upgrade.md) · [Security](../guides/security.md) · [Skills](../guides/skills.md) · [Languages](../guides/languages.md)
+- [Dashboard guide](../guides/dashboard.md) · [Upgrade guide](../guides/upgrade.md) · [Security](../guides/security.md) · [Skills](../guides/skills.md) · [Languages](../guides/languages.md)

@@ -32,6 +32,8 @@ export interface SquadMember<S extends string = string> {
   agent?: S;
   /** The note as a code, and its raw part: the runtime, the gate's short reason, the skill error, the risky capabilities. */
   noteKind?: SquadNoteKind; detail?: S;
+  /** The runtime name alone (`claude`, `api`, `bubblewrap` for the Tester), without the composite `who`. */
+  runtime?: S;
 }
 
 /** Display words injected by the caller (the application layer knows no language). */
@@ -61,9 +63,9 @@ export function projectSquad(
     else if (g.acceptedRisks.length) { kind = 'risks'; detail = g.acceptedRisks.map(r => r.capability).join(', '); }
     const note = kind === 'absent' ? labels.absent(a.runtime) : detail;
     const who = `${id} · ${a.runtime === 'api' ? `api:${a.provider ?? ''}` : a.runtime === 'opencode' ? `opencode:${(a.model ?? '').split('/')[0]}` : a.runtime}`;
-    return { role: labels.role(id), who, state, agent: id, ...(note ? { note, noteKind: kind, detail } : {}) };
+    return { role: labels.role(id), who, state, agent: id, runtime: a.runtime, ...(note ? { note, noteKind: kind, detail } : {}) };
   });
-  squad.push(testerReady ? { role: labels.testerRole, who: 'verify · bubblewrap', state: 'ready' }
-    : { role: labels.testerRole, who: 'verify · bubblewrap', state: 'blocked', note: labels.testerUnavailable, noteKind: 'tester' });
+  squad.push(testerReady ? { role: labels.testerRole, who: 'verify · bubblewrap', state: 'ready', runtime: 'bubblewrap' }
+    : { role: labels.testerRole, who: 'verify · bubblewrap', state: 'blocked', runtime: 'bubblewrap', note: labels.testerUnavailable, noteKind: 'tester' });
   return squad;
 }

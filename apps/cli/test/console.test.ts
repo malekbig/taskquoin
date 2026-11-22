@@ -41,6 +41,7 @@ function session(lines: string[], over: Partial<ConsoleCommands> = {}) {
     show: async (r, a) => { calls.push(`show:${r}:${a ?? ''}`); return 0; },
     approve: async (r, g, e, as) => { calls.push(`approve:${r}:${g}:${e}:${as}`); return 0; },
     resume: async (r) => { calls.push(`resume:${r}`); return 0; },
+    dashboard: async (r) => { calls.push(`dashboard:${r ?? ''}`); return 1; },
     doctor: async () => { calls.push('doctor'); return 0; },
     skills: async () => { calls.push('skills'); return 0; },
     agents: async () => { calls.push('agents'); return 0; },
@@ -257,7 +258,7 @@ test('the console speaks the selected language: English by default, French on re
   const fr = await text('fr');
   assert.match(fr, /Commandes/); assert.match(fr, /Rien n'est lancé sans commande/);
   const { consoleHelp, commandDocs } = await import('../src/console.ts');
-  assert.equal(commandDocs().length, 13);
+  assert.equal(commandDocs().length, 14);
   assert.notEqual(await inLang('en', () => consoleHelp()), await inLang('fr', () => consoleHelp()), 'help is computed at call time, not at module load');
 });
 
@@ -265,7 +266,7 @@ test('CJK: the / menu description column and the banner second column start at o
   const { slashMenu, renderBanner, squadOf } = await import('../src/console.ts');
   const wide: Record<string, string> = {
     'console.doc.run': '启动受管运行', 'console.doc.runs': '列出所有运行', 'console.doc.use': '选择当前运行', 'console.doc.status': '当前运行的历史',
-    'console.doc.show': '显示产物', 'console.doc.approve': '批准流程', 'console.doc.resume': '恢复运行', 'console.doc.agents': '代理及其权限',
+    'console.doc.show': '显示产物', 'console.doc.approve': '批准流程', 'console.doc.dashboard': '实时只读看板', 'console.doc.resume': '恢复运行', 'console.doc.agents': '代理及其权限',
     'console.doc.doctor': '机器状态', 'console.doc.skills': '已安装技能', 'console.doc.upgrade': '升级工具版本', 'console.doc.upgrade.args': '[auto|path|install]', 'console.doc.help': '帮助', 'console.doc.quit': '退出控制台',
     'console.role.planner': '架构师', 'console.role.implementer': '开发者', 'console.role.challenger': '审阅者', 'console.role.security': '安全',
     'console.role.tester': '测试员',
@@ -511,4 +512,19 @@ test('the gate no longer pending after the retype (approved elsewhere): refused,
   assert.equal(await s.done, 1);
   assert.deepEqual(s.calls.filter(c => c.startsWith('approve')), []);
   assert.ok(s.out.some(l => /is no longer waiting for the plan approval/.test(l)));
+});
+
+test('/dashboard: runs the dashboard with the current run, its refusal is not a failed command, /help dashboard, listed under Review and fitting 40 columns', async () => {
+  await inLang('en', async () => {
+    const { slashMenu, commandDocs } = await import('../src/console.ts');
+    const s = session(['/dashboard', '/use run-20261115T100000-aaaaaa', '/dashboard', '/help dashboard', '/quit']);
+    assert.equal(await s.done, 0, 'the child exit code (1 without a terminal) does not fail the session');
+    assert.deepEqual(s.calls, ['dashboard:', 'dashboard:run-20261115T100000-aaaaaa']);
+    assert.ok(s.out.some(l => l.trim() === '/dashboard'), s.out.join('\n'));
+    const menu = slashMenu('/', 40);
+    const at = (c: string) => menu.findIndex(l => l.trim().startsWith(c));
+    assert.ok(at('/dashboard') > menu.indexOf('Review') && at('/dashboard') < menu.indexOf('Diagnose'), menu.join('\n'));
+    for (const l of menu) assert.ok(displayWidth(l) <= 40, l);
+    assert.ok(commandDocs().some(([c]) => c === '/dashboard'));
+  });
 });

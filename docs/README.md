@@ -42,6 +42,7 @@ Each translated tutorial shows the screens in its own language. English and Fren
 |---|---|
 | [Configuration](guides/configuration.md) | `taskquoin.yaml`, section by section |
 | [Agents and runtimes](guides/agents-and-runtimes.md) | Architect, Developer, Reviewer, Tester; Claude Code, Codex, OpenCode, API judges; accepted risks |
+| [The Dashboard](guides/dashboard.md) | the live, read-only screen: panels, keys, the diff viewer, approving by retyping the hash |
 | [Approvals](guides/approvals.md) | the two human gates, what a hash binds, refusals, resuming |
 | [Verify and the RED proof](guides/verify-and-red-proof.md) | your tests in a clean room, and the proof that they fail without the change |
 | [Security](guides/security.md) | capabilities, enforcement classes, sandboxes, hooks, secrets, what is not protected |

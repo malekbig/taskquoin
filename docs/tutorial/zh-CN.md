@@ -15,6 +15,7 @@
 - [步骤 7：实现、Verify 与评审](#步骤-7实现verify-与评审)
 - [步骤 8：阅读并批准提交](#步骤-8阅读并批准提交)
 - [步骤 9：合并结果](#步骤-9合并结果)
+- [在 Dashboard 中跟踪一次运行](#在-dashboard-中跟踪一次运行)
 - [当事情没有按计划进行](#当事情没有按计划进行)
 - [了解更多](#了解更多)
 
@@ -504,6 +505,20 @@ $ npm test
 > Taskquoin 不会运行你仓库的提交 hook，因为它们可能包含被智能体修改过的代码。合并时，请自己运行你的 hook、linter 和 CI。
 
 `taskquoin/<run>` 分支归你所有：不再需要时请删除它们（`git branch -d taskquoin/<run>`）。
+
+## 在 Dashboard 中跟踪一次运行
+
+运行期间，在同一仓库中打开第二个终端并启动 Dashboard。它只读取：显示流水线、等待您的审批（含其哈希的开头）、各个智能体和日志。
+
+```shell
+$ taskquoin dashboard
+```
+
+![提交审批处的 Dashboard](../assets/screens/zh-CN/dashboard.svg)
+
+按 `d` 阅读 diff：`/` 搜索，`n` 和 `N` 在匹配项之间跳转；滚动到文件末尾后，该文件才算已读。
+
+按 `p` 打开审批中心。没有任何按键会自行批准：您输入姓名，然后重新键入哈希的 12 个字符。按 `q` 退出；已批准的运行会继续。 [Dashboard 指南（英文）](../guides/dashboard.md).
 
 ## 当事情没有按计划进行
 

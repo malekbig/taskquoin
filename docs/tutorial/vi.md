@@ -15,6 +15,7 @@ Hướng dẫn này đưa bạn đi từ một thư mục trống đến một c
 - [Bước 7: triển khai, Verify và review](#bước-7-triển-khai-verify-và-review)
 - [Bước 8: đọc và phê duyệt commit](#bước-8-đọc-và-phê-duyệt-commit)
 - [Bước 9: merge kết quả](#bước-9-merge-kết-quả)
+- [Theo dõi một lần chạy trong Dashboard](#theo-dõi-một-lần-chạy-trong-dashboard)
 - [Khi mọi việc không diễn ra như kế hoạch](#khi-mọi-việc-không-diễn-ra-như-kế-hoạch)
 - [Tìm hiểu thêm](#tìm-hiểu-thêm)
 
@@ -504,6 +505,20 @@ $ npm test
 > Taskquoin không chạy các hook commit của kho bạn, vì chúng có thể chứa mã mà tác tử đã sửa. Hãy tự chạy các hook, linter và CI của bạn khi merge.
 
 Các nhánh `taskquoin/<run>` là của bạn: hãy xóa chúng khi không cần nữa (`git branch -d taskquoin/<run>`).
+
+## Theo dõi một lần chạy trong Dashboard
+
+Khi một lần chạy đang hoạt động, hãy mở một terminal thứ hai trong cùng kho mã và khởi động Dashboard. Nó chỉ đọc: hiển thị pipeline, phê duyệt đang chờ bạn (kèm phần đầu của hash), các tác tử và nhật ký.
+
+```shell
+$ taskquoin dashboard
+```
+
+![Dashboard tại bước duyệt commit](../assets/screens/vi/dashboard.svg)
+
+Nhấn `d` để đọc diff: `/` để tìm, `n` và `N` để nhảy giữa các kết quả, và một tệp được tính là đã đọc khi bạn cuộn đến cuối.
+
+Nhấn `p` để mở trung tâm phê duyệt. Không phím nào tự phê duyệt: bạn nhập tên, rồi gõ lại 12 ký tự của hash. Thoát bằng `q`; lần chạy đã được duyệt vẫn tiếp tục. [Hướng dẫn Dashboard (bằng tiếng Anh)](../guides/dashboard.md).
 
 ## Khi mọi việc không diễn ra như kế hoạch
 

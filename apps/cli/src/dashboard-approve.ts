@@ -1,0 +1,177 @@
+/**
+ * The dashboard's approval form (skill rule 1, "approvals are typed, never pressed"; ADR-0015 unchanged). No key
+ * approves: the form only collects what the human types and hands it, once, to the existing `approve` path — the
+ * 12 characters typed go to `--expect`, the name is recorded as `<name> (via taskquoin dashboard)`.
+ *  - Nothing typed before the form is on screen counts: `typeAhead()` drops it, and `key()` before `open()` too.
+ *  - Each `key(chunk)` is one input event. Only a chunk holding a single Enter submits; a paste or a chunk of several
+ *    keys (type-ahead, an unbracketed paste) appends its text and never submits.
+ *  - The binding is read again when the form opens, when the hash step starts and after the last keystroke (the
+ *    submitting Enter): absent, another gate or another hash refuses (`stale`) and nothing is approved.
+ *  - Esc and Ctrl+C cancel while something is being typed; after `sent` they only close the view (an approval may
+ *    already be recorded: the screen never says "nothing was approved" then).
+ * The name is trimmed and capped at 64 characters, kept in memory by the caller (`onName`), never read from the OS.
+ */
+import type { RunView } from '@taskquoin/application';
+import type { Caps } from './tui/caps.ts';
+import { keyDecoder, type Key } from './tui/keys.ts';
+import { neutralize } from './tui/neutral.ts';
+import { renderApprovalCenter, type Outcome } from './tui/components/approval-center.ts';
+
+export type Gate = 'plan' | 'commit';
+/** What the store says the run waits for, read now. `at`: when it started waiting (the last history entry). */
+export interface Pending { gate: Gate; binding: string; at?: string }
+export type Shown = { binding: string; at: string };
+export type FormStep = { step: 'not-waiting' } | { step: 'name'; text: string; error?: 'slash' | 'controls' }
+  | { step: 'hash'; shown: Shown; text: string; error?: 'mismatch' | 'controls'; changed?: boolean }
+  | { step: 'stale'; shown: Shown; now?: Pending } | { step: 'cancelled' } | { step: 'sent'; shown: Shown; as: string };
+/** What the centre shows around the form: the run (neutral), its request, what was read this session, the risks in force, how many runs wait. */
+export interface CenterContext { view: RunView; request: string; read: Set<string>; acceptedRisks: string[]; waiting: number }
+
+export const VIA_DASHBOARD = ' (via taskquoin dashboard)';
+export const NAME_MAX = 64;
+export const HASH_LEN = 12;
+
+const PASTE_START = '\x1b[200~', PASTE_END = '\x1b[201~';
+const chars = (s: string): string[] => [...s];
+/** The name as recorded: trimmed, at most 64 characters (code points). */
+export const cleanName = (s: string): string => chars(s.trim()).slice(0, NAME_MAX).join('').trim();
+
+export interface ApprovalForm {
+  open(): void;
+  typeAhead(chunk: string): void;
+  key(chunk: string): Promise<void>;
+  refresh(): void;
+  state(): FormStep;
+  /** The approver this form records (undefined until the name step is done). */
+  approver(): string | undefined;
+  render(caps: Caps, height?: number, outcome?: Outcome): string[];
+}
+
+export function approvalForm(o: {
+  runId: string; gate: Gate; approver?: string;
+  pending: () => Pending | undefined;
+  approve: (runId: string, gate: Gate, expect: string, as: string) => unknown;
+  onName?: (name: string) => void;
+  context: () => CenterContext;
+  now?: () => Date;
+}): ApprovalForm {
+  const now = o.now ?? ((): Date => new Date());
+  const decoder = keyDecoder();
+  let opened = false;
+  let step: FormStep = { step: 'not-waiting' };
+  // A name the session kept: only one that could have been typed (no control, bidi or invisible character); else asked again.
+  const given = o.approver !== undefined && neutralize(o.approver, { singleLine: true }).marked === 0 ? cleanName(o.approver) : '';
+  let name = given !== '' && !given.startsWith('/') ? given : undefined;
+  let reReadAt: string | undefined;
+  let sentOnce = false;
+  let dropPaste = false; // a bracketed paste begun before the form was on screen: its end is dropped too
+
+  const same = (p: Pending | undefined, shown: Shown): boolean => p !== undefined && p.gate === o.gate && p.binding === shown.binding;
+  /** The hash step, from a binding read now. */
+  const toHash = (): FormStep => {
+    const p = o.pending();
+    reReadAt = now().toISOString();
+    if (!p || p.gate !== o.gate) return { step: 'not-waiting' };
+    return { step: 'hash', shown: { binding: p.binding, at: reReadAt }, text: '' };
+  };
+
+  const nameKey = (s: Extract<FormStep, { step: 'name' }>, k: Key, multi: boolean): FormStep => {
+    const { error: _e, ...plain } = s;
+    // the field never starts with a space and holds at most 64 characters: what is kept is what is recorded
+    const append = (text: string): FormStep => ({ ...plain, text: chars((s.text + text).trimStart()).slice(0, NAME_MAX).join('') });
+    switch (k.name) {
+      case 'char': return append(k.ch);
+      case 'paste': {
+        if (dropPaste) { dropPaste = false; return s; }
+        if (neutralize(k.text, { singleLine: true }).marked > 0) return { ...plain, error: 'controls' };
+        return append(k.text);
+      }
+      case 'backspace': return { ...plain, text: chars(s.text).slice(0, -1).join('') };
+      case 'unknown': return k.seq.startsWith('\x1b') ? s : { ...plain, error: 'controls' };
+      case 'enter': {
+        if (multi) return s; // an Enter inside a chunk of several keys never submits
+        const typed = cleanName(s.text);
+        if (typed === '') return { step: 'cancelled' };
+        if (typed.startsWith('/')) return { step: 'name', text: '', error: 'slash' };
+        name = typed;
+        o.onName?.(typed);
+        return toHash();
+      }
+      default: return s;
+    }
+  };
+
+  const hashKey = async (s: Extract<FormStep, { step: 'hash' }>, k: Key, multi: boolean): Promise<FormStep> => {
+    const { error: _e, ...plain } = s;
+    const append = (text: string): FormStep => ({ ...plain, text: chars(s.text + text).slice(0, HASH_LEN).join('') });
+    switch (k.name) {
+      case 'char': return append(k.ch);
+      case 'paste': {
+        if (dropPaste) { dropPaste = false; return s; }
+        const text = k.text.replace(/[\r\n]/g, '');
+        if (neutralize(text, { singleLine: true }).marked > 0) return { ...plain, error: 'controls' };
+        return append(text);
+      }
+      case 'backspace': return { ...plain, text: chars(s.text).slice(0, -1).join('') };
+      case 'unknown': return k.seq.startsWith('\x1b') ? s : { ...plain, error: 'controls' };
+      case 'enter': {
+        if (multi) return s;
+        const typed = s.text.trim().toLowerCase();
+        if (typed === '') return { step: 'cancelled' };
+        // after the last keystroke: what is approved is what was shown, or nothing
+        const p = o.pending();
+        reReadAt = now().toISOString();
+        if (!same(p, s.shown)) return { step: 'stale', shown: s.shown, ...(p ? { now: p } : {}) };
+        if (typed !== s.shown.binding.slice(0, HASH_LEN).toLowerCase()) return { ...plain, text: '', error: 'mismatch' };
+        if (sentOnce || name === undefined) return s;
+        sentOnce = true;
+        const as = name + VIA_DASHBOARD;
+        step = { step: 'sent', shown: s.shown, as };
+        await o.approve(o.runId, o.gate, typed, as);
+        return step;
+      }
+      default: return s;
+    }
+  };
+
+  /** Dropped. The decoder still reads it, so a bracketed paste it began is known, and dropped whole when it ends. */
+  const typeAhead = (chunk: string): void => {
+    decoder.feed(chunk); decoder.flush();
+    const start = chunk.lastIndexOf(PASTE_START), end = chunk.lastIndexOf(PASTE_END);
+    if (start > end) dropPaste = true;
+    else if (end >= 0) dropPaste = false;
+  };
+
+  return {
+    open(): void {
+      opened = true;
+      const p = o.pending();
+      reReadAt = now().toISOString();
+      if (!p || p.gate !== o.gate) { step = { step: 'not-waiting' }; return; }
+      step = name === undefined ? { step: 'name', text: '' } : { step: 'hash', shown: { binding: p.binding, at: reReadAt }, text: '' };
+    },
+    typeAhead,
+    async key(chunk: string): Promise<void> {
+      if (!opened) { typeAhead(chunk); return; }
+      const keys = [...decoder.feed(chunk), ...decoder.flush()].flatMap((c) => c.keys);
+      const multi = keys.length > 1;
+      for (const k of keys) {
+        const s = step;
+        if (s.step !== 'name' && s.step !== 'hash') return; // after the form: the caller closes the view, nothing is re-sent
+        if (k.name === 'esc' || k.name === 'ctrl-c') { step = { step: 'cancelled' }; return; }
+        step = s.step === 'name' ? nameKey(s, k, multi) : await hashKey(s, k, multi);
+      }
+    },
+    refresh(): void {
+      if (step.step !== 'hash') return;
+      const p = o.pending();
+      reReadAt = now().toISOString();
+      step = { ...step, changed: !same(p, step.shown) };
+    },
+    state: (): FormStep => structuredClone(step),
+    approver: (): string | undefined => name,
+    render(caps: Caps, height = caps.rows, outcome?: Outcome): string[] {
+      return renderApprovalCenter(step, { ...o.context(), gate: o.gate, ...(name !== undefined ? { approver: name } : {}), ...(reReadAt !== undefined ? { reReadAt } : {}), ...(outcome ? { outcome } : {}) }, caps, height);
+    },
+  };
+}

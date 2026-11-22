@@ -15,7 +15,7 @@ import { failureDigest, isReady, isRealDate, pendingApproval, prepareRun, projec
 import { defaultConfig, keyEnvName, KNOWN_KEY_VARS, MAX_CONFIG_BYTES, parseConfig, providerOf, renderConfig, workflowOf, type Stack, type TaskquoinConfig } from '@taskquoin/config';
 import { findOnPath, probeHost, probeOllama, type HostReport } from '@taskquoin/host-probe';
 import { connectedProviders, connectEnv, LOCAL_PROVIDERS, LOGIN_ARGS, MEASURED_CONNECTIONS, measuredHosts, OPENCODE_VERSION, userOpenCodeDirs, userOpenCodePaths } from '@taskquoin/runtime-opencode';
-import { ensureTrustedDir, listRuns, loadRiskAcceptances, loadRunState, readEvents, repoStore, saveRiskAcceptance, stateBase } from '@taskquoin/store-fs';
+import { ensureTrustedDir, listRuns, loadRiskAcceptances, loadRunState, openRepoStoreReadOnly, readEvents, repoStore, saveRiskAcceptance, stateBase, type RepoStore } from '@taskquoin/store-fs';
 import { codexSandboxFor } from '@taskquoin/runtime-codex';
 import { ClaudeMemMemory } from '@taskquoin/memory-claude-mem';
 import { GitWorkspace } from '@taskquoin/git';
@@ -27,6 +27,10 @@ import { installShortcut, removeShortcut, type ShortcutEnv } from './shortcut.ts
 import { runtimeNotices } from './runtime-notices.ts';
 import { layoutOf } from './layout.ts';
 import { detectCaps } from './tui/caps.ts';
+import { nodeTty } from './tui/screen.ts';
+import { runDashboard } from './dashboard.ts';
+import type { DashStatic } from './dashboard-data.ts';
+import { fileURLToPath } from 'node:url';
 import { homeMode, LOGO_ROWS, renderHome, type HomeModel } from './tui/components/home.ts';
 import { shownRun } from './tui/view.ts';
 import { timelineLine } from './tui/components/timeline.ts';
@@ -80,7 +84,7 @@ function loadConfig(root: string): TaskquoinConfig {
   try { return parseConfig(readFileSync(p, 'utf8')); } catch (e) { err(`taskquoin: ${nz((e as Error).message)}`); process.exit(1); } // i18n-ok: the message comes from the config parser (domain text)
 }
 
-function gate(cfg: TaskquoinConfig, h: HostReport, agentId: string): GateResult & { runtimeFound: boolean } {
+function gate(cfg: TaskquoinConfig, h: HostReport, agentId: string, store: RepoStore = repoStore(h.gitRoot!)): GateResult & { runtimeFound: boolean } {
   const a = cfg.agents[agentId];
   if (a.runtime === 'api') {
     // A text-only judge: certified by construction (no tool path); runnable only when its provider key is present.
@@ -98,7 +102,7 @@ function gate(cfg: TaskquoinConfig, h: HostReport, agentId: string): GateResult 
     satisfied: [...(a.runtime === 'claude' && h.bashSandbox ? ['bash-sandbox' as const] : []), ...(a.runtime === 'opencode' && h.fileSandbox ? ['file-sandbox' as const] : []), 'landing-gate' as const],
     ...(a.runtime === 'codex' ? { sandbox: codexSandboxFor(a.capabilities) } : {}),
   };
-  const exceptions = loadRiskAcceptances(repoStore(h.gitRoot!)) as OwnerException[];
+  const exceptions = loadRiskAcceptances(store) as OwnerException[];
   const g = { ...prepareRun({ agentId, agent: a, mandatory: cfg.policy.mandatory, exceptions, matrix, facts, now: new Date() }), runtimeFound: !!probe };
   if (a.runtime === 'opencode') {
     // Taskquoin's own OpenCode connection (spec §5.2) must hold the model's provider — checked without reading any secret.
@@ -304,7 +308,7 @@ export function help(): string {
   const col: [string, string][] = [
     ['  init', t('cli.help.init')], ['  doctor', t('cli.help.doctor')], ['  check <agent> [--json]', t('cli.help.check')], ['  version', t('cli.help.version')],
     ['  upgrade [auto|path|install] [--offline]', t('cli.help.upgrade')], ['  console', t('cli.help.console')], ['  run "<request>"', t('cli.help.run')], ['  status [<run>] [--json]', t('cli.help.status')],
-    ['  show <run>', t('cli.help.showList')], ['  show <run> <artifact>', t('cli.help.showOne')], ['  resume <run>', t('cli.help.resume')],
+    ['  dashboard [<run>]', t('cli.help.dashboard')], ['  show <run>', t('cli.help.showList')], ['  show <run> <artifact>', t('cli.help.showOne')], ['  resume <run>', t('cli.help.resume')],
     ['  skills list', t('cli.help.skillsList')], ['  skills audit <dir>', t('cli.help.skillsAudit')],
     ['  connect opencode [--remove]', t('cli.help.connect')], ['  setup [--remove]', t('cli.help.setup2')], ['  uninstall [--purge-state]', t('cli.help.uninstall')],
   ];
@@ -314,7 +318,7 @@ export function help(): string {
     t('cli.help.title'), '',
     t('cli.help.setup'), at('init'), at('doctor'), at('upgrade [auto|path|install] [--offline]'), at('check <agent> [--json]'),
     '  accept-risk <agent> <capability> --reason "<why>" --expires YYYY-MM-DD --as <name>', wrap + t('cli.help.acceptRisk'), at('version'),
-    t('cli.help.workflow'), at('console'), at('run "<request>"'), at('status [<run>] [--json]'), at('show <run>'), at('show <run> <artifact>'),
+    t('cli.help.workflow'), at('console'), at('run "<request>"'), at('status [<run>] [--json]'), at('dashboard [<run>]'), at('show <run>'), at('show <run> <artifact>'),
     '  approve <run> <plan|commit> --expect <hash> --as <name>', wrap + t('cli.help.approve'), at('resume <run>'),
     t('cli.help.skills'), at('skills list'), at('skills audit <dir>'),
     `  skills import <dir> --source "<owner/repo@commit>"   ${t('cli.help.skillsImport')}`,
@@ -420,6 +424,7 @@ async function cmdConsole(offline: boolean): Promise<number> {
     run: async (r) => { let runId: string | undefined; const code = await guard(() => cmdRun(c, git, r, (id) => { runId = id; })); return { code, ...(runId ? { runId } : {}) }; },
     status: (r) => guard(() => cmdStatus(c, r)), show: (r, a) => guard(() => cmdShow(c, r, a)),
     approve: (r, g, e, as) => guard(() => cmdApprove(c, git, r, g, e, as)), resume: (r) => guard(() => cmdResume(c, git, r)),
+    dashboard: (r) => guard(() => withTerminalReleased({ rl, stdin: process.stdin, signals: process }, () => runInherit(process.execPath, [SELF, 'dashboard', ...(r ? [r] : [])], c.root))),
     doctor: () => guard(() => cmdDoctor()), skills: () => guard(() => cmdSkills(c.store, 'list', undefined, {}, out, err)),
     agents: () => guard(() => {
       for (const [id, a] of Object.entries(c.cfg.agents)) out(`${nz(id).padEnd(12)} ${a.runtime.padEnd(7)} ${Object.keys(a.capabilities).join(', ')}${a.skills?.length ? t('cli.console.agentSkills', { list: a.skills.map(nz).join(', ') }) : ''}`);
@@ -453,6 +458,40 @@ async function cmdConsole(offline: boolean): Promise<number> {
   const animate = caps.motion && caps.colorDepth > 0 && homeMode(caps) !== 'minimal';
   if (animate) await animateLogo((s) => process.stdout.write(s), (ms) => new Promise(r => setTimeout(r, ms)), lines.slice(0, LOGO_ROWS));
   try { return await runConsole(io, cmds, (animate ? lines.slice(LOGO_ROWS) : lines).join('\n'), caps); } finally { rl.close(); }
+}
+
+/** This file, for the console's `/dashboard` child process. */
+export const SELF = fileURLToPath(import.meta.url);
+
+/**
+ * `taskquoin dashboard [<run>]`: a live, read-only screen over the control store. Order: repository, config, the store
+ * opened read-only, the run, THEN the terminal refusal (no probe for a message), then the squad as the banner shows it.
+ */
+async function cmdDashboard(runId: string | undefined): Promise<number> {
+  const h = await host(); const root = requireRepo(h); const cfg = loadConfig(root);
+  let store: RepoStore | undefined;
+  try { store = openRepoStoreReadOnly(root); } catch { store = undefined; }
+  if (!store) { err(t('dashboard.noStore')); return 1; }
+  if (runId !== undefined) {
+    let known = false; try { known = !!loadRunState<RunState>(store, runId); } catch { known = false; }
+    if (!known) { err(t('workflow.unknownRun', { run: nz(runId) })); return 1; }
+  }
+  const capsOf = (size?: { columns: number; rows: number }) => detectCaps({ stdinTTY: !!process.stdin.isTTY,
+    stdout: { isTTY: process.stdout.isTTY, columns: size?.columns ?? process.stdout.columns, rows: size?.rows ?? process.stdout.rows, getColorDepth: (e) => process.stdout.getColorDepth?.(e) ?? 1 }, env: process.env });
+  const c0 = capsOf();
+  if (!c0.interactive || c0.plain || process.env.TERM === 'dumb') { err(t('dashboard.needsTerminal')); return 1; }
+  const sandbox = await sandboxedToolAvailable();
+  const ro = store;
+  const squad = squadOf(cfg.agents, (id) => ({ ...gate(cfg, h, id, ro), skillErrors: resolveAgentSkills(cfg, ro, id).errors }), sandbox);
+  const home = process.env.HOME ?? homedir();
+  const git = (...a: string[]): string | undefined => { try { const r = spawnSync(h.git!, ['--no-optional-locks', ...a], { cwd: root, encoding: 'utf8', env: { PATH: process.env.PATH ?? '', HOME: home } }); return r.status === 0 ? r.stdout : undefined; } catch { return undefined; } };
+  const branch = h.git ? git('branch', '--show-current')?.trim() : undefined; const porcelain = h.git ? git('status', '--porcelain') : undefined;
+  const today = new Date().toISOString().slice(0, 10);
+  const fixed: DashStatic = { version: LAYOUT.version, repo: nz(root === home ? '~' : root.startsWith(home + '/') ? '~' + root.slice(home.length) : root),
+    ...(branch ? { branch: nz(branch) } : {}), ...(porcelain === undefined ? {} : { clean: porcelain.trim() === '' }),
+    acceptedRisks: loadRiskAcceptances(store).filter(r => r.expires >= today).map(r => nz(r.capability)), squad,
+    runtimeVersions: Object.fromEntries(Object.entries(h.runtimes).flatMap(([k, v]) => (v?.version ? [[k, nz(v.version)]] : []))), checkedAt: new Date().toISOString() };
+  return runDashboard({ tty: nodeTty(process.stdin, process.stdout), signals: process, caps: (size) => capsOf(size), store, fixed, ...(runId !== undefined ? { runId } : {}) });
 }
 
 /** What the home screen shows about this repository, read once at start-up. Nothing here is a verdict: READY comes from the gates. */
@@ -506,6 +545,7 @@ async function main(): Promise<number> {
     case 'run': { const { c, git } = await ctx(); return cmdRun(c, git, requestFrom(positionals)); }
     case 'approve': { const { c, git } = await ctx(); return cmdApprove(c, git, arg, arg2, values.expect, values.as); }
     case 'resume': { const { c, git } = await ctx(); return cmdResume(c, git, arg); }
+    case 'dashboard': return cmdDashboard(arg);
     case 'status': { const { c } = await ctx(); return cmdStatus(c, arg, !!values.json); }
     case 'show': { const { c } = await ctx(); return cmdShow(c, arg, arg2); }
     case 'skills': { const h = await host(); const root = requireRepo(h); return cmdSkills(repoStore(root), arg, arg2, { source: values.source, as: values.as, acceptFindings: !!values['accept-findings'] }, out, err); }

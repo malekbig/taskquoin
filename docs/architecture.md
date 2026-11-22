@@ -40,15 +40,20 @@ flowchart LR
   AF -->|Action Broker, approved only| WR[Write connectors<br/>GitHub PR, Jira comment]
   AF -->|state, approvals, audit| CP[(Control plane store<br/>outside workspace)]
   CI[CI pipeline] -->|taskquoin ci gate| AF
+  Dev -->|watch| DB[Dashboard<br/>read-only]
+  DB -.->|read-only| CP
+  DB -->|retyped hash: taskquoin approve, separate process| AF
 ```
 
 ## 3. Layered view (hexagonal)
 
 ```text
 apps/cli                       thin: parse args → application use case → print
+  └─ src/tui                   terminal screens (home, console, Dashboard): pure renderers over the projections; the Dashboard reads the store read-only
 apps/hooks                     shell/py entrypoints invoked by runtimes (PreToolUse…) → call rules engine
 packages/application           use cases + PORTS (owned here)
   ├─ InitProject, CompileRuntimes, Doctor, RunWorkflow, ApproveAction, ImportSkill, AuditSkill, Uninstall
+  ├─ projection: RunView, SquadView (pure: run state/events and gate verdicts → what a screen shows; the Dashboard and `status` read the same projection)
   └─ ports: RuntimeExecutor, RuntimeConfigInstaller, RunStore, ArtifactStore, ActionBroker, SkillSource, Scanner, Clock, Approver
 packages/domain                pure: Workflow state machine, Policy evaluation, Capability mapping, Approval binding, Trust state, Risk tier
 packages/rules                 pure deterministic rule engine (layer violations, forbidden paths, dangerous shell) — shared by hooks, CI, reviewer

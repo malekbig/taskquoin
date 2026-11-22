@@ -6,7 +6,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { glyph, paint, stateToken, TOKEN_HEX, type StateName, type Token } from '../src/tui/tokens.ts';
+import { bold, ellipsis, glyph, mark, paint, selected, stateToken, TOKEN_HEX, type StateName, type Token } from '../src/tui/tokens.ts';
 import type { Caps } from '../src/tui/caps.ts';
 
 const base: Caps = { interactive: true, cursor: true, colorDepth: 24, charset: 'utf8', theme: 'dark', motion: true, plain: false, columns: 80, rows: 24 };
@@ -65,5 +65,34 @@ test('contrast (AC-16): text tokens >= 4.5:1, line >= 3:1', () => {
       const r = ratio(TOKEN_HEX[tok][theme], bg[theme]);
       assert.ok(r >= (tok === 'line' ? 3 : 4.5), `${tok} ${theme} ${r.toFixed(2)}`);
     }
+  }
+});
+
+test('selected and bold per colour depth', () => {
+  const E2 = '\x1b';
+  assert.equal(selected('x', c({})), `${E2}[48;2;43;49;80mx${E2}[49m`);
+  assert.equal(selected('x', c({ theme: 'light' })), `${E2}[48;2;240;241;247mx${E2}[49m`);
+  assert.equal(selected('x', c({ colorDepth: 8 })), `${E2}[48;5;237mx${E2}[49m`);
+  assert.equal(selected('x', c({ colorDepth: 8, theme: 'light' })), `${E2}[48;5;255mx${E2}[49m`);
+  assert.equal(selected('x', c({ colorDepth: 4 })), `${E2}[7mx${E2}[27m`);
+  assert.equal(selected('x', c({ colorDepth: 0 })), 'x');
+  assert.equal(bold('x', c({})), `${E2}[1mx${E2}[22m`);
+  assert.equal(bold('x', c({ colorDepth: 0 })), 'x');
+});
+
+test('mark and ellipsis have an ASCII twin', () => {
+  const asc = c({ charset: 'ascii' });
+  assert.deepEqual((['ellipsis', 'warn', 'cursor', 'arrow', 'caret', 'sep'] as const).map((m) => mark(m, base)), ['…', '⚠', '▸', '→', '█', '·']);
+  for (const m of ['ellipsis', 'warn', 'cursor', 'arrow', 'caret', 'sep'] as const) assert.match(mark(m, asc), /^[\x20-\x7e]+$/);
+  assert.equal(ellipsis(asc), '...');
+  assert.equal(ellipsis(base), '…');
+});
+
+test('contrast: every text token >= 4.5:1 on the selection background (line is a rule, not text: excluded)', () => {
+  const sel = { dark: '#2B3150', light: '#F0F1F7' } as const;
+  for (const theme of ['dark', 'light'] as const) for (const tok of Object.keys(TOKEN_HEX) as Token[]) {
+    if (tok === 'line') continue;
+    const r = ratio(TOKEN_HEX[tok][theme], sel[theme]);
+    assert.ok(r >= 4.5, `${tok} ${theme} ${r.toFixed(2)}`);
   }
 });

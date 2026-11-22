@@ -28,6 +28,8 @@ export interface ConsoleCommands {
   show(run: string, artifact?: string): Promise<number>;
   approve(run: string, gate: 'plan' | 'commit', expect: string, as: string): Promise<number>;
   resume(run: string): Promise<number>;
+  /** `/dashboard`: the live screen in its own process (the console waits, then draws its prompt again). */
+  dashboard(run?: string): Promise<number>;
   doctor(): Promise<number>;
   skills(): Promise<number>;
   agents(): Promise<number>;
@@ -100,6 +102,7 @@ const COMMAND_TABLE: readonly [string, DocKey | '', DocKey, Category][] = [
   ['/resume', '', 'console.doc.resume', 'run'],
   ['/show', 'console.doc.show.args', 'console.doc.show', 'review'],
   ['/approve', '', 'console.doc.approve', 'review'],
+  ['/dashboard', '', 'console.doc.dashboard', 'review'],
   ['/agents', '', 'console.doc.agents', 'diagnose'],
   ['/doctor', '', 'console.doc.doctor', 'diagnose'],
   ['/skills', '', 'console.doc.skills', 'diagnose'],
@@ -302,6 +305,7 @@ export async function runConsole(io: ConsoleIO, cmd: ConsoleCommands, banner?: s
         break;
       }
       case 'resume': { const r = needRun(); if (r) track(await cmd.resume(r)); break; }
+      case 'dashboard': await cmd.dashboard(current); break; // the screen's own refusal is not a failed command
       case 'agents': track(await cmd.agents()); break;
       case 'doctor': track(await cmd.doctor()); break;
       case 'skills': track(await cmd.skills()); break;

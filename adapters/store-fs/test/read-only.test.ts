@@ -46,7 +46,7 @@ const line = (i: number) => JSON.stringify({ type: 'x', i });
 test('readEvents: partial last line and malformed lines are skipped', () => {
   const { s, file } = store('ev1');
   writeFileSync(file, [line(1), line(2), line(3)].join('\n') + '\n{"type":"verify.res');
-  assert.deepEqual(readEvents(s, 'r1'), { events: [1, 2, 3].map(i => ({ type: 'x', i })), skipped: 1 });
+  assert.deepEqual(readEvents(s, 'r1'), { events: [1, 2, 3].map(i => ({ type: 'x', i })), skipped: 1, cut: false });
   writeFileSync(file, line(1) + '\nnot json\n[1]\n' + line(2) + '\n');
   const r = readEvents(s, 'r1');
   assert.equal(r.events.length, 2); assert.equal(r.skipped, 2);
@@ -57,15 +57,16 @@ test('readEvents: max keeps the last ones; missing file is empty', () => {
   writeFileSync(file, Array.from({ length: 1500 }, (_, i) => line(i)).join('\n') + '\n');
   const r = readEvents(s, 'r1');
   assert.equal(r.events.length, 1000); assert.equal(r.events[0]!.i, 500); assert.equal(r.events[999]!.i, 1499);
+  assert.equal(r.cut, true); // 500 older lines were dropped
   assert.equal(readEvents(s, 'r1', { max: 2 }).events.length, 2);
-  assert.deepEqual(readEvents(s, 'nope'), { events: [], skipped: 0 });
+  assert.deepEqual(readEvents(s, 'nope'), { events: [], skipped: 0, cut: false });
   assert.throws(() => readEvents(s, '../x'), /invalid run id/);
 });
 
 test('readEvents: an unterminated last line that is complete JSON is accepted', () => {
   const { s, file } = store('ev3');
   writeFileSync(file, line(1) + '\n' + line(2));
-  assert.deepEqual(readEvents(s, 'r1'), { events: [{ type: 'x', i: 1 }, { type: 'x', i: 2 }], skipped: 0 });
+  assert.deepEqual(readEvents(s, 'r1'), { events: [{ type: 'x', i: 1 }, { type: 'x', i: 2 }], skipped: 0, cut: false });
 });
 
 test('readEvents: reads only the tail of a large file; the cut first line is not counted', () => {
@@ -98,6 +99,16 @@ test('an existing store is left untouched by openRepoStoreReadOnly and readEvent
   assert.ok(before.length > 8, before.join('\n'));
   const ro = openRepoStoreReadOnly(repo, base)!;
   assert.equal(readEvents(ro, 'run-a').events.length, 2);
-  assert.deepEqual(readEvents(ro, 'run-none'), { events: [], skipped: 0 });
+  assert.deepEqual(readEvents(ro, 'run-none'), { events: [], skipped: 0, cut: false });
   assert.deepEqual(snapshot(), before);
+});
+
+test('readEvents: cut is true when the tail read stops short of the file start, false when everything was read', () => {
+  const { s, file } = store('ev-cut');
+  writeFileSync(file, Array.from({ length: 200 }, (_, i) => line(i)).join('\n') + '\n');
+  assert.equal(readEvents(s, 'r1').cut, false);
+  assert.equal(readEvents(s, 'r1', { max: 200 }).cut, false);
+  assert.equal(readEvents(s, 'r1', { max: 199 }).cut, true);
+  const r = readEvents(s, 'r1', { tailBytes: 300 });
+  assert.equal(r.cut, true); assert.ok(r.events.length > 0 && r.events.length < 200);
 });

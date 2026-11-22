@@ -19,6 +19,7 @@ ogni passo vedi cosa fa Taskquoin, perché si ferma e cosa stai firmando.
 - [Passo 7: implementazione, Verify e review](#passo-7-implementazione-verify-e-review)
 - [Passo 8: leggi e approva il commit](#passo-8-leggi-e-approva-il-commit)
 - [Passo 9: fai il merge del risultato](#passo-9-fai-il-merge-del-risultato)
+- [Seguire un'esecuzione nel Dashboard](#seguire-unesecuzione-nel-dashboard)
 - [Quando le cose non vanno come previsto](#quando-le-cose-non-vanno-come-previsto)
 - [Per saperne di più](#per-saperne-di-più)
 
@@ -607,6 +608,20 @@ $ npm test
 > dall'agente. Esegui tu i tuoi hook, linter e CI quando fai il merge.
 
 I branch `taskquoin/<run>` sono tuoi: eliminali quando non ti servono più (`git branch -d taskquoin/<run>`).
+
+## Seguire un'esecuzione nel Dashboard
+
+Mentre un'esecuzione lavora, apra un secondo terminale nello stesso repository e avvii il Dashboard. Legge soltanto: mostra la pipeline, l'approvazione che la attende (con l'inizio del suo hash), gli agenti e il registro.
+
+```shell
+$ taskquoin dashboard
+```
+
+![Il Dashboard all'approvazione del commit](../assets/screens/it/dashboard.svg)
+
+Prema `d` per leggere il diff: `/` cerca, `n` e `N` saltano tra le occorrenze, e un file conta come letto quando è arrivato alla sua fine.
+
+Prema `p` per aprire il centro di approvazione. Nessun tasto approva da solo: digiti il suo nome, poi ridigiti i 12 caratteri dell'hash. Esca con `q`; un'esecuzione approvata continua. [Guida al Dashboard (in inglese)](../guides/dashboard.md).
 
 ## Quando le cose non vanno come previsto
 

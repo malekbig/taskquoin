@@ -18,6 +18,7 @@ exact. À chaque étape, vous voyez ce que fait Taskquoin, pourquoi il s'arrête
 - [Étape 7 : implémentation, Verify et revue](#étape-7--implémentation-verify-et-revue)
 - [Étape 8 : lire et approuver le commit](#étape-8--lire-et-approuver-le-commit)
 - [Étape 9 : fusionner le résultat](#étape-9--fusionner-le-résultat)
+- [Suivre un run dans le Dashboard](#suivre-un-run-dans-le-dashboard)
 - [Quand les choses ne se passent pas comme prévu](#quand-les-choses-ne-se-passent-pas-comme-prévu)
 - [Pour aller plus loin](#pour-aller-plus-loin)
 
@@ -613,6 +614,20 @@ $ npm test
 
 Les branches `taskquoin/<run>` sont à vous : supprimez-les quand vous n'en avez plus besoin
 (`git branch -d taskquoin/<run>`).
+
+## Suivre un run dans le Dashboard
+
+Pendant qu'un run travaille, ouvrez un second terminal dans le même dépôt et lancez le Dashboard. Il ne fait que lire : il montre le pipeline, l'approbation qui vous attend (avec le début de son hash), les agents et le journal.
+
+```shell
+$ taskquoin dashboard
+```
+
+![Le Dashboard à l'approbation du commit](../assets/screens/fr/dashboard.svg)
+
+Appuyez sur `d` pour lire le diff : `/` cherche, `n` et `N` passent d'une occurrence à l'autre, et un fichier compte comme lu quand vous êtes allé jusqu'à sa fin.
+
+Appuyez sur `p` pour ouvrir le centre d'approbation. Aucune touche n'approuve seule : vous tapez votre nom, puis vous retapez les 12 caractères du hash. Quittez avec `q` ; un run approuvé continue. [Guide du Dashboard (en anglais)](../guides/dashboard.md).
 
 ## Quand les choses ne se passent pas comme prévu
 

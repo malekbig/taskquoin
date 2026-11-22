@@ -15,6 +15,7 @@ Bu eğitim sizi boş bir klasörden, Taskquoin tarafından yapılmış doğrulan
 - [Adım 7: uygulama, Verify ve inceleme](#adım-7-uygulama-verify-ve-inceleme)
 - [Adım 8: commit'i okuyun ve onaylayın](#adım-8-commiti-okuyun-ve-onaylayın)
 - [Adım 9: sonucu birleştirin](#adım-9-sonucu-birleştirin)
+- [Dashboard'da bir çalıştırmayı izleme](#dashboardda-bir-çalıştırmayı-izleme)
 - [İşler planlandığı gibi gitmediğinde](#i̇şler-planlandığı-gibi-gitmediğinde)
 - [Daha fazlası](#daha-fazlası)
 
@@ -512,6 +513,20 @@ $ npm test
 > Taskquoin deponuzun commit hook'larını çalıştırmaz, çünkü ajanın değiştirdiği kod içerebilirler. Birleştirirken hook'larınızı, linter'larınızı ve CI'nızı kendiniz çalıştırın.
 
 `taskquoin/<run>` dalları sizindir: gerek kalmadığında silin (`git branch -d taskquoin/<run>`).
+
+## Dashboard'da bir çalıştırmayı izleme
+
+Bir çalıştırma ilerlerken aynı depoda ikinci bir terminal açın ve Dashboard'u başlatın. Yalnızca okur: iş hattını, sizi bekleyen onayı (hash'inin başıyla), ajanları ve günlüğü gösterir.
+
+```shell
+$ taskquoin dashboard
+```
+
+![Dashboard, commit onayında](../assets/screens/tr/dashboard.svg)
+
+Diff'i okumak için `d` tuşuna basın: `/` arar, `n` ve `N` eşleşmeler arasında gezinir; bir dosya, sonuna kadar kaydırdığınızda okunmuş sayılır.
+
+Onay merkezini açmak için `p` tuşuna basın. Hiçbir tuş kendi başına onaylamaz: adınızı yazarsınız, sonra hash'in 12 karakterini yeniden yazarsınız. `q` ile çıkın; onaylanmış çalıştırma devam eder. [Dashboard kılavuzu (İngilizce)](../guides/dashboard.md).
 
 ## İşler planlandığı gibi gitmediğinde
 

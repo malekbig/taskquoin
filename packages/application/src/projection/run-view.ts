@@ -79,7 +79,7 @@ const between = (from: string | undefined, to: string) => {
 };
 
 /** `run-YYYYMMDDTHHMMSS-xxxxxx` (UTC, as `taskquoin run` names runs) → ISO time; undefined for any other id. */
-function runIdTime(runId: string): string | undefined {
+export function runIdTime(runId: string): string | undefined {
   const m = /^run-(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})-/.exec(runId);
   if (!m) return undefined;
   const iso = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])).toISOString();

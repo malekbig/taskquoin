@@ -16,6 +16,7 @@ does, why it stops, and what you are signing.
 - [Step 7: implementation, Verify and review](#step-7-implementation-verify-and-review)
 - [Step 8: read and approve the commit](#step-8-read-and-approve-the-commit)
 - [Step 9: merge the result](#step-9-merge-the-result)
+- [Follow a run in the Dashboard](#follow-a-run-in-the-dashboard)
 - [When things do not go as planned](#when-things-do-not-go-as-planned)
 - [Learn more](#learn-more)
 
@@ -589,6 +590,20 @@ $ npm test
 > hooks, linters and CI yourself when you merge.
 
 `taskquoin/<run>` branches are yours: delete them when you do not need them (`git branch -d taskquoin/<run>`).
+
+## Follow a run in the Dashboard
+
+While a run works, open a second terminal in the same repository and start the Dashboard. It only reads: it shows the pipeline, the approval that waits for you (with the start of its hash), the agents and the log.
+
+```shell
+$ taskquoin dashboard
+```
+
+![The Dashboard at the commit gate](../assets/screens/en/dashboard.svg)
+
+Press `d` to read the diff: `/` searches, `n` and `N` jump between matches, and a file counts as read once you have scrolled to its end.
+
+Press `p` to open the approval center. No key approves by itself: you type your name, then retype the 12 characters of the hash. Quit with `q`; a run you approved keeps going. [Dashboard guide](../guides/dashboard.md).
 
 ## When things do not go as planned
 

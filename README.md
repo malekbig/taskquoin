@@ -154,6 +154,16 @@ The full walk-through, every step with its screen, is the [tutorial](docs/gettin
 timeline of the run in your local time, `/` commands with Tab completion, and `/approve`, which shows what is bound and asks you to retype the hash. Nothing starts without a `/`
 command. See [The console](docs/getting-started/console.md).
 
+## Dashboard
+
+`taskquoin dashboard` (or `/dashboard` in the console) is a live, read-only screen of a run: the pipeline, the approval
+that waits for you, the runs, the agents and the log, with a diff viewer that remembers what you read. No key approves:
+the approval center asks you to retype the hash, then starts the usual `taskquoin approve` in a separate process.
+
+![The Dashboard at the commit gate](docs/assets/screens/en/dashboard.svg)
+
+See [The Dashboard](docs/guides/dashboard.md).
+
 ## The tutorial in your language
 
 | | | | |
@@ -182,7 +192,7 @@ The console speaks your language: English, 日本語 and العربية below, a
 |---|---|
 | **Getting started** | [Installation](docs/getting-started/installation.md) · [Tutorial](docs/getting-started/first-run.md) · [The console](docs/getting-started/console.md) |
 | **Concepts** | [Why Taskquoin](docs/concepts/why-taskquoin.md) · [Architecture](docs/concepts/architecture.md) |
-| **Guides** | [Configuration](docs/guides/configuration.md) · [Agents and runtimes](docs/guides/agents-and-runtimes.md) · [Approvals](docs/guides/approvals.md) · [Verify and the RED proof](docs/guides/verify-and-red-proof.md) · [Security](docs/guides/security.md) · [Upgrade](docs/guides/upgrade.md) · [Skills](docs/guides/skills.md) · [Memory](docs/guides/memory.md) · [Languages](docs/guides/languages.md) · [Troubleshooting](docs/guides/troubleshooting.md) · [Best practices](docs/guides/best-practices.md) |
+| **Guides** | [Configuration](docs/guides/configuration.md) · [Agents and runtimes](docs/guides/agents-and-runtimes.md) · [The Dashboard](docs/guides/dashboard.md) · [Approvals](docs/guides/approvals.md) · [Verify and the RED proof](docs/guides/verify-and-red-proof.md) · [Security](docs/guides/security.md) · [Upgrade](docs/guides/upgrade.md) · [Skills](docs/guides/skills.md) · [Memory](docs/guides/memory.md) · [Languages](docs/guides/languages.md) · [Troubleshooting](docs/guides/troubleshooting.md) · [Best practices](docs/guides/best-practices.md) |
 | **Reference** | [CLI](docs/reference/cli.md) · [Console commands](docs/reference/console-commands.md) · [Configuration](docs/reference/configuration.md) · [Runs, artifacts and events](docs/reference/runs-artifacts-events.md) · [Capabilities](docs/reference/capabilities.md) |
 | **Decisions** | [ADRs](docs/adr/) · [Measured evidence](docs/reports/) · [Threat model](docs/security/threat-model.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG](CHANGELOG.md) |
 

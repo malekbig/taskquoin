@@ -65,6 +65,7 @@ menu, so that no escape code is written at all.
 | `/show` | `[<artifact>]` | Lists the artifacts of the current run, or prints one (`plan`, `diff-N`, `verify-N`, `red-N`...). | `taskquoin show <run> [<artifact>]` |
 | `/approve` | `<plan\|commit>` | Approves the pending gate after you retype its hash. | `taskquoin approve` |
 | `/resume` | | Resumes the current run if it was interrupted. | `taskquoin resume <run>` |
+| `/dashboard` | | Opens the live, read-only [Dashboard](../guides/dashboard.md) on the current run, in its own process; the console draws its prompt again when you quit it (`q`). Needs a terminal: without one it prints the refusal and the console goes on. | `taskquoin dashboard` |
 | `/agents` | | Lists the agents with their runtime, capabilities and skills. | |
 | `/doctor` | | Machine state and certification of each agent. | `taskquoin doctor` |
 | `/upgrade` | `[auto\|path\|install]` | Installed, used and measured versions of the AI tools; `auto` or `path` chooses the Claude Code binary, `install` reinstalls the measured Claude Code after you type `yes` (it uses the network). Only an explicit `/upgrade` reads the npm registry; `taskquoin console --offline` skips that. | `taskquoin upgrade` |
@@ -153,7 +154,7 @@ for example without `taskquoin.yaml`).
 
 ## Learn more
 
-- [CLI reference](cli.md) · [Runs, artifacts and events](runs-artifacts-events.md)
+- [CLI reference](cli.md) · [Runs, artifacts and events](runs-artifacts-events.md) · [The Dashboard](../guides/dashboard.md)
 - [Runtime versions and upgrades](../guides/upgrade.md)
 - [Security: the console is human-only](../guides/security.md#9-agents-never-commit-humans-decide)
 - [ADR-0015](../adr/0015-console-human-only.md)

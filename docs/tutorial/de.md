@@ -18,6 +18,7 @@ Diff gelesen haben. Bei jedem Schritt sehen Sie, was Taskquoin tut, warum es anh
 - [Schritt 7: Implementierung, Verify und Review](#schritt-7-implementierung-verify-und-review)
 - [Schritt 8: Commit lesen und freigeben](#schritt-8-commit-lesen-und-freigeben)
 - [Schritt 9: Ergebnis mergen](#schritt-9-ergebnis-mergen)
+- [Einen Lauf im Dashboard verfolgen](#einen-lauf-im-dashboard-verfolgen)
 - [Wenn nicht alles wie geplant läuft](#wenn-nicht-alles-wie-geplant-läuft)
 - [Mehr erfahren](#mehr-erfahren)
 
@@ -609,6 +610,20 @@ $ npm test
 
 Die `taskquoin/<run>`-Branches gehören Ihnen: Löschen Sie sie, wenn Sie sie nicht mehr brauchen
 (`git branch -d taskquoin/<run>`).
+
+## Einen Lauf im Dashboard verfolgen
+
+Während ein Lauf arbeitet, öffnen Sie ein zweites Terminal im selben Repository und starten das Dashboard. Es liest nur: Es zeigt die Pipeline, die Freigabe, die auf Sie wartet (mit dem Anfang ihres Hashs), die Agenten und das Protokoll.
+
+```shell
+$ taskquoin dashboard
+```
+
+![Das Dashboard bei der Commit-Freigabe](../assets/screens/de/dashboard.svg)
+
+Drücken Sie `d`, um das Diff zu lesen: `/` sucht, `n` und `N` springen zwischen den Treffern, und eine Datei gilt als gelesen, sobald Sie bis zu ihrem Ende gescrollt haben.
+
+Drücken Sie `p`, um das Freigabezentrum zu öffnen. Keine Taste gibt von selbst frei: Sie tippen Ihren Namen und geben dann die 12 Zeichen des Hashs erneut ein. Mit `q` beenden Sie; ein freigegebener Lauf läuft weiter. [Dashboard-Anleitung (auf Englisch)](../guides/dashboard.md).
 
 ## Wenn nicht alles wie geplant läuft
 

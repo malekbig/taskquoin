@@ -40,8 +40,9 @@ export function openRepoStoreReadOnly(repoRoot: string, base: string = stateBase
  * Keeps the last `max` (default 1000) well-formed object lines; blank lines are ignored; malformed lines, non-object
  * lines and an unterminated last line that does not parse are counted in `skipped`. A missing file is empty.
  * Only the last `tailBytes` (default 4 MiB) are read; when that starts mid-file the cut first line is dropped, not counted.
+ * `cut` is true when older events exist that are not returned (the tail did not reach the file's start, or more than `max` lines).
  */
-export function readEvents(store: RepoStore, runId: string, o: { max?: number; tailBytes?: number } = {}): { events: Record<string, unknown>[]; skipped: number } {
+export function readEvents(store: RepoStore, runId: string, o: { max?: number; tailBytes?: number } = {}): { events: Record<string, unknown>[]; skipped: number; cut: boolean } {
   if (!RUN_ID_RE.test(runId) || runId.includes('..')) throw new Error(`invalid run id ${JSON.stringify(runId)}`);
   const file = join(store.runs, runId, 'events.jsonl');
   let text: string;
@@ -60,7 +61,7 @@ export function readEvents(store: RepoStore, runId: string, o: { max?: number; t
       text = buf.subarray(0, got).toString('utf8');
     } finally { closeSync(fd); }
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return { events: [], skipped: 0 };
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return { events: [], skipped: 0, cut: false };
     throw e;
   }
   if (cut) { const nl = text.indexOf('\n'); text = nl < 0 ? '' : text.slice(nl + 1); }
@@ -74,7 +75,7 @@ export function readEvents(store: RepoStore, runId: string, o: { max?: number; t
       if (typeof v === 'object' && v !== null && !Array.isArray(v)) events.push(v as Record<string, unknown>); else skipped++;
     } catch { skipped++; }
   }
-  return { events: max >= events.length ? events : events.slice(events.length - max), skipped };
+  return { events: max >= events.length ? events : events.slice(events.length - max), skipped, cut: cut || events.length > max };
 }
 
 const EVENTS_TAIL_BYTES = 4 * 1024 * 1024;

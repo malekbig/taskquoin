@@ -15,6 +15,7 @@ Tutorial ini membawa Anda dari folder kosong hingga commit terverifikasi yang di
 - [Langkah 7: implementasi, Verify, dan review](#langkah-7-implementasi-verify-dan-review)
 - [Langkah 8: baca dan setujui commit](#langkah-8-baca-dan-setujui-commit)
 - [Langkah 9: merge hasilnya](#langkah-9-merge-hasilnya)
+- [Mengikuti sebuah run di Dashboard](#mengikuti-sebuah-run-di-dashboard)
 - [Ketika semuanya tidak berjalan sesuai rencana](#ketika-semuanya-tidak-berjalan-sesuai-rencana)
 - [Pelajari lebih lanjut](#pelajari-lebih-lanjut)
 
@@ -504,6 +505,20 @@ $ npm test
 > Taskquoin tidak menjalankan hook commit repositori Anda, karena hook itu dapat berisi kode yang diubah agen. Jalankan hook, linter, dan CI Anda sendiri saat Anda melakukan merge.
 
 Branch `taskquoin/<run>` adalah milik Anda: hapus bila tidak diperlukan lagi (`git branch -d taskquoin/<run>`).
+
+## Mengikuti sebuah run di Dashboard
+
+Selagi sebuah run bekerja, buka terminal kedua di repositori yang sama dan jalankan Dashboard. Ia hanya membaca: menampilkan pipeline, persetujuan yang menunggu Anda (dengan awal hash-nya), agen, dan log.
+
+```shell
+$ taskquoin dashboard
+```
+
+![Dashboard pada persetujuan commit](../assets/screens/id/dashboard.svg)
+
+Tekan `d` untuk membaca diff: `/` mencari, `n` dan `N` melompat antar hasil, dan sebuah berkas dianggap sudah dibaca setelah Anda menggulir sampai akhirnya.
+
+Tekan `p` untuk membuka pusat persetujuan. Tidak ada tombol yang menyetujui sendiri: Anda mengetik nama Anda, lalu mengetik ulang 12 karakter hash. Keluar dengan `q`; run yang sudah disetujui tetap berjalan. [Panduan Dashboard (dalam bahasa Inggris)](../guides/dashboard.md).
 
 ## Ketika semuanya tidak berjalan sesuai rencana
 

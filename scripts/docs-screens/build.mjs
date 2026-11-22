@@ -1,5 +1,5 @@
 // Builds the documentation screenshots (SVG) from the REAL Taskquoin CLI in a demo repository with simulated agents.
-// Usage: node scripts/docs-screens/build.mjs <work-dir> [lang…]   (default: every language, the same 16 screens each)
+// Usage: node scripts/docs-screens/build.mjs <work-dir> [lang…]   (default: every language, the same 19 screens each)
 // Output: docs/assets/screens/<lang>/<screen>.svg. Needs git, npm and bubblewrap (the clean-room Verify runs for real).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir, userInfo } from 'node:os';
@@ -16,6 +16,11 @@ const I = await import(new URL('../../apps/cli/src/i18n/index.ts', import.meta.u
 const { displayWidth } = await import(new URL('../../apps/cli/src/i18n/width.ts', import.meta.url).href);
 const { LANGUAGES } = await import(new URL('../../apps/cli/src/i18n/languages.ts', import.meta.url).href);
 const { parseConfig } = await import('@taskquoin/config');
+const { openRepoStoreReadOnly } = await import('@taskquoin/store-fs');
+const D = await import(new URL('../../apps/cli/src/dashboard-data.ts', import.meta.url).href);
+const DV = await import(new URL('../../apps/cli/src/tui/components/diff-viewer.ts', import.meta.url).href);
+const DF = await import(new URL('../../apps/cli/src/tui/components/dashboard-frame.ts', import.meta.url).href);
+const DA = await import(new URL('../../apps/cli/src/dashboard-approve.ts', import.meta.url).href);
 const { sandboxedToolAvailable } = await import('@taskquoin/local-tool');
 const { loadRiskAcceptances, repoStore } = await import('@taskquoin/store-fs');
 const { configDigest } = await import(new URL('../../apps/cli/src/workflow-cli.ts', import.meta.url).href);
@@ -107,6 +112,32 @@ async function buildLanguage(lang) {
   const diff = demo.tq(['show', runId, 'diff-1'], lang);
   const verify = demo.tq(['show', runId, 'verify-1'], lang);
   const p2 = pending(); if (!p2) throw new Error(`${lang}: no commit gate`);
+  // The Dashboard, drawn by its own renderers over the demo's real control store, opened READ-ONLY, while the commit
+  // gate waits: the wide frame, the diff viewer and the approval center's hash step (nothing is typed, nothing sent).
+  {
+    I.setLanguage(lang);
+    const store = openRepoStoreReadOnly(demo.repo, join(demo.env.XDG_STATE_HOME, 'taskquoin'));
+    if (!store) throw new Error(`${lang}: no control store for the dashboard`);
+    const version = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
+    const fixed = { version, repo: '~/calc', branch: 'main', clean: true, acceptedRisks: ['connector.write'],
+      // shownSquad() drops each member's `runtime` (reported); the real value is given back from the config so the Agents panel shows what it is meant to.
+      squad: squad.map((m) => ({ ...m, runtime: m.agent === undefined ? 'bubblewrap' : cfg.agents[m.agent].runtime })), runtimeVersions: { claude: '2.1.327', codex: '0.157.1' }, checkedAt: new Date().toISOString() };
+    const watcher = D.createWatcher(store, fixed, { runId, now: () => new Date() });
+    const model = watcher.model(), now = Date.now();
+    const caps = { interactive: true, colorDepth: 24, charset: 'utf8', theme: 'dark', motion: false, plain: false, columns: 120, rows: 34 };
+    const dash = (ui, title) => { const lines = DF.renderDashboard(model, ui, caps, now); const t = lines.join('\n'); assertPublic(t, FORBIDDEN); screens[title[0]] = terminalSvg(clip(t), title[1]); };
+    dash({ ...DF.initialUi(), focus: 'approvals' }, ['dashboard', '~/calc — taskquoin dashboard']);
+    const loaded = D.loadDocs(store, runId, 'review');
+    if ('error' in loaded) throw new Error(`${lang}: ${loaded.error}`);
+    let viewer = DV.openViewer(loaded, DV.geometry(caps, caps.rows).rows);
+    viewer = DV.settle(DV.sized(viewer, caps, caps.rows), DV.geometry(caps, caps.rows).rows);
+    dash({ ...DF.initialUi(), screen: 'viewer', viewer }, ['dashboard-diff', '~/calc — taskquoin dashboard, the diff']);
+    const form = DA.approvalForm({ runId, gate: 'commit', approver: 'you', pending: () => D.freshPending(store, runId), approve: () => undefined,
+      context: () => ({ view: model.selected.view, request: model.selected.request, read: new Set(), acceptedRisks: fixed.acceptedRisks, waiting: 1 }) });
+    form.open();
+    dash({ ...DF.initialUi(), screen: 'center', center: { render: (c, h) => form.render(c, h) } }, ['dashboard-approve', '~/calc — taskquoin dashboard, the approval center']);
+    I.setLanguage('en');
+  }
   // A wrong hash, typed while the commit gate is still waiting: refused, nothing approved.
   const wrong = demo.tq(['approve', runId, 'commit', '--expect', '000000000000', '--as', 'you'], lang);
   // The console's /approve commit from a REAL console session: /show diff-1, then what the approval is bound to, what

@@ -1076,3 +1076,47 @@ test('console banner and doctor share one definition of ready: a skill error ref
   assert.ok(after.doctorReady < before.doctorReady, 'the skill error refuses one more agent');
   assert.match(after.rows.find(l => /Architect/.test(l)) ?? '', /^○ Architect\s+NOT READY\s+not-approved/);
 });
+
+test('dashboard without a terminal: one message naming taskquoin status, exit 1, nothing on stdout, no escape, the control store untouched', () => {
+  const sb = seededRepo();
+  const treeOf = (d: string): string => execFileSync('sh', ['-c', `cd ${d} && find . -type f -printf '%p %s %T@\\n' | sort`], { encoding: 'utf8' });
+  const dir = join(sb.root, 'state'); const before = treeOf(dir);
+  for (const extra of [[], ['run-a']]) {
+    const r = sb.tq('dashboard', ...extra);
+    assert.equal(r.status, 1, r.stderr); assert.equal(r.stdout, '');
+    assert.match(r.stderr, /taskquoin status/); assert.ok(!r.stderr.includes('\x1b'), 'no escape off a terminal');
+  }
+  assert.equal(treeOf(dir), before, 'the control store was not touched');
+});
+
+test('dashboard with TERM=dumb or TASKQUOIN_PLAIN=1 is refused the same way (also asked for in a terminal-less shell)', () => {
+  const { ws, env } = seededRepo();
+  for (const extra of [{ TERM: 'dumb' }, { TASKQUOIN_PLAIN: '1' }]) {
+    const r = spawnSync(process.execPath, [main, 'dashboard'], { cwd: ws, env: { ...env, ...extra }, encoding: 'utf8' });
+    assert.equal(r.status, 1); assert.match(r.stderr, /taskquoin status/); assert.equal(r.stdout, '');
+  }
+});
+
+test('dashboard <unknown run> fails with the unknown-run error; outside a repository it fails; a store without approvals/ stays without it', () => {
+  const sb = seededRepo();
+  const r = sb.tq('dashboard', 'run-zzz');
+  assert.equal(r.status, 1); assert.match(r.stderr, /unknown run run-zzz/); assert.equal(r.stdout, '');
+  const outside = sandbox(); // no git init
+  const o = outside.tq('dashboard');
+  assert.equal(o.status, 1); assert.equal(o.stdout, '');
+  const store = repoStore(sb.ws, join(sb.root, 'state', 'taskquoin'));
+  rmSync(store.approvals, { recursive: true, force: true });
+  sb.tq('dashboard'); sb.tq('dashboard', 'run-zzz');
+  assert.equal(existsSync(store.approvals), false, 'the dashboard did not create approvals/');
+});
+
+test('help lists dashboard [<run>]', () => {
+  const { tq } = sandbox();
+  assert.match(tq('help').stdout, /^\s+dashboard \[<run>\]\s+\S/m);
+});
+
+test('console piped: /dashboard prints the child\'s refusal and /quit still exits 0', () => {
+  const sb = seededRepo();
+  const r = spawnSync(process.execPath, [main, 'console'], { cwd: sb.ws, env: sb.env, input: '/dashboard\n/quit\n', encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr); assert.match(r.stderr, /taskquoin status/);
+});

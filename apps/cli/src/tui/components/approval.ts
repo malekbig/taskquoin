@@ -24,9 +24,17 @@ export interface ApprovalModel {
   /** Capabilities with an accepted risk in force. */
   acceptedRisks: readonly string[];
   approver?: string;
+  /** Who asks: the approver line names that surface (`(via taskquoin console)` or `(via taskquoin dashboard)`); the dashboard shows no `/show` hints (its keys differ). */
+  surface?: 'console' | 'dashboard';
+  /** The run's request, on the title line after the run id (neutralised here again). */
+  request?: string;
+  /** Rows after the approver, in the same label column (the dashboard's Status line). */
+  extra?: { label: string; segs: ApprovalSeg[] }[];
 }
 
-type Seg = [Token | 'bold' | undefined, string];
+/** A painted piece of a line: a token (or bold) and its text, cut at the terminal's width with an ellipsis. */
+export type ApprovalSeg = [Token | 'bold' | undefined, string];
+type Seg = ApprovalSeg;
 const INDENT = 4;
 
 /** Segments painted and clipped to `max` columns (the tail is cut with an ellipsis, never an escape). */
@@ -86,7 +94,7 @@ export function renderApproval(m: ApprovalModel, caps: Caps): string[] {
   const rows = rowsOf(m);
   const boundLabel = t(m.gate === 'plan' ? 'approval.bound.plan' : 'approval.bound.commit');
   const policyLabel = t('approval.policy.label'), readLabel = t('approval.read.label'), whoLabel = t('approval.approver.label');
-  const labels = [boundLabel, policyLabel, readLabel, whoLabel, ...rows.map(r => r.label)];
+  const labels = [boundLabel, policyLabel, readLabel, whoLabel, ...rows.map(r => r.label), ...(m.extra ?? []).map(e => e.label)];
   const lw = Math.min(Math.max(...labels.map(displayWidth)), Math.max(8, Math.floor(cols / 3)));
   const lab = (s: string) => padEndDisplay(displayWidth(s) > lw ? cutNeutral(s as Neutral, lw, { ascii: caps.charset === 'ascii' }) : s, lw);
   const lead: Seg = [undefined, ' '.repeat(INDENT)];
@@ -94,7 +102,8 @@ export function renderApproval(m: ApprovalModel, caps: Caps): string[] {
   const out: string[] = [];
 
   const title = t(m.gate === 'plan' ? 'timeline.step.planApproval' : 'timeline.step.commitApproval');
-  out.push(line([[undefined, '  '], [stateToken('waiting'), glyph('waiting', caps) + ' '], ['bold', title], [undefined, '  ' + `run ${n(m.run.runId.slice(-6))}`]], cols, caps));
+  const request: Seg[] = m.request ? [[undefined, `${caps.charset === 'utf8' ? ' — ' : ' - '}"${n(m.request)}"`]] : [];
+  out.push(line([[undefined, '  '], [stateToken('waiting'), glyph('waiting', caps) + ' '], ['bold', title], [undefined, '  ' + `run ${n(m.run.runId.slice(-6))}`], ...request], cols, caps));
 
   const full = n(m.binding), short = full.slice(0, 12);
   out.push(line([...head(boundLabel), ['bold', short], ...(full.length > 12 ? [[undefined, `   (${full.length > 20 ? full.slice(0, 20) + (caps.charset === 'utf8' ? '…' : '...') : full})`] as Seg] : [])], cols, caps));
@@ -102,7 +111,7 @@ export function renderApproval(m: ApprovalModel, caps: Caps): string[] {
   const used = Math.max(...rows.map(r => displayWidth(r.word)));
   for (const r of rows) {
     const body = displayWidth(glyph(r.state, caps)) + 1 + used;
-    const hint = r.artifact ? `/show ${n(r.artifact)}` : '';
+    const hint = r.artifact && m.surface !== 'dashboard' ? `/show ${n(r.artifact)}` : '';
     const showHint = hint && INDENT + lw + 2 + body + 2 + displayWidth(hint) <= cols;
     out.push(line([...head(r.label), [stateToken(r.state), glyph(r.state, caps)], [undefined, ' '], [stateToken(r.state), padEndDisplay(r.word, used)],
       ...(showHint ? [[undefined, '  ' + hint] as Seg] : [])], cols, caps));
@@ -118,6 +127,9 @@ export function renderApproval(m: ApprovalModel, caps: Caps): string[] {
     [[undefined, i ? '  ' : ''], read.includes(x) ? [stateToken('done'), glyph('done', caps) + ' '] : [undefined, glyph('pending', caps) + ' '], [undefined, x]]);
   out.push(line([...head(readLabel), ...(items.length ? items : [[undefined, t('approval.read.none')] as Seg])], cols, caps));
 
-  if (m.approver) { out.push(''); out.push(line([...head(whoLabel), [undefined, t('approval.approver.value', { name: n(m.approver) })]], cols, caps)); }
+  const via = m.surface === 'dashboard' ? 'approval.approver.dashboard' : 'approval.approver.value';
+  if (m.approver || m.extra?.length) out.push('');
+  if (m.approver) out.push(line([...head(whoLabel), [undefined, t(via, { name: n(m.approver) })]], cols, caps));
+  for (const e of m.extra ?? []) out.push(line([...head(e.label), ...e.segs], cols, caps));
   return out;
 }

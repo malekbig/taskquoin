@@ -18,6 +18,7 @@ elke stap zie je wat Taskquoin doet, waarom het stopt en wat je ondertekent.
 - [Stap 7: implementatie, Verify en review](#stap-7-implementatie-verify-en-review)
 - [Stap 8: lees en keur de commit goed](#stap-8-lees-en-keur-de-commit-goed)
 - [Stap 9: merge het resultaat](#stap-9-merge-het-resultaat)
+- [Een run volgen in het Dashboard](#een-run-volgen-in-het-dashboard)
 - [Als het niet gaat zoals gepland](#als-het-niet-gaat-zoals-gepland)
 - [Meer informatie](#meer-informatie)
 
@@ -602,6 +603,20 @@ $ npm test
 > Draai je hooks, linters en CI zelf wanneer je merget.
 
 `taskquoin/<run>`-branches zijn van jou: verwijder ze als je ze niet nodig hebt (`git branch -d taskquoin/<run>`).
+
+## Een run volgen in het Dashboard
+
+Terwijl een run werkt, opent u een tweede terminal in dezelfde repository en start u het Dashboard. Het leest alleen: het toont de pipeline, de goedkeuring die op u wacht (met het begin van de hash), de agents en het logboek.
+
+```shell
+$ taskquoin dashboard
+```
+
+![Het Dashboard bij de goedkeuring van de commit](../assets/screens/nl/dashboard.svg)
+
+Druk op `d` om de diff te lezen: met `/` zoekt u, met `n` en `N` springt u tussen treffers, en een bestand telt als gelezen zodra u tot het einde bent gescrold.
+
+Druk op `p` om het goedkeuringscentrum te openen. Geen enkele toets keurt zelf goed: u typt uw naam en typt daarna de 12 tekens van de hash opnieuw. Sluit af met `q`; een goedgekeurde run gaat door. [Dashboard-gids (in het Engels)](../guides/dashboard.md).
 
 ## Als het niet gaat zoals gepland
 

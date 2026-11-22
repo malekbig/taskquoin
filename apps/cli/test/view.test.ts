@@ -86,9 +86,18 @@ test('shownSquad: a hostile agent id and risky capability are marked and counted
   const caps = `${'x'.repeat(80)}${BEL}`;
   const raw = projectSquad({ [`a${ESC}`]: { runtime: 'claude' } }, () => ({ ok: true, runtimeFound: true, failures: [], acceptedRisks: [{ capability: caps }] }), true);
   const { view, marked } = shownSquad(raw);
-  assert.deepEqual(view[0], { role: `A${MK('ESC')}`, who: `a${MK('ESC')} \u00b7 claude`, state: 'risk', agent: `a${MK('ESC')}`, note: `${'x'.repeat(80)}${MK('BEL')}`, noteKind: 'risks' });
-  assert.deepEqual(view[1], { role: 'Tester', who: 'verify \u00b7 bubblewrap', state: 'ready' });
+  assert.deepEqual(view[0], { role: `A${MK('ESC')}`, who: `a${MK('ESC')} \u00b7 claude`, state: 'risk', agent: `a${MK('ESC')}`, runtime: 'claude', note: `${'x'.repeat(80)}${MK('BEL')}`, noteKind: 'risks' });
+  assert.deepEqual(view[1], { role: 'Tester', who: 'verify \u00b7 bubblewrap', state: 'ready', runtime: 'bubblewrap' });
   assert.equal(marked, 3, 'role, who and note: what a screen prints');
+});
+
+test('shownSquad keeps each member\'s runtime (neutralised): the dashboard\'s Agents panel shows the runtime and its version, never `? ?`', async () => {
+  const { agentRows } = await import('../src/dashboard-data.ts');
+  const raw = projectSquad({ planner: { runtime: 'claude' }, judge: { runtime: `co${RLO}dex` } }, () => ({ ok: true, runtimeFound: true, failures: [], acceptedRisks: [] }), true);
+  const { view } = shownSquad(raw);
+  assert.deepEqual(view.map((m) => m.runtime), ['claude', `co${MK('U+202E')}dex`, 'bubblewrap']);
+  const rows = agentRows({ version: '1', repo: 'r', acceptedRisks: [], squad: view, runtimeVersions: { claude: '2.1.330', bubblewrap: '0.6.1' }, checkedAt: '' });
+  assert.deepEqual(rows.map((r) => r.runtime), ['claude 2.1.330', `co${MK('U+202E')}dex ?`, 'bubblewrap 0.6.1']);
 });
 
 test('shownSquad: a member without a code (built by hand) is all raw — its note neutralised, and cut when blocked', () => {

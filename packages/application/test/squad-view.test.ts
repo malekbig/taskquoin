@@ -31,10 +31,10 @@ test('projectSquad: a skill error makes an ok agent blocked, with the error as i
 test('projectSquad: accepted risk is risk; absent runtime is blocked with the absent note; failure keeps its short reason', () => {
   const s = projectSquad(agents, (id) => id === 'planner' ? { ...ok, acceptedRisks: [{ capability: 'connector.write' }] }
     : id === 'implementer' ? { ...ok, ok: false, runtimeFound: false } : { ...ok, ok: false, failures: [{ message: 'KEY absent — set it' }] }, false);
-  assert.deepEqual(s[0], { role: 'Planner', who: 'planner · claude', state: 'risk', note: 'connector.write', agent: 'planner', noteKind: 'risks', detail: 'connector.write' });
-  assert.deepEqual(s[1], { role: 'Implementer', who: 'implementer · codex', state: 'blocked', note: 'codex not found', agent: 'implementer', noteKind: 'absent', detail: 'codex' });
+  assert.deepEqual(s[0], { role: 'Planner', who: 'planner · claude', state: 'risk', note: 'connector.write', agent: 'planner', runtime: 'claude', noteKind: 'risks', detail: 'connector.write' });
+  assert.deepEqual(s[1], { role: 'Implementer', who: 'implementer · codex', state: 'blocked', note: 'codex not found', agent: 'implementer', runtime: 'codex', noteKind: 'absent', detail: 'codex' });
   assert.deepEqual([s[2].note, s[2].noteKind, s[2].detail], ['KEY absent', 'failure', 'KEY absent']);
-  assert.deepEqual(s[3], { role: 'Tester', who: 'verify · bubblewrap', state: 'blocked', note: 'bubblewrap unavailable', noteKind: 'tester' });
+  assert.deepEqual(s[3], { role: 'Tester', who: 'verify · bubblewrap', state: 'blocked', runtime: 'bubblewrap', note: 'bubblewrap unavailable', noteKind: 'tester' });
 });
 
 test('projectSquad: each note is also a code with its raw part, and each agent is named — so a screen translates the code, not the sentence', () => {
@@ -45,4 +45,14 @@ test('projectSquad: each note is also a code with its raw part, and each agent i
     ['security', 'role(security)', undefined, undefined], [undefined, 'tester-role', undefined, undefined],
   ]);
   assert.equal(projectSquad({}, () => ok, false, { role: String, absent: String, testerRole: 'r', testerUnavailable: 'u' })[0].noteKind, 'tester');
+});
+
+test('projectSquad: a config agent carries its id and bare runtime, the Tester has a runtime and no id (what step.agent matches)', () => {
+  for (const ready of [true, false]) {
+    const s = projectSquad(agents, () => ok, ready);
+    assert.deepEqual(s.slice(0, 3).map((m) => [m.agent, m.runtime]), [['planner', 'claude'], ['implementer', 'codex'], ['security', 'api']]);
+    const tester = s[3];
+    assert.equal('agent' in tester, false);
+    assert.equal(tester.runtime, 'bubblewrap');
+  }
 });

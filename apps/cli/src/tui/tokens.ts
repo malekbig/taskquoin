@@ -60,3 +60,43 @@ const STATE_TOKEN: Record<StateName, Token> = {
 export function stateToken(state: StateName): Token {
   return STATE_TOKEN[state];
 }
+
+export function bold(text: string, caps: Caps): string {
+  return caps.colorDepth === 0 ? text : `${ESC}[1m${text}${ESC}[22m`;
+}
+
+/** The selected row: the design system's `sel` background (24-bit), 256-colour index, or reverse video in 16 colours. */
+export function selected(text: string, caps: Caps): string {
+  if (caps.colorDepth === 0) return text;
+  const light = caps.theme === 'light';
+  if (caps.colorDepth === 24) return `${ESC}[48;2;${light ? '240;241;247' : '43;49;80'}m${text}${ESC}[49m`;
+  if (caps.colorDepth === 8) return `${ESC}[48;5;${light ? 255 : 237}m${text}${ESC}[49m`;
+  return `${ESC}[7m${text}${ESC}[27m`;
+}
+
+/**
+ * The background of an added or removed diff line (`addBg` / `delBg`): 24-bit, xterm-256 index, none in 16 colours and
+ * at 0 (the `+` / `−` column carries the meaning there).
+ */
+export function lineBg(kind: 'add' | 'del', text: string, caps: Caps): string {
+  if (caps.colorDepth === 0 || caps.colorDepth === 4) return text;
+  const light = caps.theme === 'light', add = kind === 'add';
+  if (caps.colorDepth === 24) {
+    const rgb = add ? (light ? '230;244;234' : '32;48;59') : (light ? '251;233;236' : '55;34;44');
+    return `${ESC}[48;2;${rgb}m${text}${ESC}[49m`;
+  }
+  const idx = add ? (light ? 194 : 22) : (light ? 224 : 52);
+  return `${ESC}[48;5;${idx}m${text}${ESC}[49m`;
+}
+
+const MARKS = {
+  ellipsis: ['…', '...'], warn: ['⚠', '!'], cursor: ['▸', '>'], arrow: ['→', '->'], caret: ['█', '#'], sep: ['·', '-'],
+} as const;
+export type MarkName = keyof typeof MARKS;
+
+/** Small typographic marks with their ASCII twins (design-system glyph table). */
+export function mark(name: MarkName, caps: Caps): string {
+  return MARKS[name][caps.charset === 'utf8' ? 0 : 1];
+}
+
+export const ellipsis = (caps: Caps): string => mark('ellipsis', caps);

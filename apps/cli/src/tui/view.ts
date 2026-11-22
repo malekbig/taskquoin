@@ -45,7 +45,8 @@ const NOTE_COLUMNS = 70;
  * The squad as a screen may show it: a known role and every note code in the user's language, the agent id, runtime,
  * gate reason, skill error and capabilities neutralised (one-line strict profile), a blocked member's reason cut.
  * `marked` counts the characters marked in what a screen prints of a member: its role, `who` and note. The raw
- * `detail` is not carried (the note says it); `agent` is, neutralised, for a screen that keys its rows by agent.
+ * `detail` is not carried (the note says it); `agent` and `runtime` are, neutralised, for a screen that keys its rows
+ * by agent and shows each runtime's version (the dashboard's Agents panel); both are already counted inside `who`.
  */
 export function shownSquad(squad: readonly SquadMember<string>[]): Shown<SquadMember<Neutral>[]> {
   let marked = 0;
@@ -63,6 +64,7 @@ export function shownSquad(squad: readonly SquadMember<string>[]): Shown<SquadMe
     }
     return {
       role, who: raw(m.who), state: m.state, ...(m.agent !== undefined ? { agent: neutralize(m.agent, { singleLine: true }).text } : {}),
+      ...(m.runtime !== undefined ? { runtime: neutralize(m.runtime, { singleLine: true }).text } : {}), // the dashboard looks its version up by it
       ...(note ? { note } : {}), ...(m.noteKind ? { noteKind: m.noteKind } : {}),
     };
   });

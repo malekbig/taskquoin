@@ -58,3 +58,15 @@ for (const { code } of LANGUAGES.filter((l) => l.code !== 'en')) {
     }
   });
 }
+
+test('every dashboard key and the keys of its command exist in all 22 catalogs (plural bases through their _other form)', () => {
+  // The diff/artifact viewer and the approval center (R4) have their own keys, translated with R4's last task.
+  const viewer = /^dashboard\.(viewer\.|center\.|frame\.key\.(diff|verify)$|help\.(search|wrap|fileMatch|back)$)/;
+  const keys = Object.keys(english).filter((k) => (k.startsWith('dashboard.') && !viewer.test(k)) || ['console.doc.dashboard', 'cli.help.dashboard'].includes(k));
+  assert.ok(keys.length >= 65, `found ${keys.length}`);
+  for (const { code } of LANGUAGES.filter((l) => l.code !== 'en')) {
+    const cat = load(code);
+    const missing = keys.filter((k) => !(k in cat) && !(k.endsWith('_one') && k.replace(/_one$/, '_other') in cat));
+    assert.deepEqual(missing, [], `${code} lacks dashboard keys`);
+  }
+});

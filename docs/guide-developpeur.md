@@ -81,6 +81,9 @@ taskquoin › /quit
 Rien ne se lance sans `/`. Votre nom est demandé une fois par session et enregistré « via taskquoin console ».
 La console n'est jamais installée dans Claude Code ou Codex : un modèle ne doit pas pouvoir taper vos approbations.
 
+### Suivre un run dans le Dashboard
+`taskquoin dashboard [<run>]` (ou `/dashboard` dans la console) ouvre un écran vivant, **en lecture seule** : le pipeline du run, l'approbation qui vous attend (avec le début de son hash), les runs, les agents et le journal, et un lecteur de diff (`d`, recherche `/`, `n N`, « lu jusqu'au bout »). Aucune touche n'approuve : `p` ouvre le centre d'approbation, où vous retapez les 12 caractères du hash ; Taskquoin lance alors `taskquoin approve` dans un processus séparé. Quitter le Dashboard n'arrête pas le run. Il demande un vrai terminal (sinon : `taskquoin status`). Le guide complet : [docs/guides/dashboard.md](guides/dashboard.md).
+
 `taskquoin status` liste les runs ; `taskquoin status <run>` montre l'historique et **la commande d'approbation exacte** (étape + hash).
 Vous approuvez toujours **ce que vous avez lu** : le hash du plan, puis l'**arbre git** qui a passé les tests et la revue.
 Si quelque chose change entre-temps, votre approbation tombe et Taskquoin revérifie et refait la revue.
@@ -176,3 +179,12 @@ Pour lancer les tests de Taskquoin elle-même : la sandbox (bubblewrap) masque `
 Chaque run appelle Claude (planner, implementer) et Codex (challenger, revue). Un petit changement prend typiquement quelques minutes.
 - **Avec un abonnement** (Claude Pro/Max connecté par `claude auth login`, Codex connecté par ChatGPT) : **rien n'est facturé** ; le run consomme une part des limites d'usage de l'abonnement. Taskquoin ne transmet jamais de clé d'API aux agents.
 - `costUsd` dans les événements du run est le **coût équivalent API estimé** par Claude Code (quelques dizaines de centimes pour un petit changement) : un ordre de grandeur de la consommation, pas une facture. Il ne devient une dépense réelle que si Claude Code est configuré avec une clé d'API facturée.
+
+## 7. Tester le Dashboard
+Le Dashboard est du code d'interface pur autour d'un lecteur en lecture seule ; ses garanties sont des tests, pas des promesses.
+- **Rendu** : `apps/cli/test/tui-dashboard-frame.test.ts` et `tui-dashboard-panels.test.ts` (les quatre mises en page, toutes les touches de l'aide, aucun caractère hostile non neutralisé). **Budget de trame** : 200 trames à 120 × 40 sur un store de 10 000 événements, p95 sous 5 ms (mesuré : environ 2,3 ms).
+- **Boucle** : `apps/cli/test/dashboard.test.ts` — touche → trame (p95 sous 50 ms avec un run qui écrit un événement toutes les 10 ms ; mesuré : environ 4 ms), 0 écriture à vide pendant 5 000 ms, au plus 5 trames par 5 s pour un run vivant, redimensionnement, restauration du terminal.
+- **Lecture seule prouvée** : le même fichier lance la vraie boucle (`apps/cli/test/support/dashboard-driver.ts`) sous `node --permission --allow-fs-read=*`, un processus qui ne peut rien écrire sur disque, sur un store pré-rempli : tous les runs, tous les panneaux, l'aide. Toute écriture ferait échouer le test. Le lecteur lui-même est dans `apps/cli/test/dashboard-data.test.ts` (sondage par `stat`, 1 000 événements au plus, mémoire bornée, lignes illisibles comptées).
+- **Approbation** : `apps/cli/test/dashboard-approve.test.ts` (aucun appel sans le hash retapé touche par touche, hash relu avant l'envoi) et, avec le processus `taskquoin approve` séparé, le test de bout à bout de `cli.test.ts`.
+- **Tests de terminal réel (PTY)** : le harnais `script -qfec` qui lance le vrai `taskquoin dashboard` dans un pseudo-terminal est ajouté par la branche R5 ; il n'est pas encore dans cette arborescence.
+- **Captures de la documentation** : `node scripts/docs-screens/build.mjs <dossier-de-travail>` redessine, avec les vrais rendus, les écrans `dashboard`, `dashboard-diff` et `dashboard-approve` dans les 22 langues.

@@ -23,6 +23,7 @@ flowchart LR
     human(["You"])
     subgraph tq["Taskquoin control plane, on your machine"]
         cli["CLI and console<br/>apps/cli"]
+        dash["Dashboard<br/>read-only live screen"]
         engine["Workflow engine<br/>feature-governed"]
         gate["Policy gate<br/>prepareRun + capability matrix"]
         compiler["Policy compiler<br/>native runtime settings"]
@@ -43,6 +44,9 @@ flowchart LR
     mem["claude-mem worker<br/>optional, loopback"]
 
     human -->|commands, approvals by hash| cli
+    human -->|watches, retypes the hash| dash
+    dash -.->|read-only| store
+    dash -->|"taskquoin approve, separate process"| cli
     cli --> engine
     engine --> gate
     gate --> compiler
@@ -87,6 +91,9 @@ Read the diagram from left to right:
 layer, where the workflow logic lives (`apps/cli/src/workflow-cli.ts` wires that workflow to the real adapters). The
 main commands are `init`, `doctor`, `check`, `run`, `status`, `show`, `approve`, `resume`, `accept-risk`, `skills`,
 `connect`, `uninstall` and `console`; `taskquoin help` lists them all.
+
+`taskquoin dashboard` (`apps/cli/src/dashboard.ts`) is a live, read-only screen over the control store; see
+[The Dashboard layer](#the-dashboard-layer).
 
 `taskquoin console` (`apps/cli/src/console.ts`) is a small interactive shell over the same functions. Nothing starts
 without a `/` command, and `/approve` asks you to retype the 12-character hash it shows. The console is never
@@ -248,7 +255,8 @@ everything that touches a process, a file or the network lives in an adapter.
 ```mermaid
 flowchart TB
     subgraph appsL["apps: composition root"]
-        cliapp["apps/cli<br/>main.ts, workflow-cli.ts, console.ts, skills-cli.ts, i18n"]
+        cliapp["apps/cli<br/>main.ts, workflow-cli.ts, console.ts, dashboard*.ts, skills-cli.ts, i18n"]
+        tuiapp["apps/cli/src/tui<br/>caps, neutral, text, tokens, screen, keys, components"]
     end
     subgraph adaptersL["adapters: the outside world"]
         runtimes["runtime-claude, runtime-codex<br/>runtime-opencode, runtime-api"]
@@ -260,6 +268,7 @@ flowchart TB
         wfmod["workflow/feature-governed.ts<br/>workflow/prompts.ts"]
         ucmod["use-cases/prepare-run.ts"]
         portmod["ports: RuntimeExecutor, MemoryPort<br/>WorkflowDeps: git, verify, workspace, artifacts"]
+        projmod["projection/<br/>RunView, SquadView"]
     end
     subgraph pureL["pure packages: no I/O"]
         dom["packages/domain<br/>capabilities, enforcement<br/>capability matrix, policy merge"]
@@ -270,6 +279,9 @@ flowchart TB
     cliapp --> runtimes & infra & extra
     cliapp --> wfmod & ucmod
     cliapp --> cfgmod
+    cliapp --> tuiapp
+    tuiapp --> projmod
+    cliapp --> projmod
     runtimes --> portmod
     runtimes --> dom
     hookad --> rul
@@ -284,9 +296,9 @@ flowchart TB
 | `packages/domain` | the capability vocabulary, enforcement classes, matrix validation, `resolveEnforcement`, policy-layer merge (a lower layer may only tighten) | imports nothing outside itself |
 | `packages/rules` | the deterministic rule engine shared by the hook and the permission compiler: protected paths (CONFIG001), write scope (SCOPE001), secrets (SECRET001), git bypasses (GIT001), frozen dependencies (FROZEN001); the protected, secret and test path lists | imports nothing outside itself, so it can run inside a hook |
 | `packages/config`, `packages/skills` | strict `taskquoin.yaml` parsing with per-stack defaults; Agent Skills validation and a deterministic audit | no file or network access: they receive text and return values |
-| `packages/application` | the workflow state machine, the agent prompts, the policy gate, and the ports it owns (`RuntimeExecutor`, `MemoryPort`, and the `WorkflowDeps` it needs: git, verify, workspace, artifacts) | imports only itself, `@taskquoin/domain`, `@taskquoin/rules` and `node:` built-ins, never an adapter |
+| `packages/application` | the workflow state machine, the agent prompts, the policy gate, the projections `RunView` and `SquadView` (`projection/`: pure functions from a run's state and events, or the agents' gate verdicts, to what a screen shows), and the ports it owns (`RuntimeExecutor`, `MemoryPort`, and the `WorkflowDeps` it needs: git, verify, workspace, artifacts) | imports only itself, `@taskquoin/domain`, `@taskquoin/rules` and `node:` built-ins, never an adapter |
 | `adapters/*` | one package per outside system: each runtime, the hook, git, the control store, the bubblewrap launcher (`local-tool`), the process runner, host probing, claude-mem, the skill store | never imports `apps` |
-| `apps/cli` | parses arguments, wires the adapters into the ports, prints | the only place that knows every package |
+| `apps/cli` | parses arguments, wires the adapters into the ports, prints; `src/tui/` draws terminal screens (home, console, Dashboard) from the projections | the only place that knows every package |
 
 The dependency rules of `packages/domain`, `packages/rules`, `packages/application` and `adapters/*` are checked on
 every test run by a fitness test, `tests/architecture/boundaries.test.ts`. It reads static imports; it does not detect
@@ -296,6 +308,44 @@ imports built from computed strings.
 > Because the workflow only knows its ports, the 64 end-to-end scenarios in `features/` run the real CLI, real git and
 > real bubblewrap with simulated agents (`features/support/fakes/`): zero tokens, every run. The runtimes' own
 > sandboxes are proven separately by the live tests in `tests/live-*.e2e.test.ts`.
+
+### The Dashboard layer
+
+The Dashboard ([guide](../guides/dashboard.md)) adds no workflow logic. It is a read-only view with a strict direction of
+data:
+
+```mermaid
+flowchart LR
+    files[("Control store<br/>state.json, events.jsonl,<br/>artifacts")]
+    watch["dashboard-data.ts<br/>read-only watcher<br/>500 ms stat poll"]
+    proj["application projection<br/>RunView, SquadView"]
+    neut["tui/neutral.ts<br/>one neutraliser"]
+    frame["tui/components<br/>pure renderers"]
+    scr["tui/screen.ts<br/>draws changed rows"]
+    keys["tui/keys.ts<br/>key decoder"]
+    loop["dashboard.ts<br/>the loop"]
+    form["dashboard-approve.ts<br/>approval form"]
+    appr["taskquoin approve<br/>separate process"]
+    files -->|"stat, read when the stamp changed"| watch
+    watch --> proj
+    proj --> neut
+    neut -->|DashboardModel, neutral text only| frame
+    frame --> scr
+    keys --> loop
+    loop --> frame
+    loop --> form
+    form -->|"retyped hash, binding re-read"| appr
+    appr -->|"the usual approval path"| files
+```
+
+- `dashboard-data.ts` opens the store read-only (`openRepoStoreReadOnly`), polls with `stat`, reads a file only when its
+  stamp changed, projects it with `RunView` and `SquadView`, and neutralises every outside string once. The renderers
+  receive the resulting model.
+- `src/tui/components/*` are pure functions of the model, the UI state, the terminal's capabilities and the clock: they
+  read and write nothing. `tui/screen.ts` is the only code that writes to the terminal, and only changed rows.
+- The only way back into the store is the last arrow: the approval form starts `taskquoin approve` as its own process,
+  which takes the lock and records the approval as it would from your shell. The Dashboard process itself never writes
+  to the control store (proven under `node --permission`, see the [developer guide](../guide-developpeur.md#7-tester-le-dashboard)).
 
 ## The workflow
 
@@ -483,7 +533,7 @@ any change to a protected path, cover what lands in the commit.
 
 - [Why Taskquoin](why-taskquoin.md): the measured guarantees, what they cost, and the limits
 - [Documentation home](../README.md)
-- Guides: [Approvals](../guides/approvals.md), [Verify and the RED proof](../guides/verify-and-red-proof.md),
+- Guides: [The Dashboard](../guides/dashboard.md), [Approvals](../guides/approvals.md), [Verify and the RED proof](../guides/verify-and-red-proof.md),
   [Agents and runtimes](../guides/agents-and-runtimes.md); reference: [Capabilities](../reference/capabilities.md),
   [Runs, artifacts and events](../reference/runs-artifacts-events.md)
 - [Threat model](../security/threat-model.md) and [SECURITY.md](../../SECURITY.md)
