@@ -76,3 +76,11 @@ test('manifest: repository, homepage and bugs come from GITHUB_REPOSITORY — no
   assert.equal(local.homepage, undefined);
   assert.throws(() => packageManifest(repo, { GITHUB_REPOSITORY: 'no-slash' }), /GITHUB_REPOSITORY/);
 });
+
+// The published package says which runtime versions this release measured: an update check can then tell whether a
+// newer Taskquoin measures the user's Claude Code. The expected values are read from the matrices on disk, never typed.
+test('manifest: taskquoin.measured holds the runtimeVersion of each runtime matrix', () => {
+  const m = packageManifest(repo, {}) as Record<string, any>;
+  const read = (runtime: string) => JSON.parse(readFileSync(new URL(`../../adapters/runtime-${runtime}/src/capabilities.json`, import.meta.url), 'utf8')).runtimeVersion;
+  assert.deepEqual(m.taskquoin, { measured: { claude: read('claude'), codex: read('codex'), opencode: read('opencode') } });
+});

@@ -25,6 +25,9 @@ Start with `taskquoin doctor`: it explains most refusals about agents, runtimes 
 | `agent <id> must be read-only (it plans or reviews independently) but is granted <list>` | the planner or a judge has write, shell, network, commit or config capabilities | remove those capabilities |
 | `Verdict: 2 of 3 agents can run — refused agents will not be started.` (doctor) and `NOT READY` (console banner) | at least one agent failed its gate | read the `✖` lines of `doctor` and match them below |
 | `Runtime claude: 2.1.330 (…) ✖ matrix measured for 2.1.327`, and `mandatory restriction "fs.write" (deny-all) on claude 2.1.330: capability matrix measured for claude 2.1.327, installed 2.1.330` | the installed runtime version has not been measured; every mandatory restriction is refused | install the measured version ([Agents and runtimes](agents-and-runtimes.md#measured-versions)). An `accept-risk` is bound to one version and is not a substitute for measurement |
+| `Runtime claude: installed 2.1.330 (not measured) → using 2.1.327 (measured)` | Claude Code updated itself; Taskquoin uses the measured version still installed | nothing to do; `taskquoin upgrade` shows both versions ([Upgrade](upgrade.md)) |
+| `◆ Action required  Claude Code 2.1.330 is not measured and 2.1.327 is not installed` (NOT READY after a Claude Code update) | the update replaced the measured version | `taskquoin upgrade` to see the versions, then `taskquoin upgrade install` to reinstall the measured one (or `upgrade auto` if you chose PATH only) |
+| `◆ Action required  Claude Code 2.1.327 is installed but not used: it or its folder is writable by group or others — run chmod go-w …` | the file or its folder can be written by others, so it is not trusted | run the printed `chmod go-w <folder> <file>`; if the reason is `the choice is PATH only`, `taskquoin upgrade auto` |
 | `Runtime codex: ✖ not found on PATH` and `runtime codex for agent challenger is not installed` | the CLI is not on the PATH | install it, or put another runtime on that agent |
 | `Bash sandbox (bubblewrap + socat): ✖ not available — agents with a shell are refused` | bubblewrap or socat missing | `sudo apt install -y bubblewrap socat` |
 | `File sandbox (bubblewrap): ✖ not available — Verify and OpenCode agents are refused` | bubblewrap missing | `sudo apt install -y bubblewrap` |
@@ -96,4 +99,5 @@ Start with `taskquoin doctor`: it explains most refusals about agents, runtimes 
 ## Learn more
 
 - [Configuration](configuration.md), [Agents and runtimes](agents-and-runtimes.md), [Approvals](approvals.md), [Verify and the RED proof](verify-and-red-proof.md).
+- [Runtime versions and upgrades](upgrade.md).
 - [ADR-0002](../adr/0002-enforcement-classes.md), [ADR-0014](../adr/0014-verify-in-a-clean-room.md).

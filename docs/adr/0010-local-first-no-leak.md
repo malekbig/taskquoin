@@ -8,6 +8,7 @@ Accepted (maintainer decision, 2026-11-15: every tool runs locally except the AI
    *Since ADR-0016*: a project may add judges reached through an OpenAI-compatible API — each provider explicitly listed
    under `providers:` in `taskquoin.yaml` (protected file) is the project's explicit exception; `doctor` lists every
    destination; secrets and binaries are never put in a judge prompt.
+   *Since ADR-0018*: one read of the npm registry, only when the user types `/upgrade` (`--offline` / `TASKQUOIN_OFFLINE` skip it), to learn whether a newer Taskquoin exists.
 2. **Runtimes' non-essential traffic is off**: Claude `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`, `DISABLE_TELEMETRY=1`, `DISABLE_ERROR_REPORTING=1`, `DISABLE_AUTOUPDATER=1`; Codex `analytics.enabled=false`, `otel.exporter="none"`, `web_search="disabled"`, plugins/apps/browser/computer-use off.
 3. **Subprocesses have no network**:
    - Claude: Bash runs in Claude Code's native OS sandbox (`sandbox.enabled`, empty `network.allowedDomains`, `filesystem.allowWrite` = granted roots, `allowUnsandboxedCommands: false`, **`failIfUnavailable: true`**). Without bubblewrap + socat the run is refused (measured).

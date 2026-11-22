@@ -141,7 +141,8 @@ The full walk-through, every step with its screen, is the [tutorial](docs/gettin
 
 > [!IMPORTANT]
 > A Claude Code version that Taskquoin has not measured is refused (NOT READY), by design. `doctor` tells you which
-> version is measured; see [Troubleshooting](docs/guides/troubleshooting.md).
+> version is measured. If the measured version is still installed, Taskquoin uses it automatically; `taskquoin upgrade`
+> shows and fixes the rest ([Upgrade](docs/guides/upgrade.md)); see also [Troubleshooting](docs/guides/troubleshooting.md).
 
 > [!WARNING]
 > Your tests run in a clean room without your `HOME` and without network: a test toolchain installed under `HOME`
@@ -175,7 +176,7 @@ language (`TASKQUOIN_LANG`, otherwise your locale): [Languages](docs/guides/lang
 |---|---|
 | **Getting started** | [Installation](docs/getting-started/installation.md) · [Tutorial](docs/getting-started/first-run.md) · [The console](docs/getting-started/console.md) |
 | **Concepts** | [Why Taskquoin](docs/concepts/why-taskquoin.md) · [Architecture](docs/concepts/architecture.md) |
-| **Guides** | [Configuration](docs/guides/configuration.md) · [Agents and runtimes](docs/guides/agents-and-runtimes.md) · [Approvals](docs/guides/approvals.md) · [Verify and the RED proof](docs/guides/verify-and-red-proof.md) · [Security](docs/guides/security.md) · [Skills](docs/guides/skills.md) · [Memory](docs/guides/memory.md) · [Languages](docs/guides/languages.md) · [Troubleshooting](docs/guides/troubleshooting.md) · [Best practices](docs/guides/best-practices.md) |
+| **Guides** | [Configuration](docs/guides/configuration.md) · [Agents and runtimes](docs/guides/agents-and-runtimes.md) · [Approvals](docs/guides/approvals.md) · [Verify and the RED proof](docs/guides/verify-and-red-proof.md) · [Security](docs/guides/security.md) · [Upgrade](docs/guides/upgrade.md) · [Skills](docs/guides/skills.md) · [Memory](docs/guides/memory.md) · [Languages](docs/guides/languages.md) · [Troubleshooting](docs/guides/troubleshooting.md) · [Best practices](docs/guides/best-practices.md) |
 | **Reference** | [CLI](docs/reference/cli.md) · [Console commands](docs/reference/console-commands.md) · [Configuration](docs/reference/configuration.md) · [Runs, artifacts and events](docs/reference/runs-artifacts-events.md) · [Capabilities](docs/reference/capabilities.md) |
 | **Decisions** | [ADRs](docs/adr/) · [Measured evidence](docs/reports/) · [Threat model](docs/security/threat-model.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG](CHANGELOG.md) |
 

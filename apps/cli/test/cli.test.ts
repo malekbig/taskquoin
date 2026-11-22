@@ -14,7 +14,7 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { newRun, type RunState } from '@taskquoin/application';
@@ -462,4 +462,139 @@ test('final review (C1): a provider/sign-in mode whose hosts were never measured
   const r = tq('doctor'); assert.equal(r.status, 1);
   assert.match(r.stdout, /connection "openrouter" \(api\) is not measured with OpenCode 1\.19\.5/);
   assert.match(tq('run', 'add sum').stderr, /is not measured/);
+});
+
+test('runtimeNotices: fallback when the probe chose the installed measured binary, action when the version differs and nothing measured is installed, none otherwise', async () => {
+  const { runtimeNotices } = await import('../src/runtime-notices.ts');
+  const h = (claude: { bin: string; version?: string; installed?: { bin: string; version?: string } }) => ({ runtimes: { claude } }) as never;
+  const fb = runtimeNotices(h({ bin: '/m', version: '2.1.327', installed: { bin: '/p', version: '9.9.9' } }), '2.1.327');
+  assert.deepEqual(fb.map(n => n.kind), ['fallback']);
+  assert.match(fb[0].text, /9\.9\.9.*2\.1\.327/);
+  const act = runtimeNotices(h({ bin: '/p', version: '9.9.9' }), '2.1.327');
+  assert.deepEqual(act.map(n => n.kind), ['action']);
+  assert.match(act[0].text, /9\.9\.9.*2\.1\.327/);
+  assert.deepEqual(runtimeNotices(h({ bin: '/p', version: '2.1.327' }), '2.1.327'), []);
+  assert.deepEqual(runtimeNotices({ runtimes: {} } as never, '2.1.327'), []);
+});
+
+test('doctor: the PATH claude is not measured but the measured one is still installed -> says which one runs, no refusal for claude', () => {
+  const measured = JSON.parse(readFileSync(new URL('../../../adapters/runtime-claude/src/capabilities.json', import.meta.url), 'utf8')).runtimeVersion as string;
+  const { ws, root, tq } = sandbox({ claude: '9.9.9 (Claude Code)', codex: 'codex-cli 0.157.1' });
+  const dir = join(root, '.local/share/claude/versions'); mkdirSync(dir, { recursive: true });
+  chmodSync(join(root, '.local/share/claude'), 0o755); chmodSync(dir, 0o755);
+  writeFileSync(join(dir, measured), `#!/bin/sh\necho "${measured} (Claude Code)"\n`); chmodSync(join(dir, measured), 0o755);
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'package.json'), '{}');
+  assert.equal(tq('init').status, 0); noMemory(ws);
+  const r = tq('doctor');
+  assert.match(r.stdout, new RegExp(`Runtime claude: installed 9\\.9\\.9 \\(not measured\\) → using ${measured.replace(/\./g, '\\.')} \\(measured\\) \\(`));
+  assert.doesNotMatch(r.stdout, /Agent implementer \(claude\)[^\n]*\n[^\n]*runtime-version/);
+});
+
+test('runtimeNotices: a measured file that is there but not used says why and how to fix it, for the console and the CLI', async () => {
+  const { runtimeNotices } = await import('../src/runtime-notices.ts');
+  const h = (claude: { bin: string; version?: string } | undefined, reason: string) => ({ runtimes: claude ? { claude } : {}, claudeCandidate: { bin: '/h/v/2.1.327', reason } }) as never;
+  let n = runtimeNotices(h({ bin: '/p', version: '9.9.9' }, 'writable by others'), '2.1.327');
+  assert.deepEqual(n.map(x => x.kind), ['action']);
+  assert.match(n[0].text, /Claude Code 2\.1\.327 is installed but not used: it or its folder is writable by group or others — run chmod go-w \/h\/v \/h\/v\/2\.1\.327/);
+  assert.doesNotMatch(n[0].text, /not installed/);
+  n = runtimeNotices(h({ bin: '/p', version: '9.9.9' }, 'selection path'), '2.1.327');
+  assert.match(n[0].text, /not used: the choice is PATH only — run \/upgrade auto/);
+  n = runtimeNotices(h({ bin: '/p', version: '9.9.9' }, 'selection path'), '2.1.327', 'cli');
+  assert.match(n[0].text, /run taskquoin upgrade auto/);
+  n = runtimeNotices(h(undefined, 'version mismatch'), '2.1.327', 'cli'); // no claude on the PATH: still said
+  assert.match(n[0].text, /not used: its --version does not answer that version — run taskquoin upgrade install/);
+  const act = runtimeNotices({ runtimes: { claude: { bin: '/p', version: '9.9.9' } } } as never, '2.1.327', 'cli');
+  assert.match(act[0].text, /9\.9\.9 is not measured and 2\.1\.327 is not installed — run taskquoin upgrade install/);
+});
+
+test('doctor (CLI): an unmeasured claude with nothing measured installed points to taskquoin upgrade; the usage lists upgrade', () => {
+  const { ws, tq } = sandbox({ claude: '9.9.9 (Claude Code)', codex: 'codex-cli 0.157.1' });
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'package.json'), '{}');
+  assert.equal(tq('init').status, 0); noMemory(ws);
+  const r = tq('doctor');
+  assert.match(r.stdout, /◆ Action required {2}Claude Code 9\.9\.9 is not measured and \S+ is not installed — run taskquoin upgrade install/);
+  assert.doesNotMatch(r.stdout, /— \/upgrade/);
+  assert.match(tq('nope').stderr, /usage: taskquoin <[^\n]*\|upgrade \[auto\|path\|install\] \[--offline\]\|/);
+});
+
+test('doctor: a measured Claude Code installed but not used says why (versions/ at 0775, or the PATH-only choice) instead of "not installed"', () => {
+  const measured = JSON.parse(readFileSync(new URL('../../../adapters/runtime-claude/src/capabilities.json', import.meta.url), 'utf8')).runtimeVersion as string;
+  const { ws, root, env, tq } = sandbox({ claude: '9.9.9 (Claude Code)', codex: 'codex-cli 0.157.1' });
+  const dir = join(root, '.local/share/claude/versions'); mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, measured), `#!/bin/sh\necho "${measured} (Claude Code)"\n`); chmodSync(join(dir, measured), 0o755);
+  chmodSync(dir, 0o775);
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'package.json'), '{}');
+  assert.equal(tq('init').status, 0); noMemory(ws);
+  const v = measured.replace(/\./g, '\\.');
+  let r = tq('doctor');
+  assert.match(r.stdout, new RegExp(`Claude Code ${v} is installed but not used: it or its folder is writable by group or others — run chmod go-w ${dir} ${dir}/${v}`));
+  assert.doesNotMatch(r.stdout, /is not installed/);
+  chmodSync(dir, 0o755);
+  mkdirSync(join(env.XDG_STATE_HOME, 'taskquoin'), { recursive: true });
+  writeFileSync(join(env.XDG_STATE_HOME, 'taskquoin', 'preferences.json'), JSON.stringify({ runtimeSelection: { claude: 'path' } }));
+  r = tq('doctor');
+  assert.match(r.stdout, new RegExp(`Claude Code ${v} is installed but not used: the choice is PATH only — run taskquoin upgrade auto`));
+  const fr = spawnSync(process.execPath, [main, 'doctor'], { cwd: ws, env: { ...env, TASKQUOIN_LANG: 'fr' }, encoding: 'utf8' });
+  assert.match(fr.stdout, new RegExp(`Claude Code ${v} est installé mais pas utilisé : le choix est « PATH seul » — lancez taskquoin upgrade auto`));
+});
+
+/** A preload that makes the account's home (os.userInfo) what TQ_TEST_ACCOUNT_HOME says, before main.ts loads. */
+function accountHomePreload(dir: string): string {
+  const p = join(dir, 'account-home.mjs');
+  writeFileSync(p, "import os from 'node:os'; import { syncBuiltinESMExports } from 'node:module';\nconst real = os.userInfo; os.userInfo = (o) => ({ ...real(o), homedir: process.env.TQ_TEST_ACCOUNT_HOME ?? '' }); syncBuiltinESMExports();\n");
+  return p;
+}
+
+test('upgrade install with HOME empty, "." or relative (and no absolute account home) is refused: the installer never runs in the repository', () => {
+  const { ws, root, env } = sandbox({ claude: '9.9.9 (Claude Code)', codex: 'codex-cli 0.157.1' });
+  git(ws, 'init', '-q');
+  const marker = join(root, 'npm-ran-in');
+  writeFileSync(join(root, 'bin', 'npm'), `#!/bin/sh\npwd > '${marker}'\n`); chmodSync(join(root, 'bin', 'npm'), 0o755);
+  const pre = accountHomePreload(root);
+  for (const HOME of ['', '.', 'rel']) {
+    const r = spawnSync(process.execPath, ['--import', pre, main, 'upgrade', 'install', '--offline'], { cwd: ws, env: { ...env, HOME, TQ_TEST_ACCOUNT_HOME: 'rel' }, input: 'yes\n', encoding: 'utf8' });
+    assert.ok(!existsSync(marker), `HOME=${JSON.stringify(HOME)}: npm ran in ${existsSync(marker) ? readFileSync(marker, 'utf8') : ''}`);
+    assert.equal(r.status, 1, `HOME=${JSON.stringify(HOME)}\n${r.stdout}\n${r.stderr}`);
+    assert.match(r.stderr, /No absolute home directory/);
+  }
+});
+
+test('host(): a relative HOME falls back to the account home for the measured Claude Code (same helper as the installer)', () => {
+  const measured = JSON.parse(readFileSync(new URL('../../../adapters/runtime-claude/src/capabilities.json', import.meta.url), 'utf8')).runtimeVersion as string;
+  const { ws, root, env, tq } = sandbox({ claude: '9.9.9 (Claude Code)', codex: 'codex-cli 0.157.1' });
+  const dir = join(root, '.local/share/claude/versions'); mkdirSync(dir, { recursive: true }); chmodSync(dir, 0o755);
+  writeFileSync(join(dir, measured), `#!/bin/sh\necho "${measured} (Claude Code)"\n`); chmodSync(join(dir, measured), 0o755);
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'package.json'), '{}');
+  assert.equal(tq('init').status, 0); noMemory(ws);
+  const r = spawnSync(process.execPath, ['--import', accountHomePreload(root), main, 'doctor'], { cwd: ws, env: { ...env, HOME: 'rel', TQ_TEST_ACCOUNT_HOME: root }, encoding: 'utf8' });
+  assert.match(r.stdout, new RegExp(`Runtime claude: installed 9\\.9\\.9 \\(not measured\\) → using ${measured.replace(/\./g, '\\.')} \\(measured\\)`), r.stdout + r.stderr);
+});
+
+test('upgrade path with a preferences file that cannot be written: a translated error, exit 1, no temporary file; the console session goes on', () => {
+  const { ws, env, tq } = sandbox();
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'package.json'), '{}');
+  assert.equal(tq('init').status, 0); noMemory(ws);
+  const state = join(env.XDG_STATE_HOME, 'taskquoin');
+  mkdirSync(join(state, 'preferences.json'), { recursive: true }); writeFileSync(join(state, 'preferences.json', 'x'), '');
+  const fr = spawnSync(process.execPath, [main, 'upgrade', 'path', '--offline'], { cwd: ws, env: { ...env, TASKQUOIN_LANG: 'fr' }, encoding: 'utf8' });
+  assert.equal(fr.status, 1, fr.stdout + fr.stderr);
+  assert.match(fr.stderr, /Impossible d'enregistrer le choix/);
+  assert.deepEqual(readdirSync(state).filter(n => n.endsWith('.tmp')), []);
+  const c = spawnSync(process.execPath, [main, 'console'], { cwd: ws, env: { ...env, TASKQUOIN_OFFLINE: '1' }, input: '/upgrade path\n/help\n/quit\n', encoding: 'utf8' });
+  assert.match(c.stderr, /Cannot save the choice/);
+  assert.match(c.stdout, /\/approve <plan\|commit>/, 'the session went on after the failed save (/help answered)');
+  assert.equal(c.status, 1, 'the failed command still fails the session for scripts');
+});
+
+test('console --offline: /upgrade never reads the registry (the flag reaches the console, not only TASKQUOIN_OFFLINE)', () => {
+  const { ws, root, env, tq } = sandbox();
+  git(ws, 'init', '-q'); writeFileSync(join(ws, 'package.json'), '{}');
+  assert.equal(tq('init').status, 0); noMemory(ws);
+  // fetch is replaced before main.ts loads: a call is recorded and fails, the network is never reached.
+  const marker = join(root, 'fetch-called'); const pre = join(root, 'no-fetch.mjs');
+  writeFileSync(pre, "import { writeFileSync } from 'node:fs';\nglobalThis.fetch = async (url) => { writeFileSync(process.env.TQ_TEST_FETCH_MARKER, String(url)); throw new TypeError('fetch failed (blocked by the test)'); };\n");
+  const r = spawnSync(process.execPath, ['--import', pre, main, 'console', '--offline'], { cwd: ws, env: { ...env, TQ_TEST_FETCH_MARKER: marker }, input: '/upgrade\n/quit\n', encoding: 'utf8' });
+  assert.ok(!existsSync(marker), `the registry was read: ${existsSync(marker) ? readFileSync(marker, 'utf8') : ''}`);
+  assert.match(r.stdout, /Offline: no check for a newer Taskquoin/);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
 });

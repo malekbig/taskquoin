@@ -169,6 +169,19 @@ export const steps: StepDef<World>[] = [
   // ── Vérifications : commandes ───────────────────────────────────────────────────────────────────────────────────
   { re: s(`la commande réussit`), fn: (w) => ok(w, 'command') },
   { re: s(`la commande échoue avec le code (\\d)`), fn: (w, code) => assert.equal(w.last?.status, Number(code), `${w.last?.stdout}\n${w.last?.stderr}`) },
+  { re: s(`la sortie ne contient pas "(.+)"`), fn: (w, text) => assert.ok(!w.last?.stdout.includes(text), `stdout:\n${w.last?.stdout}`) },
+  { re: s(`un Claude Code "(.+)" installé sur le PATH`), fn: (w, v) => {
+    const bin = join(w.root, 'bin', 'claude'); writeFileSync(bin, `#!/bin/sh\necho '${v} (Claude Code)'\n`); chmodSync(bin, 0o755);
+  } },
+  { re: s(`le propriétaire exécute "(.+)" en tapant une ligne vide`), fn: (w, cmd) => { w.tq(cmd.split(' '), '\n'); } },
+  { re: s(`le propriétaire exécute "(.+)" et confirme en tapant yes`), fn: (w, cmd) => { w.tq(cmd.split(' '), 'yes\n'); } },
+  { re: s(`un faux npm qui laisse une trace s'il est lancé`), fn: (w) => w.fakeNpm() },
+  { re: s(`le faux npm n'a pas été lancé`), fn: (w) => assert.ok(!existsSync(w.npmTrace), `npm was run: ${existsSync(w.npmTrace) ? readFileSync(w.npmTrace, 'utf8') : ''}`) },
+  { re: s(`le faux npm a été lancé dans HOME avec "(.+)"`), fn: (w, args) => {
+    assert.ok(existsSync(w.npmTrace), 'npm was not run');
+    const [cwd, line] = readFileSync(w.npmTrace, 'utf8').split('\n');
+    assert.equal(cwd, w.env.HOME, 'the installer runs in HOME, outside the repository'); assert.ok(line.includes(args), line);
+  } },
   { re: s(`la sortie contient "(.+)"`), fn: (w, text) => assert.ok(w.last?.stdout.includes(text), `stdout:\n${w.last?.stdout}`) },
   { re: s(`la sortie d'erreur contient "(.+)"`), fn: (w, text) => assert.ok(w.last?.stderr.includes(text), `stderr:\n${w.last?.stderr}`) },
   // ── Vérifications : run ─────────────────────────────────────────────────────────────────────────────────────────

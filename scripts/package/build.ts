@@ -63,6 +63,17 @@ function repositoryFields(env: Env): Record<string, unknown> {
   return { repository: { type: 'git', url: `git+${web}.git` }, homepage: `${web}#readme`, bugs: { url: `${web}/issues` } };
 }
 
+/** The runtime versions this release measured: each runtime matrix's `runtimeVersion`, read from disk. */
+function measuredVersions(repoRoot: string): Record<'claude' | 'codex' | 'opencode', string> {
+  const read = (runtime: string) => {
+    const file = join(repoRoot, 'adapters', `runtime-${runtime}`, 'src', 'capabilities.json');
+    const version = (JSON.parse(readFileSync(file, 'utf8')) as { runtimeVersion?: unknown }).runtimeVersion;
+    if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`${relative(repoRoot, file)}: runtimeVersion is not x.y.z: ${version}`);
+    return version;
+  };
+  return { claude: read('claude'), codex: read('codex'), opencode: read('opencode') };
+}
+
 /** The published package.json: third-party dependencies of every workspace, each pinned to one exact version. */
 export function packageManifest(repoRoot: string, env: Env = process.env): Record<string, unknown> {
   const root = readJson(join(repoRoot, 'package.json'));
@@ -79,6 +90,7 @@ export function packageManifest(repoRoot: string, env: Env = process.env): Recor
     name: 'taskquoin', version: root.version, description: root.description, license: 'Apache-2.0', type: 'module',
     bin: { taskquoin: 'apps/cli/src/main.js' }, engines: { node: '>=22.18' },
     ...repositoryFields(env),
+    taskquoin: { measured: measuredVersions(repoRoot) },
     dependencies: Object.fromEntries(Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b))),
   };
 }

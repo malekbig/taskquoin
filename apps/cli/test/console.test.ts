@@ -3,7 +3,9 @@
  * keeps a current run, and approves ONLY after the human retypes the pending hash (12 chars) — wrong or empty input
  * approves nothing; the approver's name is asked once per session and recorded "via taskquoin console".
  * Under a wide-character (zh-CN) catalog, the `/` menu and the banner keep their second column at one display column.
- * DOES NOT PROVE: the readline wiring and the real CLI commands — features/console.feature does.
+ * `withTerminalReleased` (fakes) pauses readline, turns raw mode off and leaves SIGINT to the installer, restoring all.
+ * DOES NOT PROVE: the readline wiring and the real CLI commands — features/console.feature does (the pseudo-terminal
+ * behaviour of Ctrl+C during /upgrade install was checked by hand, see the final fix report).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -31,6 +33,7 @@ function session(lines: string[], over: Partial<ConsoleCommands> = {}) {
     doctor: async () => { calls.push('doctor'); return 0; },
     skills: async () => { calls.push('skills'); return 0; },
     agents: async () => { calls.push('agents'); return 0; },
+    upgrade: async (a) => { calls.push(`upgrade:${a}`); return 0; },
     pending: (r) => (r === 'run-20261115T110000-bbbbbb' ? { gate: 'plan', binding: HASH } : undefined),
     runs: () => runs,
     ...over,
@@ -151,10 +154,30 @@ test('banner: the TASK art, Q U O I N, the squad with its REAL status; colours o
   });
 });
 
+test('banner: notices are drawn after the squad (fallback muted with a cyan arrow, action orange); no notice leaves the banner unchanged', async () => {
+  const { renderBanner } = await import('../src/console.ts');
+  const squad = [{ role: 'Developer', who: 'implementer · claude', state: 'ready' as const }];
+  const notices = [
+    { kind: 'fallback' as const, text: '⬆ Claude Code 9.9.9 installed, not measured yet' },
+    { kind: 'action' as const, text: '◆ Action required  do the thing' },
+  ];
+  const base = renderBanner(squad, { color: false });
+  assert.equal(renderBanner(squad, { color: false, notices: [] }), base);
+  const plain = renderBanner(squad, { color: false, notices });
+  assert.ok(plain.indexOf('implementer · claude') < plain.indexOf('⬆ Claude Code 9.9.9'));
+  assert.ok(plain.indexOf('⬆ Claude Code 9.9.9') < plain.indexOf('◆ Action required  do the thing'));
+  assert.doesNotMatch(plain, /\x1b\[/);
+  const colored = renderBanner(squad, { color: true, notices });
+  assert.match(colored, /\x1b\[38;2;255;158;100m◆ Action required  do the thing\x1b\[0m/);
+  assert.match(colored, /\x1b\[38;2;\d+;\d+;\d+m⬆\x1b\[0m/);
+  assert.equal(colored.replace(/\x1b\[[0-9;]*m/g, ''), plain);
+});
+
 test('the prompt shows the current run; tab completion proposes the commands', async () => {
   const { completeCommand } = await import('../src/console.ts');
   assert.deepEqual(completeCommand('/ap'), [['/approve '], '/ap']);
   assert.deepEqual(completeCommand('/s')[0].sort(), ['/show ', '/skills ', '/status '].sort());
+  assert.deepEqual(completeCommand('/up'), [['/upgrade '], '/up']);
   assert.equal(completeCommand('bonjour')[0].length, 0);
   const asked: string[] = [];
   const io = { ask: async (q: string) => { asked.push(q); return asked.length === 1 ? '/run x' : undefined; }, out: () => {}, err: () => {} };
@@ -227,7 +250,7 @@ test('the console speaks the selected language: English by default, French on re
   const fr = await text('fr');
   assert.match(fr, /Commandes/); assert.match(fr, /Rien n'est lancé sans commande/);
   const { consoleHelp, commandDocs } = await import('../src/console.ts');
-  assert.equal(commandDocs().length, 12);
+  assert.equal(commandDocs().length, 13);
   assert.notEqual(await inLang('en', () => consoleHelp()), await inLang('fr', () => consoleHelp()), 'help is computed at call time, not at module load');
 });
 
@@ -236,7 +259,7 @@ test('CJK: the / menu description column and the banner second column start at o
   const wide: Record<string, string> = {
     'console.doc.run': '启动受管运行', 'console.doc.runs': '列出所有运行', 'console.doc.use': '选择当前运行', 'console.doc.status': '当前运行的历史',
     'console.doc.show': '显示产物', 'console.doc.approve': '批准流程', 'console.doc.resume': '恢复运行', 'console.doc.agents': '代理及其权限',
-    'console.doc.doctor': '机器状态', 'console.doc.skills': '已安装技能', 'console.doc.help': '帮助', 'console.doc.quit': '退出控制台',
+    'console.doc.doctor': '机器状态', 'console.doc.skills': '已安装技能', 'console.doc.upgrade': '升级工具版本', 'console.doc.upgrade.args': '[auto|path|install]', 'console.doc.help': '帮助', 'console.doc.quit': '退出控制台',
     'console.role.planner': '架构师', 'console.role.implementer': '开发者', 'console.role.challenger': '审阅者', 'console.role.security': '安全',
     'console.role.tester': '测试员',
   };
@@ -257,4 +280,30 @@ test('CJK: the / menu description column and the banner second column start at o
     assert.ok(cols[0] > 8, 'roles are wide, so the column moved');
     assert.equal(t('console.role.tester'), '测试员');
   } finally { setLanguage('en'); }
+});
+
+test('/upgrade passes its argument to the command and is listed in /help', async () => {
+  const s = session(['/upgrade path', '/upgrade', '/help', '/quit']); await s.done;
+  assert.deepEqual(s.calls, ['upgrade:path', 'upgrade:']);
+  assert.ok(s.out.some(l => /\/upgrade \[auto\|path\|install\]/.test(l)), '/help lists /upgrade');
+});
+
+test('an installer started from the console gets the terminal: readline paused, raw mode off, SIGINT left to it; all restored, even on failure', async () => {
+  const { withTerminalReleased } = await import('../src/console.ts');
+  const fakes = (tty: boolean, raw: boolean) => {
+    const calls: string[] = [];
+    const rl = { pause: () => { calls.push('pause'); }, resume: () => { calls.push('resume'); } };
+    const stdin = { isTTY: tty, isRaw: raw, setRawMode: (m: boolean) => { calls.push(`raw:${m}`); stdin.isRaw = m; } };
+    const signals = { on: (ev: string) => { calls.push(`on:${ev}`); }, off: (ev: string) => { calls.push(`off:${ev}`); } };
+    return { calls, rl, stdin, signals };
+  };
+  let f = fakes(true, true);
+  assert.equal(await withTerminalReleased(f, async () => { f.calls.push(`run(raw=${f.stdin.isRaw})`); return 7; }), 7);
+  assert.deepEqual(f.calls, ['pause', 'raw:false', 'on:SIGINT', 'run(raw=false)', 'off:SIGINT', 'raw:true', 'resume']);
+  f = fakes(true, true);
+  await assert.rejects(withTerminalReleased(f, async () => { throw new Error('spawn failed'); }), /spawn failed/);
+  assert.deepEqual(f.calls, ['pause', 'raw:false', 'on:SIGINT', 'off:SIGINT', 'raw:true', 'resume']);
+  f = fakes(false, false); // piped input (scripts, tests): no raw mode to touch
+  await withTerminalReleased(f, async () => 0);
+  assert.deepEqual(f.calls, ['pause', 'on:SIGINT', 'off:SIGINT', 'resume']);
 });

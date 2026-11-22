@@ -45,6 +45,7 @@ Each translated tutorial shows the screens in its own language. English and Fren
 | [Approvals](guides/approvals.md) | the two human gates, what a hash binds, refusals, resuming |
 | [Verify and the RED proof](guides/verify-and-red-proof.md) | your tests in a clean room, and the proof that they fail without the change |
 | [Security](guides/security.md) | capabilities, enforcement classes, sandboxes, hooks, secrets, what is not protected |
+| [Upgrade](guides/upgrade.md) | runtime versions, the measured Claude Code, `taskquoin upgrade` and `/upgrade` |
 | [Skills](guides/skills.md) | pinned first-party skills, importing and approving your own |
 | [Memory](guides/memory.md) | the optional local memory of finished runs |
 | [Languages](guides/languages.md) | 22 languages for the console, the CLI and the agents' prose |

@@ -22,6 +22,8 @@ export interface ConsoleCommands {
   doctor(): Promise<number>;
   skills(): Promise<number>;
   agents(): Promise<number>;
+  /** `/upgrade [auto|path|install]`: `ask` reads the confirmation line from the console. */
+  upgrade(arg: string, ask: (q: string) => Promise<string | undefined>): Promise<number>;
   /** The gate a run waits for and the exact hash to approve, if any. */
   pending(run: string): { gate: 'plan' | 'commit'; binding: string } | undefined;
   /** Run ids, oldest first (ids sort by time). */
@@ -48,6 +50,29 @@ export function lineReader(src: { on(ev: 'line', fn: (l: string) => void): unkno
   };
 }
 
+/**
+ * While another program owns the terminal (the /upgrade installer, stdio inherited): the console's readline is paused
+ * and raw mode is off, so Ctrl+C reaches that program as a signal — in raw mode it was a keypress the installer never
+ * saw. The console ignores that SIGINT itself (it would end the session); both are restored afterwards, even on failure.
+ */
+export async function withTerminalReleased<T>(o: {
+  rl: { pause(): unknown; resume(): unknown };
+  stdin: { isTTY?: boolean; isRaw?: boolean; setRawMode?(raw: boolean): unknown };
+  signals: { on(ev: 'SIGINT', fn: () => void): unknown; off(ev: 'SIGINT', fn: () => void): unknown };
+}, f: () => Promise<T>): Promise<T> {
+  const tty = !!o.stdin.isTTY && typeof o.stdin.setRawMode === 'function';
+  const wasRaw = !!o.stdin.isRaw;
+  const ignore = () => {};
+  o.rl.pause();
+  if (tty) o.stdin.setRawMode!(false);
+  o.signals.on('SIGINT', ignore);
+  try { return await f(); } finally {
+    o.signals.off('SIGINT', ignore);
+    if (tty) o.stdin.setRawMode!(wasRaw);
+    o.rl.resume();
+  }
+}
+
 type DocKey = Extract<MessageKey, `console.doc.${string}`>;
 /** Single source for /help, Tab completion and the "/" menu: [command, arguments key, description key] (names are not translated). */
 const COMMAND_TABLE: readonly [string, DocKey | '', DocKey][] = [
@@ -61,6 +86,7 @@ const COMMAND_TABLE: readonly [string, DocKey | '', DocKey][] = [
   ['/agents', '', 'console.doc.agents'],
   ['/doctor', '', 'console.doc.doctor'],
   ['/skills', '', 'console.doc.skills'],
+  ['/upgrade', 'console.doc.upgrade.args', 'console.doc.upgrade'],
   ['/help', '', 'console.doc.help'],
   ['/quit', '', 'console.doc.quit'],
 ];
@@ -132,7 +158,7 @@ const TASK_ART = [
 ];
 type RGB = [number, number, number];
 const C = { mint: [94, 242, 194] as RGB, shadow: [38, 166, 140] as RGB, pink: [247, 143, 179] as RGB, violet: [183, 148, 246] as RGB,
-  muted: [154, 165, 206] as RGB, line: [86, 95, 137] as RGB, green: [158, 206, 106] as RGB, amber: [224, 175, 104] as RGB, red: [247, 118, 142] as RGB, orange: [255, 158, 100] as RGB };
+  muted: [154, 165, 206] as RGB, line: [86, 95, 137] as RGB, green: [158, 206, 106] as RGB, amber: [224, 175, 104] as RGB, red: [247, 118, 142] as RGB, orange: [255, 158, 100] as RGB, cyan: [125, 207, 255] as RGB };
 const mix = (a: RGB, b: RGB, t: number): RGB => [0, 1, 2].map(i => Math.round(a[i] + (b[i] - a[i]) * t)) as RGB;
 
 /**
@@ -182,7 +208,7 @@ export async function animateLogo(write: (s: string) => void, sleep: (ms: number
  * "READY": a role that cannot run says NOT READY and why. Colours (24-bit) only when `color` (a TTY, no NO_COLOR).
  * `logo: false` when the animation already drew it.
  */
-export function renderBanner(squad: SquadMember[], o: { color: boolean; logo?: boolean }): string {
+export function renderBanner(squad: SquadMember[], o: { color: boolean; logo?: boolean; notices?: { kind: 'fallback' | 'action'; text: string }[] }): string {
   const paint = paintWith(o.color);
   const width = Math.max(...squad.map(m => displayWidth(m.role))) + 2, whoW = Math.max(...squad.map(m => displayWidth(m.who))) + 2;
   const rows = squad.map(m => {
@@ -192,7 +218,10 @@ export function renderBanner(squad: SquadMember[], o: { color: boolean; logo?: b
       : paint(ready, C.green);
     return ` ${paint(m.state === 'blocked' ? '[○]' : '[●]', m.state === 'blocked' ? C.red : C.mint)} ${paint(padEndDisplay(m.role, width), C.mint)}${paint(padEndDisplay(m.who, whoW), C.muted)}${status}`;
   });
+  const notices = (o.notices ?? []).map(n => n.kind === 'action' ? ` ${paint(n.text, C.orange)}`
+    : n.text.startsWith('⬆') ? ` ${paint('⬆', C.cyan)}${paint(n.text.slice('⬆'.length), C.muted)}` : ` ${paint(n.text, C.muted)}`);
   return [...(o.logo === false ? [] : ['', renderLogo(o.color)]), '', ` ${paint(t('console.banner.tagline'), C.muted)}`, ` ${paint('─'.repeat(34), C.line)}`, '', ...rows, '',
+    ...(notices.length ? [...notices, ''] : []),
     ` ${paint(t('console.banner.slogan'), C.orange)}`, ''].join('\n');
 }
 
@@ -233,6 +262,7 @@ export async function runConsole(io: ConsoleIO, cmd: ConsoleCommands, banner?: s
       case 'agents': track(await cmd.agents()); break;
       case 'doctor': track(await cmd.doctor()); break;
       case 'skills': track(await cmd.skills()); break;
+      case 'upgrade': track(await cmd.upgrade(arg, io.ask)); break;
       case 'approve': {
         const r = needRun(); if (!r) break;
         const gate = rest[0];

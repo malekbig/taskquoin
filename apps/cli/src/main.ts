@@ -5,7 +5,7 @@
  */
 import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -20,15 +20,20 @@ import { codexSandboxFor } from '@taskquoin/runtime-codex';
 import { ClaudeMemMemory } from '@taskquoin/memory-claude-mem';
 import { GitWorkspace } from '@taskquoin/git';
 import { cmdApprove, cmdResume, cmdRun, cmdShow, cmdStatus, configDigest, type CliContext } from './workflow-cli.ts';
-import { animateLogo, completeCommand, drawSlashMenu, lineReader, renderBanner, runConsole, slashMenu, squadOf, type ConsoleCommands, type ConsoleIO } from './console.ts';
+import { animateLogo, completeCommand, drawSlashMenu, lineReader, renderBanner, runConsole, slashMenu, squadOf, withTerminalReleased, type ConsoleCommands, type ConsoleIO } from './console.ts';
 import { sandboxedToolAvailable } from '@taskquoin/local-tool';
 import { installShortcut, removeShortcut, type ShortcutEnv } from './shortcut.ts';
+import { runtimeNotices } from './runtime-notices.ts';
 import { layoutOf } from './layout.ts';
 import { en, ENGLISH_ONLY, loadPreferences, resolveLanguage, setLanguage, t, translate, type ParamNames, type Params } from './i18n/index.ts';
 import { alignColumns } from './i18n/width.ts';
 import { createInterface } from 'node:readline';
 
 import { cmdSkills, resolveAgentSkills } from './skills-cli.ts';
+import { cmdUpgrade, type UpgradeEnv } from './upgrade-cli.ts';
+import { fetchLatest } from './upgrade-check.ts';
+import { absoluteHome } from './home.ts';
+import { savePreferences } from './preferences.ts';
 
 const CONFIG = 'taskquoin.yaml';
 const out = (s = '') => process.stdout.write(s + '\n');
@@ -55,7 +60,9 @@ function detectStack(root: string): Stack {
 }
 
 async function host(): Promise<HostReport> {
-  return probeHost({ cwd: process.cwd(), PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? homedir() });
+  // No absolute home: '' (the probe then never looks for the measured file, and nothing resolves against the cwd).
+  return probeHost({ cwd: process.cwd(), PATH: process.env.PATH ?? '', HOME: absoluteHome() ?? '',
+    claude: { measured: loadMatrix('claude').runtimeVersion, selection: loadPreferences(stateBase()).runtimeSelection?.claude ?? 'auto' } });
 }
 function requireRepo(h: HostReport): string {
   if (!h.gitRoot) { err(t('cli.notGit')); process.exit(1); }
@@ -149,8 +156,11 @@ async function cmdDoctor(): Promise<number> {
   out(t('cli.doctor.title', { root }));
   for (const rt of ['claude', 'codex', 'opencode'] as const) {
     const p = h.runtimes[rt]; const m = loadMatrix(rt);
+    if (p?.installed) { out(t('cli.doctor.runtimeFallback', { rt, installed: p.installed.version ?? '?', version: p.version ?? '?', bin: p.bin })); continue; }
     out(p ? t('cli.doctor.runtime', { rt, version: p.version ?? '?', bin: p.bin, mark: p.version === m.runtimeVersion ? '✔' : t('cli.doctor.matrix', { version: m.runtimeVersion }) }) : t('cli.doctor.runtimeMissing', { rt }));
   }
+  // Claude Code not measured and the measured one not used: why, and the `taskquoin upgrade` command that fixes it.
+  for (const n of runtimeNotices(h, loadMatrix('claude').runtimeVersion, 'cli')) if (n.kind === 'action') out(n.text);
   out(t('cli.doctor.bash', { state: h.bashSandbox ? '✔' : t('cli.doctor.bashMissing') }));
   out(t('cli.doctor.file', { state: h.fileSandbox ? '✔' : t('cli.doctor.fileMissing') }));
   out(t('cli.doctor.isolation', { state: h.localIsolation ? '✔' : t('cli.doctor.isolationMissing') }));
@@ -280,7 +290,7 @@ async function cmdUninstall(purge: boolean): Promise<number> {
 export function help(): string {
   const col: [string, string][] = [
     ['  init', t('cli.help.init')], ['  doctor', t('cli.help.doctor')], ['  check <agent> [--json]', t('cli.help.check')], ['  version', t('cli.help.version')],
-    ['  console', t('cli.help.console')], ['  run "<request>"', t('cli.help.run')], ['  status [<run>] [--json]', t('cli.help.status')],
+    ['  upgrade [auto|path|install] [--offline]', t('cli.help.upgrade')], ['  console', t('cli.help.console')], ['  run "<request>"', t('cli.help.run')], ['  status [<run>] [--json]', t('cli.help.status')],
     ['  show <run>', t('cli.help.showList')], ['  show <run> <artifact>', t('cli.help.showOne')], ['  resume <run>', t('cli.help.resume')],
     ['  skills list', t('cli.help.skillsList')], ['  skills audit <dir>', t('cli.help.skillsAudit')],
     ['  connect opencode [--remove]', t('cli.help.connect')], ['  setup [--remove]', t('cli.help.setup2')], ['  uninstall [--purge-state]', t('cli.help.uninstall')],
@@ -289,7 +299,7 @@ export function help(): string {
   const wrap = ' '.repeat(L[0]!.length - col[0]![1].length);
   return [
     t('cli.help.title'), '',
-    t('cli.help.setup'), at('init'), at('doctor'), at('check <agent> [--json]'),
+    t('cli.help.setup'), at('init'), at('doctor'), at('upgrade [auto|path|install] [--offline]'), at('check <agent> [--json]'),
     '  accept-risk <agent> <capability> --reason "<why>" --expires YYYY-MM-DD --as <name>', wrap + t('cli.help.acceptRisk'), at('version'),
     t('cli.help.workflow'), at('console'), at('run "<request>"'), at('status [<run>] [--json]'), at('show <run>'), at('show <run> <artifact>'),
     '  approve <run> <plan|commit> --expect <hash> --as <name>', wrap + t('cli.help.approve'), at('resume <run>'),
@@ -307,12 +317,47 @@ async function ctx(): Promise<{ c: CliContext; git: GitWorkspace }> {
   const h = await host(); const root = requireRepo(h); const cfg = loadConfig(root);
   if (!h.git) throw new Error(t('cli.gitMissing'));
   const store = repoStore(root);
-  const c: CliContext = { cfg, h, root, store, gate: (id) => gate(cfg, h, id), hookEntry: HOOK_ENTRY, out, err };
+  const c: CliContext = { cfg, h, root, store, gate: (id) => gate(cfg, c.h, id), hookEntry: HOOK_ENTRY, out, err };
   return { c, git: new GitWorkspace({ gitBin: h.git, cwd: root, env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? homedir() }, scratchDir: ensureTrustedDir(join(store.root, 'scratch')) }) };
 }
 
+/** One line from stdin (a terminal or a pipe, like the console's lineReader, ADR-0015); closed input → undefined (cancel). */
+function askStdin(question: string): Promise<string | undefined> {
+  process.stdout.write(question);
+  return new Promise((res) => {
+    const rl = createInterface({ input: process.stdin, terminal: false });
+    let got = false;
+    rl.once('line', (l) => { got = true; res(l); rl.close(); });
+    rl.once('close', () => { if (!got) res(undefined); });
+  });
+}
+
+/** Starts `bin` with the user's environment and terminal; never throws: a binary that cannot start is exit code 127. */
+function runInherit(bin: string, args: string[], cwd: string): Promise<number> {
+  return new Promise((res) => {
+    let child;
+    try { child = spawn(bin, args, { cwd, stdio: 'inherit', env: process.env }); } catch (e) { err(t('upgrade.runFailed', { bin, reason: (e as Error).message })); res(127); return; }
+    child.once('error', (e) => { err(t('upgrade.runFailed', { bin, reason: e.message })); res(127); });
+    child.once('close', (code) => res(code ?? 1));
+  });
+}
+
+/** `taskquoin upgrade` and `/upgrade`: the registry is read only here, never when `offline`. */
+async function cmdUpgradeWith(arg: string | undefined, o: { h: HostReport; offline: boolean; ask: UpgradeEnv['ask']; surface: UpgradeEnv['surface']; run?: UpgradeEnv['run'] }): Promise<{ code: number; h: HostReport }> {
+  const measured = { claude: loadMatrix('claude').runtimeVersion, codex: loadMatrix('codex').runtimeVersion, opencode: loadMatrix('opencode').runtimeVersion };
+  const e: UpgradeEnv = {
+    h: o.h, measured, selection: loadPreferences(stateBase()).runtimeSelection?.claude ?? 'auto', packaged: LAYOUT.packaged, version: LAYOUT.version,
+    offline: o.offline, home: absoluteHome(), surface: o.surface, out, err, ask: o.ask,
+    save: (sel) => savePreferences(stateBase(), { runtimeSelection: { ...loadPreferences(stateBase()).runtimeSelection, claude: sel } }),
+    reprobe: () => host(), latest: () => fetchLatest(), run: o.run ?? runInherit,
+  };
+  const code = await cmdUpgrade(arg || undefined, e);
+  return { code, h: e.h };
+}
+const isOffline = (flag?: boolean) => !!flag || process.env.TASKQUOIN_OFFLINE === '1';
+
 /** `taskquoin console`: the same commands behind `/…` lines; approvals need the hash retyped (see console.ts). */
-async function cmdConsole(): Promise<number> {
+async function cmdConsole(offline: boolean): Promise<number> {
   const { c, git } = await ctx();
   const tty = !!process.stdin.isTTY;
   const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: tty, ...(tty ? { completer: completeCommand } : {}) });
@@ -357,6 +402,12 @@ async function cmdConsole(): Promise<number> {
     }),
     pending: (r) => { const s = loadRunState<RunState>(c.store, r); const p = s && pendingApproval(s); return p ? { gate: p.node === 'approve-plan' ? 'plan' : 'commit', binding: p.binding } : undefined; },
     runs: () => listRuns(c.store),
+    // The installer gets the terminal (Ctrl+C stops it); --offline given to `taskquoin console` holds for /upgrade.
+    upgrade: async (a, ask) => {
+      const r = await cmdUpgradeWith(a, { h: c.h, offline, ask, surface: 'console',
+        run: (bin, args, cwd) => withTerminalReleased({ rl, stdin: process.stdin, signals: process }, () => runInherit(bin, args, cwd)) });
+      c.h = await host(); return r.code;
+    },
   };
   // The squad as it really is: each agent's gate verdict, and Taskquoin's own sandboxed Verify as the tester.
   // Computed while the logo animation plays (terminal with colours only; TASKQUOIN_NO_ANIMATION=1 turns it off).
@@ -364,7 +415,7 @@ async function cmdConsole(): Promise<number> {
   const playing = animate ? animateLogo((s) => process.stdout.write(s), (ms) => new Promise(r => setTimeout(r, ms))) : Promise.resolve();
   const squad = squadOf(c.cfg.agents, (id) => gate(c.cfg, c.h, id), await sandboxedToolAvailable());
   await playing;
-  try { return await runConsole(io, cmds, renderBanner(squad, { color, logo: !animate })); } finally { rl.close(); }
+  try { return await runConsole(io, cmds, renderBanner(squad, { color, logo: !animate, notices: runtimeNotices(c.h, loadMatrix('claude').runtimeVersion) })); } finally { rl.close(); }
 }
 
 /** Source checkouts only: an npm install has no launcher to link — npm already put `taskquoin` on the PATH. */
@@ -376,7 +427,7 @@ async function main(): Promise<number> {
   try {
     parsed = parseArgs({ allowPositionals: true, options: { json: { type: 'boolean' }, 'purge-state': { type: 'boolean' },
       reason: { type: 'string' }, expires: { type: 'string' }, as: { type: 'string' }, help: { type: 'boolean', short: 'h' },
-      source: { type: 'string' }, 'accept-findings': { type: 'boolean' }, expect: { type: 'string' }, remove: { type: 'boolean' } } });
+      source: { type: 'string' }, 'accept-findings': { type: 'boolean' }, expect: { type: 'string' }, remove: { type: 'boolean' }, offline: { type: 'boolean' } } });
   } catch (e) { err(`taskquoin: ${(e as Error).message}\n${help()}`); return 2; } // i18n-ok: node's parseArgs message (usage errors exit 2, Codex R4)
   const { positionals, values } = parsed;
   if (values.help) { out(help()); return 0; }
@@ -385,15 +436,16 @@ async function main(): Promise<number> {
     try { const r = installShortcut(shortcutEnv(LAYOUT.launcher), { auto: true }); if (r.status === 'installed') err(`✔ ${r.message}`); } catch { /* never blocks a command */ }
   }
   // Like `claude` or `codex`: `taskquoin` alone opens the console in a terminal (scripts still get the help).
-  if (!positionals.length) { if (process.stdin.isTTY && process.stdout.isTTY) return cmdConsole(); out(help()); return 0; }
+  if (!positionals.length) { if (process.stdin.isTTY && process.stdout.isTTY) return cmdConsole(isOffline(values.offline)); out(help()); return 0; }
   const [cmd, arg, arg2] = positionals;
   switch (cmd) {
     case 'help': out(help()); return 0;
     case 'version': out(`taskquoin ${LAYOUT.version}`); return 0;
     case 'init': return cmdInit();
     case 'doctor': return cmdDoctor();
+    case 'upgrade': return (await cmdUpgradeWith(arg, { h: await host(), offline: isOffline(values.offline), ask: askStdin, surface: 'cli' })).code;
     case 'check': return cmdCheck(arg, !!values.json);
-    case 'console': return cmdConsole();
+    case 'console': return cmdConsole(isOffline(values.offline));
     case 'connect': return cmdConnect(arg, !!values.remove);
     case 'setup': {
       if (!LAYOUT.launcher) { out(t('cli.setup.npm')); return 0; }

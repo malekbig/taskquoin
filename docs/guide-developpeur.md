@@ -160,6 +160,7 @@ quelques-unes en français) quelle que soit la langue.
 | `verification modified tracked files` | les tests modifient le code testé | corrigez les tests ; ils ont tourné en salle blanche, votre dossier n'a pas été touché |
 | `interrupted` | une erreur technique (git, disque…) a interrompu le run | `taskquoin resume <run>` |
 | `taskquoin.yaml changed since the run started` | la config a changé pendant le run | relancez un run |
+| `NOT READY` après une mise à jour de Claude Code | Claude Code s'est mis à jour vers une version que Taskquoin n'a pas mesurée (ADR-0002), et la version mesurée n'est pas utilisée | lisez la ligne `◆ Action requise` de `taskquoin doctor`, elle donne la commande : `taskquoin upgrade auto` si le choix est « PATH seul » ; `taskquoin upgrade install` si la version mesurée n'est plus installée ; `chmod go-w <dossier> <fichier>` si elle est installée mais modifiable par d'autres. `taskquoin upgrade` sans argument ne fait qu'afficher l'état |
 
 ## 5. Ce que Taskquoin garantit — et ce qu'il ne fait pas
 - **Mesuré sur la machine de référence** (`taskquoin doctor`, tests live coopératifs) : pas de réseau pour les commandes des agents ; pas d'écriture hors du projet ; aucun serveur MCP ; les agents ne commitent pas.

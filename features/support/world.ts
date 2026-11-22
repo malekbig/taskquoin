@@ -1,7 +1,8 @@
 /**
  * Test world for the E2E features: a temporary git repository, an isolated HOME / XDG_STATE_HOME (the owner's real
  * control store and claude-mem are never touched), fake `claude` / `codex` on PATH, and the REAL Taskquoin CLI, git,
- * npm and bubblewrap verification.
+ * npm and bubblewrap verification — except where a scenario puts a fake `npm` first on the PATH (`fakeNpm`, the
+ * /upgrade install scenarios: the real `npm install -g` must never run, even if a cancellation regressed).
  */
 import { execFileSync, spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
@@ -35,7 +36,14 @@ export class World {
     copyFileSync(`${FAKES}fake-opencode.cjs`, join(bin, 'fake-opencode.cjs'));
     writeFileSync(join(bin, 'opencode'), `#!/bin/sh\nexec ${process.execPath} ${join(bin, 'fake-opencode.cjs')} "$@"\n`); chmodSync(join(bin, 'opencode'), 0o755);
     // node's own directory too: on CI runners node lives in a tool cache, not in /usr/bin (the launcher runs `node`)
-    this.env = { PATH: `${bin}:${dirname(process.execPath)}:/usr/bin:/bin`, HOME: join(this.root, 'home'), XDG_STATE_HOME: join(this.root, 'state'), LANG: 'C.UTF-8' };
+    this.env = { PATH: `${bin}:${dirname(process.execPath)}:/usr/bin:/bin`, HOME: join(this.root, 'home'), XDG_STATE_HOME: join(this.root, 'state'), LANG: 'C.UTF-8', TASKQUOIN_OFFLINE: '1' };
+  }
+  /** Where the fake npm writes its working directory (line 1) and its arguments (line 2) when it is run. */
+  npmTrace = join(this.root, 'npm-ran');
+  /** A fake `npm` in the World's bin, ahead of the real one: it leaves a trace and fails (exit 1), installing nothing. */
+  fakeNpm() {
+    const p = join(this.root, 'bin', 'npm');
+    writeFileSync(p, `#!/bin/sh\npwd > '${this.npmTrace}'\necho "$*" >> '${this.npmTrace}'\nexit 1\n`); chmodSync(p, 0o755);
   }
   git(...a: string[]) { return execFileSync('git', a, { cwd: this.repo, encoding: 'utf8', env: this.env }); }
   tq(args: string[], input?: string) {

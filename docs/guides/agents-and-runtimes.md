@@ -147,7 +147,9 @@ Configuration: [`providers`](configuration.md#providers) and [`workflow`](config
 
 A capability matrix is valid for **one exact runtime version**. If the installed version differs, every mandatory
 restriction becomes `UNSUPPORTED` with `capability matrix measured for <runtime> <measured>, installed <installed>`
-and the agent is refused until the version is measured (or you install the measured one).
+and the agent is refused until the version is measured (or you install the measured one). Taskquoin uses the measured
+Claude Code when it is still installed, and `taskquoin upgrade` shows and fixes the rest: see
+[Runtime versions and upgrades](upgrade.md).
 
 | Runtime | Measured version | Measured on | Evidence |
 |---|---|---|---|

@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { en, ENGLISH_ONLY } from './en.ts';
 import { LANGUAGES } from './languages.ts';
 
@@ -38,16 +37,7 @@ export function resolveLanguage(env: Record<string, string | undefined>, prefs: 
   return 'en';
 }
 
-export function loadPreferences(stateDir: string): { language?: string } {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(join(stateDir, 'preferences.json'), 'utf8'));
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      const language = (parsed as { language?: unknown }).language;
-      return typeof language === 'string' ? { language } : {};
-    }
-  } catch { /* missing, unreadable or not JSON */ }
-  return {};
-}
+export { loadPreferences } from '../preferences.ts';
 
 export function translate(
   lang: string, base: Record<string, string>, local: Record<string, string> | undefined,

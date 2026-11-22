@@ -1,5 +1,5 @@
 // Builds the documentation screenshots (SVG) from the REAL Taskquoin CLI in a demo repository with simulated agents.
-// Usage: node scripts/docs-screens/build.mjs <work-dir> [lang…]   (default: every language, the same 14 screens each)
+// Usage: node scripts/docs-screens/build.mjs <work-dir> [lang…]   (default: every language, the same 16 screens each)
 // Output: docs/assets/screens/<lang>/<screen>.svg. Needs git, npm and bubblewrap (the clean-room Verify runs for real).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir, userInfo } from 'node:os';
@@ -92,6 +92,11 @@ async function buildLanguage(lang) {
     save('check', '~/calc — taskquoin check', step('check challenger', demo.tq(['check', 'challenger'], lang)));
     save('skills', '~/calc — taskquoin skills list', step('skills list', demo.tq(['skills', 'list'], lang)));
     save('refused', '~/calc — a wrong hash is refused', step(`approve ${runId} commit --expect 000000000000 --as you`, wrong));
+
+    // Claude Code auto-updated: doctor shows the measured version in use, and `upgrade` shows the three versions.
+    demo.unmeasuredClaude();
+    save('doctor-fallback', '~/calc — taskquoin doctor after a Claude Code update', step('doctor', demo.tq(['doctor'], lang)));
+    save('upgrade', '~/calc — taskquoin upgrade', step('upgrade --offline', demo.tq(['upgrade', '--offline'], lang)));
   }
   mkdirSync(join(OUT, lang), { recursive: true });
   for (const [name, svg] of Object.entries(screens)) writeFileSync(join(OUT, lang, `${name}.svg`), svg);

@@ -4,7 +4,7 @@ Every `taskquoin` command with its synopsis, options, what it prints and its exi
 `taskquoin --help`) for the same list in your language.
 
 - [Conventions](#conventions)
-- [Setup commands](#setup-commands): [`init`](#init), [`doctor`](#doctor), [`check`](#check), [`accept-risk`](#accept-risk), [`version`](#version)
+- [Setup commands](#setup-commands): [`init`](#init), [`doctor`](#doctor), [`upgrade`](#upgrade), [`check`](#check), [`accept-risk`](#accept-risk), [`version`](#version)
 - [Workflow commands](#workflow-commands): [`console`](#console), [`run`](#run), [`status`](#status), [`show`](#show), [`approve`](#approve), [`resume`](#resume)
 - [Skills](#skills)
 - [Shortcut and connection](#shortcut-and-connection): [`connect`](#connect), [`setup`](#setup)
@@ -23,7 +23,7 @@ Every `taskquoin` command with its synopsis, options, what it prints and its exi
   (`taskquoin: not inside a git repository`, exit `1`). Every command except `init`, `help`, `version`, `setup`, `connect`,
   `uninstall` and `skills` needs a `taskquoin.yaml` (`taskquoin.yaml not found — run "taskquoin init"`, exit `1`).
 - **Options** may appear anywhere: `--json`, `--reason`, `--expires`, `--as`, `--expect`, `--source`, `--accept-findings`,
-  `--remove`, `--purge-state`, and `-h` / `--help`. An unknown option prints the error and the help, exit `2`.
+  `--remove`, `--purge-state`, `--offline`, and `-h` / `--help`. An unknown option prints the error and the help, exit `2`.
 - **No arguments**: `taskquoin` alone opens the [console](#console) in a terminal; with a pipe or in a script it prints the
   help and exits `0`.
 - **Unknown command**: prints the usage line, exit `2`.
@@ -83,6 +83,33 @@ Prints the state of the machine and certifies every agent of the configuration:
 |---|---|
 | `0` | every agent can run |
 | `1` | at least one agent is refused, its runtime is not installed, or one of its skills is unusable |
+
+### `upgrade`
+
+```console
+$ taskquoin upgrade [auto|path|install] [--offline]
+```
+
+Shows the installed, used and measured version of Claude Code, Codex and OpenCode, and lets you act on them. Full
+explanation: [Runtime versions and upgrades](../guides/upgrade.md).
+
+![taskquoin upgrade shows the installed, used and measured versions](../assets/screens/en/upgrade.svg)
+
+| Sub-command | Effect |
+|---|---|
+| *(none)* | prints the table, the Codex and OpenCode update commands when their version is not the measured one (printed, never run), and the online check |
+| `auto` | uses the measured Claude Code still installed when the PATH one is not measured (default); stored in the machine's `preferences.json`, never in `taskquoin.yaml` |
+| `path` | always uses the `claude` on the `PATH` |
+| `install` | shows the exact command that reinstalls the measured Claude Code, and runs it only after you type `yes`; it runs in your home directory, uses the network and may change your interactive Claude Code |
+
+`--offline` (or `TASKQUOIN_OFFLINE=1`) skips the check for a newer Taskquoin on the npm registry, the only network read
+of this command (it happens only when you type it). It does not affect `install`, which uses the network.
+
+| Exit | When |
+|---|---|
+| `0` | table shown, choice saved, install cancelled or succeeded |
+| `1` | the installer failed, the install was refused (no absolute home, command that cannot be shown exactly), or the choice could not be saved |
+| `2` | unknown sub-command (`usage: /upgrade [auto\|path\|install]`) |
 
 ### `check`
 
@@ -372,6 +399,7 @@ is kept for audit; `--purge-state` deletes it.
 | `XDG_STATE_HOME` | Where the control store lives (`$XDG_STATE_HOME/taskquoin`, default `~/.local/state/taskquoin`) |
 | `NO_COLOR` | Console without colours |
 | `TASKQUOIN_NO_ANIMATION` | Console banner without the start-up animation |
+| `TASKQUOIN_OFFLINE` | `1` skips the registry check of `taskquoin upgrade` and `/upgrade` (same as `--offline`) |
 | `TASKQUOIN_NO_SETUP` | Do not put `taskquoin` on the `PATH` automatically at first launch |
 | `LC_ALL`, `LC_MESSAGES`, `LANG` | Fallbacks for the language |
 
@@ -380,4 +408,4 @@ Provider keys named in `taskquoin.yaml` (`key: env:NAME`) are read from your env
 ## Learn more
 
 - [Console commands](console-commands.md) · [Configuration](configuration.md) · [Runs, artifacts and events](runs-artifacts-events.md)
-- [Security](../guides/security.md) · [Skills](../guides/skills.md) · [Languages](../guides/languages.md)
+- [Upgrade guide](../guides/upgrade.md) · [Security](../guides/security.md) · [Skills](../guides/skills.md) · [Languages](../guides/languages.md)

@@ -56,6 +56,7 @@ colours; `NO_COLOR` turns colours off and `TASKQUOIN_NO_ANIMATION=1` turns the a
 | `/resume` | | Resumes the current run if it was interrupted. | `taskquoin resume <run>` |
 | `/agents` | | Lists the agents with their runtime, capabilities and skills. | |
 | `/doctor` | | Machine state and certification of each agent. | `taskquoin doctor` |
+| `/upgrade` | `[auto\|path\|install]` | Installed, used and measured versions of the AI tools; `auto` or `path` chooses the Claude Code binary, `install` reinstalls the measured Claude Code after you type `yes` (it uses the network). Only an explicit `/upgrade` reads the npm registry; `taskquoin console --offline` skips that. | `taskquoin upgrade` |
 | `/skills` | | Installed skills and their status. | `taskquoin skills list` |
 | `/help` | | Lists these commands. | |
 | `/quit` | | Leaves the console (`/exit` also works). | |
@@ -122,5 +123,6 @@ for example without `taskquoin.yaml`).
 ## Learn more
 
 - [CLI reference](cli.md) · [Runs, artifacts and events](runs-artifacts-events.md)
+- [Runtime versions and upgrades](../guides/upgrade.md)
 - [Security: the console is human-only](../guides/security.md#9-agents-never-commit-humans-decide)
 - [ADR-0015](../adr/0015-console-human-only.md)

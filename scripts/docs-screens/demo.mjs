@@ -43,7 +43,16 @@ export function createDemo(base) {
     git('add', '.'); git('commit', '-q', '-m', 'chore: taskquoin init');
     return r;
   };
-  return { root, repo, env, tq, git, init, normalize };
+  /** Claude Code auto-updated to a version Taskquoin has not measured, while the measured one stays installed by the
+   *  native installer (the situation `taskquoin upgrade` exists for). */
+  const unmeasuredClaude = (installed = '2.1.330') => {
+    const measured = JSON.parse(readFileSync(new URL('../../adapters/runtime-claude/src/capabilities.json', import.meta.url), 'utf8')).runtimeVersion;
+    writeFileSync(join(bin, 'claude'), `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "${installed} (Claude Code)"; exit 0; fi\nexec ${process.execPath} ${FAKES}fake-claude.cjs "$@"\n`); chmodSync(join(bin, 'claude'), 0o755);
+    const versions = join(home, '.local', 'share', 'claude', 'versions'); mkdirSync(versions, { recursive: true, mode: 0o755 }); chmodSync(versions, 0o755);
+    writeFileSync(join(versions, measured), `#!/bin/sh\nexec ${process.execPath} ${FAKES}fake-claude.cjs "$@"\n`); chmodSync(join(versions, measured), 0o755);
+    return { installed, measured };
+  };
+  return { root, repo, env, tq, git, init, normalize, unmeasuredClaude };
 }
 
 /** Fails if a screenshot would show anything of the machine that produced it. */
