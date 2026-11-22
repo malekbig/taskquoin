@@ -9,11 +9,18 @@
  * appending an event every 10 ms, 100 keys 20 ms apart reach the screen with p95 < 50 ms; AC-10: under
  * `node --permission --allow-fs-read=*` the real loop browses every run, every panel and the help over a seeded store
  * and exits 0 with the control store's tree unchanged.
- * DOES NOT PROVE: a real terminal's bytes (screen tests, the PTY harness) nor the approval flow (not in R3).
+ * R4: `p` opens the approval center only alone in its chunk, for a waiting gate, when the dashboard can approve; the
+ * typed hash goes to one `taskquoin approve` (fake spawn); the store's approval, not the exit code, says approved; a
+ * refusal shows the child's neutralised output and "nothing was approved"; a gate approved elsewhere opens as no
+ * longer waiting; a changed tree refuses; keys typed while the terminal is too small are dropped and the field
+ * survives the resize; quitting while the process runs asks, and stderr names the pid and the log afterwards; the
+ * read-only driver run opens and cancels the centre with the store byte-identical and no process attempted.
+ * DOES NOT PROVE: a real terminal's bytes (screen tests, the PTY harness); the real child (cli.test.ts end to end).
  */
-import { test, mock, after } from 'node:test';
+import { test, mock, after, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { appendFileSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, writeSync } from 'node:fs';
+import { EventEmitter } from 'node:events';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
@@ -165,15 +172,24 @@ const rowsWritten = (w: string): number[] => [...w.matchAll(/\x1b\[(\d+);1H\x1b\
 const screenText = (tty: FakeTty): string => clean(tty.text());
 
 interface Started { tty: FakeTty; sig: ReturnType<typeof fakeSignals>; done: Promise<number>; counts: { set: number; cleared: number } }
+/** Every loop a test starts: a test that fails before its `q` must not leave timers that keep this file from ending (it would hang the suite and hide the failure). */
+const running = new Set<{ handles: Set<ReturnType<typeof setInterval>>; settled: boolean }>();
+afterEach(() => {
+  for (const r of running) if (!r.settled) for (const h of r.handles) clearInterval(h);
+  running.clear();
+});
 function start(store: RepoStore, o: Partial<DashDeps> & { columns?: number; rows?: number } = {}): Started {
   const tty = fakeTty(o.columns ?? 120, o.rows ?? 34), sig = fakeSignals();
   const counts = { set: 0, cleared: 0 };
+  const live = { handles: new Set<ReturnType<typeof setInterval>>(), settled: false };
+  running.add(live);
   const timers = {
-    setInterval: ((...a: Parameters<typeof setInterval>) => { counts.set++; return setInterval(...a); }) as typeof setInterval,
-    clearInterval: ((h: Parameters<typeof clearInterval>[0]) => { counts.cleared++; clearInterval(h); }) as typeof clearInterval,
+    setInterval: ((...a: Parameters<typeof setInterval>) => { counts.set++; const h = setInterval(...a); live.handles.add(h); return h; }) as typeof setInterval,
+    clearInterval: ((h: Parameters<typeof clearInterval>[0]) => { counts.cleared++; live.handles.delete(h as ReturnType<typeof setInterval>); clearInterval(h); }) as typeof clearInterval,
   };
   const { columns: _c, rows: _r, ...rest } = o;
   const done = runDashboard({ tty, signals: sig, store, fixed, caps: (size) => mkCaps({ ...size }), timers, ...rest });
+  void done.finally(() => { live.settled = true; });
   return { tty, sig, done, counts };
 }
 
@@ -550,6 +566,193 @@ test('a hostile diff reaches the screen as visible markers only', async () => {
   send(s.tty, 'q'); send(s.tty, 'q'); await s.done;
 });
 
+// ---- R4: the approval center and the separate `taskquoin approve` process ------------------------------------------
+
+const TREE = '9c1e04b7aa31d2f04c11aa0b3e2e5f9d8c7b6a51';
+interface Kid extends EventEmitter { pid: number; unref(): void }
+function fakeApprove(o: { log?: string } = {}) {
+  const calls: string[][] = [];
+  const kids: Kid[] = [];
+  const spawn = ((_cmd: string, args: string[], opts: { stdio: unknown[] }) => {
+    calls.push(args);
+    if (o.log !== undefined) writeSync(opts.stdio[1] as number, o.log);
+    const kid = Object.assign(new EventEmitter(), { pid: 4000 + calls.length, unref() { /* detached */ } }) as Kid;
+    kids.push(kid);
+    return kid;
+  }) as unknown as typeof import('node:child_process').spawn;
+  return { approve: { node: process.execPath, entry: '/opt/taskquoin/main.ts', cwd: root, env: {}, spawn }, calls, kids };
+}
+/** A run waiting at the commit gate for TREE. */
+const commitGate = (store: RepoStore): string => {
+  put(store, ID(1), state(ID(1), { status: 'waiting-approval', current: 'approve-commit', attempts: 1, reviewedTree: TREE,
+    history: [{ node: 'recall', outcome: 'ok', at: at(1) }, { node: 'review', outcome: 'review:APPROVE', at: at(2) }, { node: 'approve-commit', outcome: 'waiting-approval', at: at(3) }] }), [ev('run.waiting-approval', { node: 'approve-commit' })]);
+  return ID(1);
+};
+const tick = (): Promise<void> => new Promise((r) => setImmediate(r));
+const typeIn = (tty: FakeTty, s: string): void => { for (const ch of s) send(tty, ch); };
+/** p, the name (one chunk), Enter, the 12 characters key by key, Enter. */
+const approveKeys = (tty: FakeTty, hash = TREE.slice(0, 12)): void => { send(tty, 'p'); send(tty, 'alice'); send(tty, '\r'); typeIn(tty, hash); send(tty, '\r'); };
+const recordApproval = (store: RepoStore, id: string, as = 'alice (via taskquoin dashboard)'): void => {
+  appendFileSync(join(store.runs, id, 'events.jsonl'), JSON.stringify({ type: 'approval', node: 'approve-commit', approvedBy: as, binding: TREE, ts: '2026-11-22T10:33:05.000Z' }) + '\n');
+  const st = JSON.parse(readFileSync(join(store.runs, id, 'state.json'), 'utf8'));
+  writeFileSync(join(store.runs, id, 'state.json'), JSON.stringify({ ...st, status: 'running', approvals: { 'approve-commit': { approvedBy: as, binding: TREE, at: '2026-11-22T10:33:05.000Z' } } }));
+};
+
+test('p, the name, the 12 characters key by key and Enter: one `taskquoin approve`, with what was typed; the store\'s approval → ✔ approved and the pid', async (t) => {
+  t.after(() => mock.timers.reset());
+  mock.timers.enable({ apis: ['setInterval'] });
+  const { store } = mk(); const id = commitGate(store);
+  const f = fakeApprove();
+  const s = start(store, { approve: f.approve });
+  assert.match(screenText(s.tty), /→ p opens the approval center/);
+  send(s.tty, 'p');
+  let n = s.tty.writes.length;
+  assert.match(lastFrame(s.tty, 0), /Approval center/);
+  assert.match(lastFrame(s.tty, 0), /Your name \(asked once per session\)/);
+  send(s.tty, 'alice'); send(s.tty, '\r');
+  typeIn(s.tty, TREE.slice(0, 12));
+  assert.equal(f.calls.length, 0, 'no key approved on its own');
+  send(s.tty, '\r');
+  assert.deepEqual(f.calls, [['/opt/taskquoin/main.ts', 'approve', id, 'commit', '--expect', '9c1e04b7aa31', '--as', 'alice (via taskquoin dashboard)']]);
+  assert.match(lastFrame(s.tty, n), /◉ taskquoin approve started \(pid 4001\) — waiting for it to record the approval/);
+  assert.ok(!/✔ approved/.test(lastFrame(s.tty, n)), 'started is not approved');
+  send(s.tty, '\r');
+  assert.equal(f.calls.length, 1, 'a second Enter sends nothing');
+  n = s.tty.writes.length;
+  recordApproval(store, id);
+  mock.timers.tick(500);
+  const shown = lastFrame(s.tty, n).replace(/\s+/g, ' ');
+  assert.match(shown, /✔ approved by alice \(via taskquoin dashboard\) at 10:33:05 · the run continues \(pid 4001\)/);
+  // the process exits non-zero later (the run failed afterwards): still approved — the store says so
+  f.kids[0]!.emit('exit', 1, null); await tick();
+  assert.ok(!/refused/.test(lastFrame(s.tty, n)));
+  send(s.tty, '\x1b'); // Esc at `sent` closes the view only
+  assert.match(lastFrame(s.tty, n).replace(/\s+/g, ' '), /✔ approved by alice/);
+  assert.ok(!/Approval center/.test(clean(s.tty.writes.at(-1)!)));
+  send(s.tty, 'q'); assert.equal(await s.done, 0, 'the child has exited: q quits at once');
+});
+
+test('Review Focus 4: the child refuses (a console holds the lock) and nothing is recorded → refused (exit 1), its neutralised output, nothing was approved — never approved', async () => {
+  const { store } = mk(); commitGate(store);
+  const E = String.fromCharCode(0x1b);
+  const f = fakeApprove({ log: `taskquoin: approve failed: run run-c is busy (pid 4242)\nhint ${E}[31mred\u202e\n` });
+  const s = start(store, { approve: f.approve });
+  approveKeys(s.tty);
+  const n = s.tty.writes.length;
+  f.kids[0]!.emit('exit', 1, null); await tick();
+  const raw = s.tty.writes.slice(n).join('');
+  const shown = clean(raw).replace(/\s+/g, ' ');
+  assert.match(shown, /✖ taskquoin approve refused \(exit 1\)/);
+  assert.match(shown, /run run-c is busy \(pid 4242\)/);
+  assert.match(shown, /hint ‹ESC›\[31mred‹U\+202E›/);
+  assert.match(shown, /nothing was approved/);
+  assert.ok(!/✔ approved|approved by/.test(shown), 'never approved');
+  assert.ok(!FORBIDDEN.test(raw.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '')), 'the child\'s output never reaches the screen raw');
+  send(s.tty, 'q'); send(s.tty, 'q');
+  assert.equal(await s.done, 0);
+});
+
+test('AC-5 at the loop: y, Y, Enter, Space and `pp` in one chunk never open the centre nor start a process; without the approve route p only focuses Approvals', async (t) => {
+  t.after(() => mock.timers.reset());
+  mock.timers.enable({ apis: ['setInterval'] });
+  const { store } = mk(); commitGate(store);
+  const f = fakeApprove();
+  const s = start(store, { approve: f.approve });
+  for (const k of ['y', 'Y', '\r', '\n', ' ', 'pp', 'p9c1e04b7aa31\r', 'yes\r', '\x1b[200~p\x1b[201~']) { send(s.tty, k); mock.timers.tick(60); }
+  assert.ok(!/Approval center/.test(screenText(s.tty)), 'never opened');
+  assert.equal(f.calls.length, 0);
+  send(s.tty, 'q'); assert.equal(await s.done, 0);
+  const plain = mk(); commitGate(plain.store);
+  const p = start(plain.store);
+  assert.match(screenText(p.tty), /→ \/approve commit or taskquoin approve/);
+  send(p.tty, 'p');
+  assert.ok(!/Approval center/.test(screenText(p.tty)));
+  send(p.tty, 'q'); assert.equal(await p.done, 0);
+});
+
+test('Review Focus 2 at the loop: the gate approved elsewhere since the last poll → the centre says no longer waiting and starts nothing', async () => {
+  const { store } = mk(); const id = commitGate(store);
+  const f = fakeApprove();
+  const s = start(store, { approve: f.approve });
+  recordApproval(store, id, 'bob (via taskquoin console)'); // no poll in between
+  approveKeys(s.tty);
+  assert.match(screenText(s.tty).replace(/\s+/g, ' '), /No longer waiting — approved or changed elsewhere/);
+  assert.equal(f.calls.length, 0);
+  send(s.tty, 'q'); send(s.tty, 'q'); assert.equal(await s.done, 0);
+});
+
+test('the tree changing while the hash is typed: ✖ changed on the next poll, then Enter refuses — stale, nothing started; d opens the new diff', async (t) => {
+  t.after(() => mock.timers.reset());
+  mock.timers.enable({ apis: ['setInterval'] });
+  const { store } = mk(); const id = commitGate(store);
+  const f = fakeApprove();
+  const s = start(store, { approve: f.approve, columns: 130, rows: 40 });
+  send(s.tty, 'p'); send(s.tty, 'alice'); send(s.tty, '\r'); typeIn(s.tty, TREE.slice(0, 11));
+  const st = JSON.parse(readFileSync(join(store.runs, id, 'state.json'), 'utf8'));
+  writeFileSync(join(store.runs, id, 'state.json'), JSON.stringify({ ...st, reviewedTree: '77d0e2c41f95' + 'a'.repeat(28) }));
+  let n = s.tty.writes.length;
+  mock.timers.tick(500);
+  assert.match(lastFrame(s.tty, n), /✖ changed/);
+  send(s.tty, TREE[11]!); send(s.tty, '\r');
+  assert.equal(f.calls.length, 0);
+  assert.match(screenText(s.tty).replace(/\s+/g, ' '), /Refused: the tree changed since it was shown/);
+  n = s.tty.writes.length;
+  send(s.tty, 'd');
+  assert.match(lastFrame(s.tty, n), /nothing to show for this run yet|Diff · run/, 'd leaves the centre for the diff');
+  send(s.tty, 'q'); send(s.tty, 'q'); assert.equal(await s.done, 0);
+});
+
+test('Review Focus 5: shrunk below 40 × 12 with half a hash typed, keys pressed then are dropped; enlarged → the same text, nothing sent, every row redrawn', async () => {
+  const { store } = mk(); commitGate(store);
+  const f = fakeApprove();
+  const s = start(store, { approve: f.approve, columns: 100, rows: 30 });
+  send(s.tty, 'p'); send(s.tty, 'alice'); send(s.tty, '\r'); typeIn(s.tty, '9c1e04');
+  s.tty.dims = { columns: 36, rows: 10 };
+  for (const r of [...s.tty.resizeHandlers]) r();
+  assert.match(clean(s.tty.writes.at(-1)!).replace(/\s+/g, ' '), /needs 40 × 12/);
+  typeIn(s.tty, 'b7aa31'); send(s.tty, '\r'); // typed blind: dropped, never submitted
+  assert.equal(f.calls.length, 0);
+  s.tty.dims = { columns: 100, rows: 30 };
+  const n = s.tty.writes.length;
+  for (const r of [...s.tty.resizeHandlers]) r();
+  const big = s.tty.writes.slice(n);
+  assert.equal(big.length, 1);
+  assert.deepEqual(rowsWritten(big[0]!), Array.from({ length: 30 }, (_, i) => i + 1), 'every row, once');
+  assert.match(clean(big[0]!), /Retype the hash to approve: 9c1e04█/);
+  assert.equal(f.calls.length, 0);
+  send(s.tty, '\x03'); // Ctrl+C cancels the form
+  assert.match(screenText(s.tty), /Cancelled: nothing was approved/);
+  send(s.tty, '\x1b'); send(s.tty, 'q'); assert.equal(await s.done, 0);
+});
+
+test('quitting while `taskquoin approve` runs: the question (it continues in process N), Esc stays, q quits — then stderr names the pid and the log', async (t) => {
+  t.after(() => mock.timers.reset());
+  mock.timers.enable({ apis: ['setInterval'] });
+  const { store } = mk(); commitGate(store);
+  const f = fakeApprove();
+  const errs: string[] = [];
+  const s = start(store, { approve: f.approve, err: (x) => { errs.push(x); } });
+  approveKeys(s.tty);
+  send(s.tty, '\x1b'); // leave the centre (the process runs)
+  send(s.tty, 'q');
+  const words = (w: string): string => w.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, ' ').replace(/[│╭╮╰╯─]/g, ' ').replace(/\s+/g, ' ');
+  let shown = words(s.tty.writes.at(-1)!);
+  assert.match(shown, /The run ab12c1 continues in process 4001 until its next gate — quitting does not stop it/);
+  assert.match(shown, /q quit · Esc stay/);
+  send(s.tty, '\x1b'); mock.timers.tick(50);
+  shown = clean(s.tty.writes.at(-1)!);
+  assert.ok(!/quitting does not stop it/.test(shown), 'Esc stays: the question is gone');
+  let ended = false; void s.done.then(() => { ended = true; }); await tick();
+  assert.equal(ended, false, 'still running');
+  send(s.tty, 'q'); send(s.tty, 'q');
+  assert.equal(await s.done, 0);
+  assert.equal(errs.length, 1);
+  assert.match(errs[0]!, /the run run-20261122T101100-ab12c1 continues in process 4001 until its next gate; its output: .*taskquoin-approve-[^/]+\/approve\.log/);
+  const log = /its output: (\S+)$/.exec(errs[0]!)![1]!;
+  assert.equal(lstatSync(log).mode & 0o777, 0o600);
+  assert.ok(s.tty.text().indexOf(RESTORE) >= 0, 'said after the terminal was given back');
+});
+
 // ---- read-only under the permission model --------------------------------------------------------------------------
 
 function snapshot(dir: string, base = dir, out: Record<string, string> = {}): Record<string, string> {
@@ -576,7 +779,9 @@ test('AC-10, R3-3: under node --permission the real loop browses every run, ever
   // every run (G and g on Runs, then j through the list), every panel (a l p r, Tab round), the help, resize-free, then q
   // the viewer first (the newest waiting run is selected): d, scroll, search, files, wrap, help, back, verify, back
   const viewer = ['d', 'j', 'j', 'G', 'g', '\x1b[6~', '\x1b[5~', '/', 'add', '\r', 'n', 'N', '\x1b', 'n', 'N', 'w', '?', '?', 'd', 'v', 'j', 'q', 'v', 'q', 'q'];
-  const chunks = [...viewer, 'r', 'G', 'k', 'k', 'k', 'k', 'k', 'k', 'g', 'a', 'l', 'j', 'G', 'p', '\t', '\t', '\t', '\x1b[Z', '?', 'j', '?', '?', '\x1b[6~', '\x1b[5~', 'y', 'Y', '\r', ' ', 'q'];
+  // the approval center (R4): opened, a name, a wrong hash and Enter (refused, re-read), Esc cancels, Esc closes — nothing written, no process
+  const center = ['p', 'alice', '\r', '9c1e', '\r', '\x1b', '\x1b'];
+  const chunks = [...center, ...viewer, 'r', 'G', 'k', 'k', 'k', 'k', 'k', 'k', 'g', 'a', 'l', 'j', 'G', 'p', '\t', '\t', '\t', '\x1b[Z', '?', 'j', '?', '?', '\x1b[6~', '\x1b[5~', 'y', 'Y', '\r', ' ', 'q'];
   writeFileSync(keysFile, JSON.stringify(chunks));
   const before = snapshot(store.root);
   const driver = join(import.meta.dirname, 'support', 'dashboard-driver.ts');
@@ -585,6 +790,8 @@ test('AC-10, R3-3: under node --permission the real loop browses every run, ever
   assert.match(r.stdout, /^frames \d+/m);
   assert.deepEqual(snapshot(store.root), before, 'the control store is byte-identical: paths, sizes, modes, mtimes, contents');
   assert.match(r.stdout, /^writes denied$/m, 'the child really ran without write permission');
+  assert.match(r.stdout, /^center shown$/m, 'the approval center really opened');
+  assert.doesNotMatch(r.stdout, /spawn attempted/, 'opening and cancelling the approval center starts no process');
   console.log(r.stdout.trim());
   assert.ok(Number(/^frames (\d+)/m.exec(r.stdout)![1]) >= 15, 'and drew a frame for the keys that change the screen');
   // and the permission model really would have refused a write: the same driver cannot even create a file

@@ -1120,3 +1120,62 @@ test('console piped: /dashboard prints the child\'s refusal and /quit still exit
   const r = spawnSync(process.execPath, [main, 'console'], { cwd: sb.ws, env: sb.env, input: '/dashboard\n/quit\n', encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr); assert.match(r.stderr, /taskquoin status/);
 });
+
+/**
+ * End to end (R4-2, F35): a real repository waiting at the plan gate (real CLI, the features' fake runtimes on PATH,
+ * never a real model), the real dashboard loop over a fake terminal (dashboard-driver.ts) with the real spawnApprove:
+ * `p`, a name, Enter, the 12 hex characters key by key, Enter — then `q` leaves the centre and `q q` quits at once.
+ * The detached `taskquoin approve` keeps going after the dashboard has quit and records the approval in the store.
+ */
+test('dashboard end to end: the typed hash goes to a separate taskquoin approve, which records `alice (via taskquoin dashboard)` with the full plan hash after the dashboard has quit', { timeout: 300_000 }, async () => {
+  const FAKES = new URL('../../../features/support/fakes/', import.meta.url).pathname;
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'tq-dash-e2e-')));
+  const bin = join(root, 'bin'); mkdirSync(bin); mkdirSync(join(root, 'home'));
+  for (const [name, file] of [['claude', 'fake-claude.cjs'], ['codex', 'fake-codex.cjs']]) { writeFileSync(join(bin, name), `#!/bin/sh\nexec ${process.execPath} ${FAKES}${file} "$@"\n`); chmodSync(join(bin, name), 0o755); }
+  const ws = join(root, 'repo'); mkdirSync(ws);
+  const env = { PATH: `${bin}:${dirname(process.execPath)}:/usr/bin:/bin`, HOME: join(root, 'home'), XDG_STATE_HOME: join(root, 'state'), LANG: 'C.UTF-8', TASKQUOIN_OFFLINE: '1', NO_COLOR: '1', TZ: 'UTC', TMPDIR: tmpdir() };
+  const sh = (...a: string[]) => execFileSync(gitBin, a, { cwd: ws, env });
+  const tq = (...a: string[]) => spawnSync(process.execPath, [main, ...a], { cwd: ws, env, encoding: 'utf8', timeout: 170_000 });
+  writeFileSync(join(ws, 'package.json'), JSON.stringify({ name: 'calc', private: true, scripts: { test: 'node --test' } }, null, 2));
+  writeFileSync(join(ws, 'sum.test.js'), "const test = require('node:test'); const assert = require('node:assert');\ntest('sum', () => { assert.strictEqual(require('./sum.js')(2, 3), 5); });\n");
+  writeFileSync(join(ws, '.gitignore'), 'node_modules/\n');
+  sh('init', '-q'); sh('config', 'user.email', 'owner@example.invalid'); sh('config', 'user.name', 'owner'); sh('add', '.'); sh('commit', '-q', '-m', 'calc');
+  assert.equal(tq('init').status, 0);
+  writeFileSync(join(ws, 'taskquoin.yaml'), readFileSync(join(ws, 'taskquoin.yaml'), 'utf8').replace(/claudeMem:\n(\s+)enabled: true/, 'claudeMem:\n$1enabled: false'));
+  sh('add', '.'); sh('commit', '-q', '-m', 'taskquoin init');
+  // as in features/workflow-gouverne.feature: the fixture owner (a throw-away store) accepts the fake Codex's connector risk
+  assert.equal(tq('accept-risk', 'challenger', 'connector.write', '--reason', 'E2E fixture', '--expires', '2099-12-31', '--as', 'test-owner').status, 0);
+  const started = tq('run', 'add a sum function');
+  const runId = /Run (run-[\w-]+) —/.exec(started.stdout)?.[1];
+  assert.ok(runId, `${started.stdout}\n${started.stderr}`);
+  const base = join(env.XDG_STATE_HOME, 'taskquoin');
+  const store = repoStore(ws, base);
+  const stateOf = (): RunState => JSON.parse(readFileSync(join(store.runs, runId, 'state.json'), 'utf8'));
+  assert.equal(stateOf().status, 'waiting-approval', `${started.stdout}\n${started.stderr}\n${stateOf().reason}`); assert.equal(stateOf().current, 'approve-plan');
+  const plan = stateOf().artifacts.plan!;
+  const keysFile = join(root, 'keys.json');
+  writeFileSync(keysFile, JSON.stringify(['p', 'alice', '\r', ...plan.slice(0, 12).split(''), '\r', 'q', 'q', 'q']));
+  const driver = join(import.meta.dirname, 'support', 'dashboard-driver.ts');
+  const r = spawnSync(process.execPath, [driver, ws, base, keysFile, '--approve-entry', main], { cwd: ws, env, encoding: 'utf8', timeout: 60_000 });
+  assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`);
+  assert.doesNotMatch(r.stdout, /spawn attempted/);
+  const said = /the run (\S+) continues in process (\d+) until its next gate; its output: (\S+)/.exec(r.stderr);
+  assert.ok(said, `the dashboard says the run continues, after the terminal is back:\n${r.stderr}`);
+  assert.equal(said[1], runId);
+  const pid = Number(said[2]);
+  const alive = (): boolean => { try { process.kill(pid, 0); return true; } catch { return false; } };
+  const until = async (ok: () => boolean, ms: number): Promise<boolean> => { const end = Date.now() + ms; while (Date.now() < end) { if (ok()) return true; await new Promise((res) => setTimeout(res, 100)); } return ok(); };
+  try {
+    const recorded = await until(() => readFileSync(join(store.runs, runId, 'events.jsonl'), 'utf8').split('\n').some((l) => /"type":"approval"/.test(l)), 10_000);
+    assert.ok(recorded, `an approval event within 10 s; the child's log:\n${existsSync(said[3]!) ? readFileSync(said[3]!, 'utf8') : '(none)'}`);
+    const ev = readFileSync(join(store.runs, runId, 'events.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)).find((e) => e.type === 'approval');
+    assert.equal(ev.approvedBy, 'alice (via taskquoin dashboard)'); assert.equal(ev.binding, plan); assert.equal(ev.node, 'approve-plan');
+    assert.ok(await until(() => stateOf().approvals['approve-plan'] !== undefined, 10_000), 'state.json holds the approval');
+    assert.equal(stateOf().approvals['approve-plan']!.approvedBy, 'alice (via taskquoin dashboard)');
+    assert.equal(stateOf().approvals['approve-plan']!.binding, plan, 'bound to the full plan hash');
+    assert.equal(lstatSync(said[3]!).mode & 0o777, 0o600, 'its output went to a private log');
+  } finally {
+    assert.ok(await until(() => !alive(), 200_000), 'the approve process ends (at its next gate, with the fake runtimes)');
+    rmSync(root, { recursive: true, force: true });
+  }
+});

@@ -25,7 +25,11 @@ import { renderTimeline } from './timeline.ts';
 export type Focus = 'pipeline' | 'approvals' | 'runs' | 'agents' | 'events';
 /** The approval center on screen: the form draws itself (dashboard-approve.ts) within the rows it is given. */
 export interface CenterScreen { render(caps: Caps, height: number): string[] }
-export interface UiState { screen: 'main' | 'viewer' | 'center'; focus: Focus; tab: 'runs' | 'agents' | 'events'; pos: Record<Focus, number>; help: boolean; notice?: string; viewer?: ViewerState; center?: CenterScreen }
+/**
+ * `approveHere`: this dashboard can approve (the approval center, `p`); else the Approvals panel names /approve and
+ * taskquoin approve. `quit`: the question asked when quitting while a `taskquoin approve` process still runs.
+ */
+export interface UiState { screen: 'main' | 'viewer' | 'center'; focus: Focus; tab: 'runs' | 'agents' | 'events'; pos: Record<Focus, number>; help: boolean; notice?: string; viewer?: ViewerState; center?: CenterScreen; approveHere?: boolean; quit?: { short: string; pid: number } }
 export type Mode = 'wide' | 'stacked' | 'narrow' | 'too-small';
 
 export const initialUi = (): UiState => ({ screen: 'main', focus: 'pipeline', tab: 'runs', pos: { pipeline: 0, approvals: 0, runs: 0, agents: 0, events: 0 }, help: false });
@@ -93,14 +97,15 @@ function waitingLine(view: RunView<string>, width: number, caps: Caps): string {
 }
 
 /** The Approvals body (the human's next action for the selected run). Strings arrive neutral. */
-export function renderApprovals(sel: SelectedRun | undefined, waiting: number, width: number, caps: Caps): string[] {
+export function renderApprovals(sel: SelectedRun | undefined, waiting: number, width: number, caps: Caps, here = false): string[] {
   const more = ellipsis(caps);
   if (!sel) return [paint('muted', cut(t('dashboard.frame.none'), width, more), caps)];
   const v = sel.view as RunView<string>;
   const status = v.status as RunStatusView;
   const state = runState(status, sel.liveness), word = statusWord(status, sel.liveness);
   if (v.pending) {
-    return [waitingLine(v, width, caps), cut(`${mark('arrow', caps)} ${t('dashboard.frame.approveHint', { gate: v.pending.gate })}`, width, more)];
+    const how = here ? t('dashboard.frame.openCenter') : t('dashboard.frame.approveHint', { gate: v.pending.gate });
+    return [waitingLine(v, width, caps), cut(`${mark('arrow', caps)} ${how}`, width, more)];
   }
   if (status === 'failed' || status === 'needs-human' || status === 'interrupted') {
     const head = paint(stateToken(state), `${glyph(state, caps)} ${word}`, caps);
@@ -164,7 +169,7 @@ function body(kind: Focus, m: DashboardModel, ui: UiState, width: number, height
   const waiting = m.runs.filter((r) => r.status === 'waiting-approval').length;
   switch (kind) {
     case 'pipeline': return pipelineBody(m.selected, width, height, caps, now);
-    case 'approvals': return renderApprovals(m.selected, waiting, width, caps);
+    case 'approvals': return renderApprovals(m.selected, waiting, width, caps, ui.approveHere === true);
     case 'runs': return runsBody(m, ui, width, height, caps, now);
     case 'agents': return agentsBody(m, ui, width, height, caps, now);
     case 'events': return eventsBody(m, ui, width, height, caps);
@@ -245,7 +250,7 @@ function narrow(m: DashboardModel, ui: UiState, caps: Caps, now: number): string
     const head = cut(shortOf(m, sel), Math.max(0, w - displayWidth(lead) - displayWidth(st) - 1), ellipsis(caps));
     top = paint('mint', lead, caps) + head + ' ' + paint(stateToken(state), st, caps);
   }
-  const action = sel ? ' ' + renderApprovals(sel, 0, w - 1, caps)[0]! : '';
+  const action = sel ? ' ' + renderApprovals(sel, 0, w - 1, caps, ui.approveHere === true)[0]! : '';
   const kind = ui.focus, count = markedLabel(sel);
   const title = count ? `${TITLE[kind]()} ${mark('sep', caps)} ${count}` : TITLE[kind]();
   const h = caps.rows - 3;
@@ -264,7 +269,18 @@ function tooSmall(caps: Caps): string[] {
 }
 
 function overlay(frame: string[], ui: UiState, caps: Caps): string[] {
-  const box = renderHelp(ui.screen, caps.columns, caps);
+  return boxOver(frame, renderHelp(ui.screen, caps.columns, caps, ui.approveHere === true), caps);
+}
+
+/** The quit question while `taskquoin approve` still runs: it continues, quitting does not stop it, q quits, Esc stays. */
+function quitBox(q: NonNullable<UiState['quit']>, caps: Caps): string[] {
+  const fold = (s: string): string => (caps.charset === 'utf8' ? s : s.replaceAll('—', '-').replaceAll('·', '-'));
+  const w = Math.max(1, Math.min(caps.columns, 64)), inner = Math.max(1, w - 4);
+  const body = [...wrap(fold(t('dashboard.quit.body', { short: n(q.short), pid: q.pid })), inner), '', bold(fold(t('dashboard.quit.keys')), caps)];
+  return panel({ title: fold(t('dashboard.quit.title')), body, width: w, height: body.length + 2, focused: true }, caps);
+}
+
+function boxOver(frame: string[], box: string[], caps: Caps): string[] {
   const midH = caps.rows - 2;
   const shown = box.slice(0, midH);
   const top = 1 + Math.floor((midH - shown.length) / 2);
@@ -287,6 +303,12 @@ export function renderDashboard(m: DashboardModel, ui: UiState, caps: Caps, now:
       lines = mode === 'narrow' ? [top, ...ui.center.render(caps, caps.rows - 1)] : [top, '', ...ui.center.render(caps, caps.rows - 2)];
     }
     if (ui.help && ui.screen !== 'center') lines = overlay(lines, ui, caps);
+    if (ui.quit) lines = boxOver(lines, quitBox(ui.quit, caps), caps);
+  }
+  if (mode === 'too-small' && ui.quit) {
+    // even below 40 × 12 the question is asked in words: the run goes on, q quits, Esc stays
+    const fold = (s: string): string => (caps.charset === 'utf8' ? s : s.replaceAll('—', '-').replaceAll('·', '-'));
+    lines = wrap(fold(`${t('dashboard.quit.body', { short: n(ui.quit.short), pid: ui.quit.pid })} ${mark('sep', caps)} ${t('dashboard.quit.keys')}`), caps.columns);
   }
   const out: string[] = [];
   for (let i = 0; i < caps.rows; i++) out.push(clip(lines[i] ?? '', caps.columns));

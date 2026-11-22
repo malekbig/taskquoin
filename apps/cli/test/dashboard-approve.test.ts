@@ -412,3 +412,101 @@ test('the dashboard frame shows the centre under the run\'s top bar: exactly `ro
   }
   assert.match(text(renderDashboard(m, ui, caps({ columns: 36, rows: 10 }), 0)).replace(/\s+/g, ' '), /needs 40 × 12/);
 });
+
+// ---- Task 9: the separate `taskquoin approve` process ---------------------------------------------------------------
+
+import { EventEmitter } from 'node:events';
+import { fstatSync, statSync, writeSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { approvalRecorded, spawnApprove } from '../src/dashboard-approve.ts';
+
+interface FakeKid extends EventEmitter { pid: number | undefined; unrefed: boolean; unref(): void }
+function fakeSpawn(o: { log?: string; pid?: number | undefined } = {}) {
+  const calls: { cmd: string; args: string[]; opts: { cwd: string; detached: boolean; stdio: unknown[]; env: NodeJS.ProcessEnv } }[] = [];
+  const kids: FakeKid[] = [];
+  const spawn = ((cmd: string, args: string[], opts: { cwd: string; detached: boolean; stdio: unknown[]; env: NodeJS.ProcessEnv }) => {
+    calls.push({ cmd, args, opts });
+    if (o.log !== undefined) writeSync(opts.stdio[1] as number, o.log);
+    const kid = Object.assign(new EventEmitter(), { pid: 'pid' in o ? o.pid : 4242, unrefed: false, unref() { kid.unrefed = true; } }) as FakeKid;
+    kids.push(kid);
+    return kid;
+  }) as unknown as typeof import('node:child_process').spawn;
+  return { spawn, calls, kids };
+}
+
+test('spawnApprove: argv and options exactly (no shell), stdout/stderr to a 0600 log in a 0700 directory, never a pipe; unref; the parent closes its descriptor', async () => {
+  const f = fakeSpawn({ log: 'hello\n' });
+  const c = spawnApprove({ node: '/usr/bin/node', entry: '/opt/tq/main.ts', cwd: '/work/repo', env: { PATH: '/bin', HOME: '/h' }, runId: 'run-x-ab12cd', gate: 'commit', expect: '9c1e04b7aa31', as: 'alice (via taskquoin dashboard)', spawn: f.spawn });
+  assert.equal(f.calls.length, 1);
+  const { cmd, args, opts } = f.calls[0]!;
+  assert.equal(cmd, '/usr/bin/node');
+  assert.deepEqual(args, ['/opt/tq/main.ts', 'approve', 'run-x-ab12cd', 'commit', '--expect', '9c1e04b7aa31', '--as', 'alice (via taskquoin dashboard)']);
+  assert.deepEqual(Object.keys(opts).sort(), ['cwd', 'detached', 'env', 'stdio']);
+  assert.equal(opts.cwd, '/work/repo'); assert.equal(opts.detached, true);
+  assert.deepEqual(opts.env, { PATH: '/bin', HOME: '/h', NO_COLOR: '1', TASKQUOIN_NO_SETUP: '1' });
+  assert.equal(opts.stdio[0], 'ignore');
+  assert.equal(typeof opts.stdio[1], 'number', 'stdout is a file descriptor, not a pipe');
+  assert.equal(opts.stdio[2], opts.stdio[1], 'stderr goes to the same log');
+  assert.throws(() => fstatSync(opts.stdio[1] as number), /EBADF/, 'the parent closed its copy of the descriptor');
+  assert.equal(f.kids[0]!.unrefed, true);
+  assert.equal(c.pid, 4242);
+  assert.equal(statSync(c.logPath).mode & 0o777, 0o600);
+  assert.equal(statSync(dirname(c.logPath)).mode & 0o777, 0o700);
+  assert.match(dirname(c.logPath), /taskquoin-approve-/);
+  assert.equal(c.tail(), 'hello');
+  f.kids[0]!.emit('exit', 1, null);
+  assert.deepEqual(await c.exited, { code: 1, signal: null });
+});
+
+test('spawnApprove: the log tail is neutralised line by line and keeps the last lines; a spawn error resolves `exited`; no pid throws', async () => {
+  const E = String.fromCharCode(0x1b);
+  const f = fakeSpawn({ log: `${'x'.repeat(5000)}\nfirst\r\nrun run-c is busy (pid 4242)\n${E}]52;c;Y3Vy${String.fromCharCode(7)} \u202e evil\n\n` });
+  const c = spawnApprove({ node: 'n', entry: 'e', cwd: '/', env: {}, runId: 'r', gate: 'plan', expect: 'a'.repeat(12), as: 'bob (via taskquoin dashboard)', spawn: f.spawn });
+  const tail = c.tail(4096).split('\n');
+  assert.deepEqual(tail.slice(-2), ['run run-c is busy (pid 4242)', '‹ESC›]52;c;Y3Vy‹BEL› ‹U+202E› evil']);
+  assert.ok(!tail.some((l) => FORBIDDEN.test(l)));
+  assert.ok(!tail.join('').includes('x'.repeat(4097)), 'only the last bytes are read');
+  f.kids[0]!.emit('error', new Error('ENOENT'));
+  assert.deepEqual(await c.exited, { code: null, signal: null });
+  const none = fakeSpawn({ pid: undefined });
+  assert.throws(() => spawnApprove({ node: 'n', entry: 'e', cwd: '/', env: {}, runId: 'r', gate: 'plan', expect: 'a'.repeat(12), as: 'b', spawn: none.spawn }), /could not be started/);
+});
+
+test('approvalRecorded: the store, not the exit code — a matching event or state record is true; another approver, binding or gate is false; trimmed (F32); a record already there before is not this one', () => {
+  const sent = { gate: 'commit' as const, binding: TREE, as: 'alice (via taskquoin dashboard)' };
+  const ev = (o: Record<string, unknown> = {}) => ({ type: 'approval', node: 'approve-commit', approvedBy: sent.as, binding: TREE, ts: '2026-11-22T10:33:05.000Z', ...o });
+  const st = (o: Record<string, unknown> = {}) => ({ approvals: { 'approve-commit': { approvedBy: sent.as, binding: TREE, at: '2026-11-22T10:33:05.000Z', ...o } } }) as never;
+  assert.equal(approvalRecorded(undefined, [ev()], sent), true);
+  assert.equal(approvalRecorded(st(), [], sent), true);
+  assert.equal(approvalRecorded(undefined, [ev({ approvedBy: `${sent.as} ` })], sent), true, 'the approver as recorded is trimmed');
+  assert.equal(approvalRecorded(undefined, [ev({ approvedBy: 'mallory (via taskquoin console)' })], sent), false);
+  assert.equal(approvalRecorded(undefined, [ev({ binding: '7'.repeat(40) })], sent), false);
+  assert.equal(approvalRecorded(undefined, [ev({ node: 'approve-plan' })], sent), false);
+  assert.equal(approvalRecorded(undefined, [ev({ type: 'node.transition' })], sent), false);
+  assert.equal(approvalRecorded(st({ approvedBy: 'mallory' }), [], sent), false);
+  assert.equal(approvalRecorded(st({ binding: '7'.repeat(40) }), [], sent), false);
+  assert.equal(approvalRecorded({ approvals: {} } as never, [], sent), false);
+  // the same approval already in the store when the form was sent is not this one
+  assert.equal(approvalRecorded(st(), [ev()], sent, { state: st(), events: [ev()] }), false);
+  assert.equal(approvalRecorded(st(), [ev(), ev({ ts: '2026-11-22T10:40:00.000Z' })], sent, { state: st(), events: [ev()] }), true);
+  assert.equal(approvalRecorded(st({ at: '2026-11-22T10:40:00.000Z' }), [], sent, { state: st(), events: [] }), true);
+});
+
+test('the quit question fits every size, says the run goes on in process N and that quitting does not stop it; below 40 × 12 too', async () => {
+  const { renderDashboard, initialUi } = await import('../src/tui/components/dashboard-frame.ts');
+  const m = {
+    fixed: { version: '1.0.0', repo: 'demo', acceptedRisks: [], squad: [], runtimeVersions: {}, checkedAt: '' },
+    runs: [], lastChange: '2026-11-22T10:33:00.000Z',
+  } as unknown as Parameters<typeof renderDashboard>[0];
+  for (const lang of LANGS) await withLang(lang, () => {
+    for (const [columns, rows] of [[120, 34], [80, 24], [40, 12], [36, 10], [200, 60]] as const) for (const charset of ['utf8', 'ascii'] as const) {
+      const lines = renderDashboard(m, { ...initialUi(), quit: { short: 'ab12cd', pid: 4242 } }, caps({ columns, rows, charset }), 0);
+      assert.equal(lines.length, rows);
+      for (const l of lines) assert.ok(displayWidth(l.replace(SGR, '')) <= columns, `${lang} ${columns}x${rows}: ${l}`);
+      const shown = text(lines).replace(/[│╭╮╰╯─|+-]+/g, ' ').replace(/\s+/g, ' ');
+      assert.ok(shown.includes('4242') && shown.includes('ab12cd'), `${lang} ${columns}x${rows}: run and pid: ${shown}`);
+      if (lang === 'en') assert.match(shown, /continues in process 4242 until its next gate (?:— )?quitting does not stop it/);
+      if (lang === 'en') assert.match(shown, /q quit (?:· )?Esc stay/);
+    }
+  });
+});

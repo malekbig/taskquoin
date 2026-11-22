@@ -10,8 +10,17 @@
  *  - Esc and Ctrl+C cancel while something is being typed; after `sent` they only close the view (an approval may
  *    already be recorded: the screen never says "nothing was approved" then).
  * The name is trimmed and capped at 64 characters, kept in memory by the caller (`onName`), never read from the OS.
+ *
+ * The approval itself is the existing CLI path, in its own process (spec §6): `spawnApprove` starts
+ * `taskquoin approve <run> <gate> --expect <typed> --as "<name> (via taskquoin dashboard)"` detached, its output in a
+ * private log file (never a pipe: quitting the dashboard must not kill the run with EPIPE). Whether it approved is
+ * what the control store records (`approvalRecorded`), never its exit code.
  */
-import type { RunView } from '@taskquoin/application';
+import { spawn as nodeSpawn } from 'node:child_process';
+import { closeSync, fstatSync, mkdtempSync, openSync, readSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { RunState, RunView } from '@taskquoin/application';
 import type { Caps } from './tui/caps.ts';
 import { keyDecoder, type Key } from './tui/keys.ts';
 import { neutralize } from './tui/neutral.ts';
@@ -101,14 +110,15 @@ export function approvalForm(o: {
     }
   };
 
-  const hashKey = async (s: Extract<FormStep, { step: 'hash' }>, k: Key, multi: boolean): Promise<FormStep> => {
+  let handed: unknown; // what approve() returned, awaited by key() once the state is `sent`
+  const hashKey = (s: Extract<FormStep, { step: 'hash' }>, k: Key, multi: boolean): FormStep => {
     const { error: _e, ...plain } = s;
     const append = (text: string): FormStep => ({ ...plain, text: chars(s.text + text).slice(0, HASH_LEN).join('') });
     switch (k.name) {
       case 'char': return append(k.ch);
       case 'paste': {
         if (dropPaste) { dropPaste = false; return s; }
-        const text = k.text.replace(/[\r\n]/g, '');
+        const text = k.text.replace(/[\r\n]/g, '').trim();
         if (neutralize(text, { singleLine: true }).marked > 0) return { ...plain, error: 'controls' };
         return append(text);
       }
@@ -127,7 +137,7 @@ export function approvalForm(o: {
         sentOnce = true;
         const as = name + VIA_DASHBOARD;
         step = { step: 'sent', shown: s.shown, as };
-        await o.approve(o.runId, o.gate, typed, as);
+        handed = o.approve(o.runId, o.gate, typed, as);
         return step;
       }
       default: return s;
@@ -159,8 +169,10 @@ export function approvalForm(o: {
         const s = step;
         if (s.step !== 'name' && s.step !== 'hash') return; // after the form: the caller closes the view, nothing is re-sent
         if (k.name === 'esc' || k.name === 'ctrl-c') { step = { step: 'cancelled' }; return; }
-        step = s.step === 'name' ? nameKey(s, k, multi) : await hashKey(s, k, multi);
+        step = s.step === 'name' ? nameKey(s, k, multi) : hashKey(s, k, multi);
       }
+      // every state change above is synchronous; only what approve() returned is waited for
+      if (handed !== undefined) { const h = handed; handed = undefined; await h; }
     },
     refresh(): void {
       if (step.step !== 'hash') return;
@@ -174,4 +186,70 @@ export function approvalForm(o: {
       return renderApprovalCenter(step, { ...o.context(), gate: o.gate, ...(name !== undefined ? { approver: name } : {}), ...(reReadAt !== undefined ? { reReadAt } : {}), ...(outcome ? { outcome } : {}) }, caps, height);
     },
   };
+}
+
+// ---- the separate `taskquoin approve` process --------------------------------------------------------------------
+
+export interface ApproveChild { pid: number; logPath: string; exited: Promise<{ code: number | null; signal: NodeJS.Signals | null }>; tail(maxBytes?: number): string }
+
+/** The last bytes of a log, cut at a line start, each line neutralised (log profile, one line each). */
+function tailOf(path: string, maxBytes: number): string {
+  let fd: number | undefined;
+  try {
+    fd = openSync(path, 'r');
+    const size = fstatSync(fd).size, len = Math.min(size, Math.max(0, maxBytes));
+    const buf = Buffer.alloc(len);
+    readSync(fd, buf, 0, len, size - len);
+    let lines = buf.toString('utf8').split(/\r?\n/);
+    if (len < size) lines = lines.slice(1); // the first line was cut
+    while (lines.length && lines.at(-1)!.trim() === '') lines.pop();
+    return lines.map((l) => neutralize(l, { profile: 'log', singleLine: true }).text).join('\n');
+  } catch { return ''; } finally { if (fd !== undefined) closeSync(fd); }
+}
+
+/**
+ * Starts `taskquoin approve` in its own process: argv exactly `[entry, 'approve', runId, gate, '--expect', expect,
+ * '--as', as]` (no shell), detached, stdin ignored, stdout and stderr to `approve.log` (0600, `wx`) in a fresh 0700
+ * directory; the descriptor is closed here once the child has it; `unref()` so the dashboard can quit while it runs.
+ */
+export function spawnApprove(o: { node: string; entry: string; cwd: string; env: NodeJS.ProcessEnv; runId: string; gate: Gate; expect: string; as: string; spawn?: typeof nodeSpawn }): ApproveChild {
+  const dir = mkdtempSync(join(tmpdir(), 'taskquoin-approve-'));
+  const logPath = join(dir, 'approve.log');
+  const fd = openSync(logPath, 'wx', 0o600);
+  let child: ReturnType<typeof nodeSpawn>;
+  try {
+    child = (o.spawn ?? nodeSpawn)(o.node, [o.entry, 'approve', o.runId, o.gate, '--expect', o.expect, '--as', o.as],
+      { cwd: o.cwd, detached: true, stdio: ['ignore', fd, fd], env: { ...o.env, NO_COLOR: '1', TASKQUOIN_NO_SETUP: '1' } });
+  } finally { closeSync(fd); }
+  const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
+    child.once('exit', (code, signal) => { resolve({ code, signal }); });
+    child.once('error', () => { resolve({ code: null, signal: null }); });
+  });
+  child.unref();
+  if (child.pid === undefined) throw new Error('taskquoin approve could not be started');
+  return { pid: child.pid, logPath, exited, tail: (maxBytes = 4096) => tailOf(logPath, maxBytes) };
+}
+
+type Approvals = Record<string, { approvedBy?: unknown; binding?: unknown; at?: unknown } | undefined>;
+
+/** The approval the store holds for this send, when there is one: its time. Records already there before (`before`) do not count. */
+export function approvalRecord(state: RunState | undefined, events: Record<string, unknown>[], sent: { gate: Gate; binding: string; as: string },
+  before?: { state?: RunState; events: Record<string, unknown>[] }): { at?: string } | undefined {
+  const node = sent.gate === 'plan' ? 'approve-plan' : 'approve-commit';
+  const as = sent.as.trim();
+  const byUs = (by: unknown): boolean => typeof by === 'string' && by.trim() === as;
+  const match = (e: Record<string, unknown>): boolean => e.type === 'approval' && e.node === node && e.binding === sent.binding && byUs(e.approvedBy);
+  const found = events.filter(match), old = before ? before.events.filter(match).length : 0;
+  if (found.length > old) { const ts = found.at(-1)!.ts; return typeof ts === 'string' ? { at: ts } : {}; }
+  const rec = (state?.approvals as Approvals | undefined)?.[node];
+  if (!rec || rec.binding !== sent.binding || !byUs(rec.approvedBy)) return undefined;
+  const prev = (before?.state?.approvals as Approvals | undefined)?.[node];
+  if (prev && prev.binding === rec.binding && prev.approvedBy === rec.approvedBy && prev.at === rec.at) return undefined;
+  return typeof rec.at === 'string' ? { at: rec.at } : {};
+}
+
+/** True when the store records this approval: an `approval` event for the gate's node, the binding and `approvedBy === as`, or `state.approvals[node]` with both. */
+export function approvalRecorded(state: RunState | undefined, events: Record<string, unknown>[], sent: { gate: Gate; binding: string; as: string },
+  before?: { state?: RunState; events: Record<string, unknown>[] }): boolean {
+  return approvalRecord(state, events, sent, before) !== undefined;
 }

@@ -59,11 +59,10 @@ for (const { code } of LANGUAGES.filter((l) => l.code !== 'en')) {
   });
 }
 
-test('every dashboard key and the keys of its command exist in all 22 catalogs (plural bases through their _other form)', () => {
-  // The diff/artifact viewer and the approval center (R4) have their own keys, translated with R4's last task.
-  const viewer = /^dashboard\.(viewer\.|center\.|frame\.key\.(diff|verify)$|help\.(search|wrap|fileMatch|back)$)/;
-  const keys = Object.keys(english).filter((k) => (k.startsWith('dashboard.') && !viewer.test(k)) || ['console.doc.dashboard', 'cli.help.dashboard'].includes(k));
-  assert.ok(keys.length >= 65, `found ${keys.length}`);
+test('every dashboard key (R3 and R4: viewer, approval center, quit question) and the keys of its command exist in all 22 catalogs (plural bases through their _other form)', () => {
+  const keys = Object.keys(english).filter((k) => k.startsWith('dashboard.') || ['console.doc.dashboard', 'cli.help.dashboard', 'approval.approver.dashboard'].includes(k));
+  assert.ok(keys.length >= 140, `found ${keys.length}`);
+  for (const k of ['dashboard.viewer.titleDiff', 'dashboard.center.retype', 'dashboard.quit.body', 'dashboard.childContinues', 'dashboard.frame.openCenter', 'dashboard.help.center']) assert.ok(keys.includes(k), k);
   for (const { code } of LANGUAGES.filter((l) => l.code !== 'en')) {
     const cat = load(code);
     const missing = keys.filter((k) => !(k in cat) && !(k.endsWith('_one') && k.replace(/_one$/, '_other') in cat));

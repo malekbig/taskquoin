@@ -8,17 +8,28 @@
  *  - a held escape sequence is given to the decoder's `flush()` 50 ms after the last input (a bare Esc waits for it);
  *  - a resize takes the new size, forgets what is on the terminal and draws once.
  * Every timer and listener is cleared when the loop ends, however it ends.
+ *
+ * Approving (R4): `p`, alone in its input chunk, opens the approval center for the selected run's waiting gate; the
+ * form (dashboard-approve.ts) then owns every raw input chunk. No key approves: the retyped hash and a separate Enter
+ * hand the approval to `taskquoin approve`, in its own process — the only process the dashboard ever starts. The loop
+ * then watches the control store: the approval recorded there is the success, never the exit code. Quitting while that
+ * process lives asks first and says, after the terminal is given back, that it continues and where its output goes.
  */
 import type { RepoStore } from '@taskquoin/store-fs';
-import { artifactSha, createWatcher, freshPending, loadDocs, type DashboardModel, type DashStatic } from './dashboard-data.ts';
+import { artifactSha, createWatcher, freshApproval, freshPending, loadDocs, type DashboardModel, type DashStatic } from './dashboard-data.ts';
+import { approvalForm, approvalRecord, spawnApprove, type ApprovalForm, type ApproveChild, type Gate } from './dashboard-approve.ts';
 import { t } from './i18n/index.ts';
 import type { Caps } from './tui/caps.ts';
+import { n, nLog } from './tui/neutral.ts';
+import { clock } from './tui/text.ts';
+import { glyph, mark } from './tui/tokens.ts';
+import type { Outcome } from './tui/components/approval-center.ts';
 import { keyDecoder, type Key, type KeyChunk } from './tui/keys.ts';
 import { withTerminal, type Signals, type TtyIO } from './tui/screen.ts';
 import { geometry, openViewer, settle, sized, viewerKey } from './tui/components/diff-viewer.ts';
-import { initialUi, renderDashboard, type Focus, type UiState } from './tui/components/dashboard-frame.ts';
+import { initialUi, layoutMode, renderDashboard, type Focus, type UiState } from './tui/components/dashboard-frame.ts';
 
-export type Effect = { kind: 'quit' } | { kind: 'select'; runId: string } | { kind: 'open-viewer'; which: 'review' | 'verify' } | { kind: 'open-center' };
+export type Effect = { kind: 'quit'; confirmed?: true } | { kind: 'select'; runId: string } | { kind: 'open-viewer'; which: 'review' | 'verify' } | { kind: 'open-center' };
 
 const ORDER: Focus[] = ['pipeline', 'approvals', 'runs', 'agents', 'events'];
 const TABBED: readonly string[] = ['runs', 'agents', 'events'];
@@ -51,7 +62,7 @@ function keyOf(key: Key): string | undefined {
 }
 
 /** One key in the viewer: typing a search query owns every key; otherwise `? d v p q` here and the rest to the viewer. */
-function viewerStep(ui: UiState, key: Key, effects: Effect[], vh: number): UiState {
+function viewerStep(ui: UiState, key: Key, effects: Effect[], vh: number, multi: boolean): UiState {
   const v = ui.viewer!;
   if (key.name === 'ctrl-c') {
     if (ui.help) return { ...ui, help: false };
@@ -64,7 +75,7 @@ function viewerStep(ui: UiState, key: Key, effects: Effect[], vh: number): UiSta
     if (key.ch === '?') return { ...ui, help: true };
     if (key.ch === 'd') { effects.push({ kind: 'open-viewer', which: 'review' }); return ui; }
     if (key.ch === 'v') { effects.push({ kind: 'open-viewer', which: 'verify' }); return ui; }
-    if (key.ch === 'p') { effects.push({ kind: 'open-center' }); return ui; }
+    if (key.ch === 'p') { if (!multi) effects.push({ kind: 'open-center' }); return ui; } // alone in its chunk, never type-ahead
   }
   const r = viewerKey(v, { keys: [key], multi: false }, vh);
   if (r.close) { const { viewer: _v, ...rest } = ui; return { ...rest, screen: 'main' }; }
@@ -73,8 +84,15 @@ function viewerStep(ui: UiState, key: Key, effects: Effect[], vh: number): UiSta
 }
 
 /** Apply one key; `effects` collects what the loop must do. */
-function step(ui: UiState, key: Key, m: DashboardModel, effects: Effect[], vh: number): UiState {
-  if (ui.screen === 'viewer' && ui.viewer) return viewerStep(ui, key, effects, vh);
+function step(ui: UiState, key: Key, m: DashboardModel, effects: Effect[], vh: number, multi: boolean): UiState {
+  if (ui.quit) {
+    // the quit question: q (or Ctrl+C) quits, Esc stays, nothing else acts
+    if (key.name === 'esc') { const { quit: _q, ...rest } = ui; return rest; }
+    if (key.name === 'ctrl-c' || (key.name === 'char' && key.ch.toLowerCase() === 'q')) effects.push({ kind: 'quit', confirmed: true });
+    return ui;
+  }
+  if (ui.screen === 'center') return ui; // the form owns the keyboard (the loop hands it the raw chunks)
+  if (ui.screen === 'viewer' && ui.viewer) return viewerStep(ui, key, effects, vh, multi);
   if (key.name === 'paste') return ui;
   if (key.name === 'ctrl-c') {
     if (ui.help) return { ...ui, help: false };
@@ -97,7 +115,11 @@ function step(ui: UiState, key: Key, m: DashboardModel, effects: Effect[], vh: n
     if (c === 'r') return focused(ui, 'runs');
     if (c === 'a') return focused(ui, 'agents');
     if (c === 'l') return focused(ui, 'events');
-    if (c === 'p') return { ...ui, focus: 'approvals' };
+    if (c === 'p') {
+      // the centre opens only for a key pressed alone, for a gate that waits, when this dashboard can approve
+      if (!multi && ui.approveHere && m.selected?.view.pending) effects.push({ kind: 'open-center' });
+      return { ...ui, focus: 'approvals' };
+    }
     if (c === 'd') { effects.push({ kind: 'open-viewer', which: 'review' }); return ui; }
     if (c === 'v') { effects.push({ kind: 'open-viewer', which: 'verify' }); return ui; }
   }
@@ -126,7 +148,7 @@ export function onKey(ui: UiState, chunk: KeyChunk, m: DashboardModel, vh = 20):
   const effects: Effect[] = [];
   let next = ui;
   for (const key of chunk.keys) {
-    next = step(next, key, m, effects, vh);
+    next = step(next, key, m, effects, vh, chunk.multi);
     if (effects.some((e) => e.kind === 'quit' || e.kind === 'open-viewer' || e.kind === 'open-center')) break;
   }
   return { ui: next, effects };
@@ -141,10 +163,19 @@ export interface DashDeps {
   isAlive?: (pid: number) => boolean | undefined;
   /** The artifacts read to the end in this session (the loop owns and fills it; a caller may share it). */
   read?: Set<string>;
+  /** How to start `taskquoin approve` (absent: no approval center, the Approvals panel names the console and CLI routes). */
+  approve?: { node: string; entry: string; cwd: string; env: NodeJS.ProcessEnv; spawn?: typeof import('node:child_process').spawn };
+  /** Where the message "the run continues in process N" goes once the terminal is given back (stderr). */
+  err?: (s: string) => void;
 }
 
+/** One `taskquoin approve` started from this dashboard and what the store says it did. */
+interface Started { runId: string; short: string; gate: Gate; binding: string; as: string; form: ApprovalForm; child?: ApproveChild; alive: boolean; outcome: Outcome; before: ReturnType<typeof freshApproval> }
+
+const shortOf = (runId: string): string => { const last = runId.split('-').at(-1) ?? ''; return n(last === '' ? runId : last); };
+
 /** Runs until `q` (or Ctrl+C); resolves 0. Signals and errors leave through withTerminal, which gives the terminal back. */
-export function runDashboard(d: DashDeps): Promise<number> {
+export async function runDashboard(d: DashDeps): Promise<number> {
   const now = d.now ?? ((): number => Date.now());
   const timers = d.timers ?? { setInterval: (...a: Parameters<typeof setInterval>) => setInterval(...a), clearInterval: (h: Parameters<typeof clearInterval>[0]) => { clearInterval(h); } } as NonNullable<DashDeps['timers']>;
   const watcher = createWatcher(d.store, d.fixed, { ...(d.runId !== undefined ? { runId: d.runId } : {}), now: () => new Date(now()), ...(d.isAlive ? { isAlive: d.isAlive } : {}) });
@@ -154,9 +185,10 @@ export function runDashboard(d: DashDeps): Promise<number> {
     if (pick) watcher.select(pick.runId);
   }
 
-  return withTerminal(d.tty, d.signals, async (screen) => {
+  const started: Started[] = [];
+  const code = await withTerminal(d.tty, d.signals, async (screen) => {
     let caps = d.caps(d.tty.size());
-    let ui = initialUi();
+    let ui: UiState = { ...initialUi(), ...(d.approve ? { approveHere: true } : {}) };
     const m0 = watcher.model();
     const at = m0.runs.findIndex((r) => r.runId === m0.selected?.runId);
     if (at > 0) ui = { ...ui, pos: { ...ui.pos, runs: at } };
@@ -168,8 +200,11 @@ export function runDashboard(d: DashDeps): Promise<number> {
     let poll: ReturnType<typeof setInterval> | undefined;
     const offs: (() => void)[] = [];
     let done: ((code: number) => void) | undefined;
+    let closed = false;
+    let approver: string | undefined; // asked once per dashboard session, kept in memory only
+    let form: { f: ApprovalForm; runId: string } | undefined;
 
-    const draw = (): void => { screen.draw(renderDashboard(watcher.model(), ui, caps, now())); };
+    const draw = (): void => { if (!closed) screen.draw(renderDashboard(watcher.model(), ui, caps, now())); };
     const wantsTick = (): boolean => {
       const s = watcher.model().selected;
       return s !== undefined && s.view.status === 'running' && s.liveness === 'live' && s.view.steps.some((st) => st.state === 'running');
@@ -197,16 +232,118 @@ export function runDashboard(d: DashDeps): Promise<number> {
       ui = { ...rest, screen: 'viewer', viewer: openViewer(r, geometry(caps, caps.rows).rows) };
       fitViewer();
     };
+    // ---- the approval center and the process it starts ----------------------------------------------------------
+    const outcomeLine = (o: Outcome): string => {
+      const sep = ` ${mark('sep', caps)} `;
+      switch (o.kind) {
+        case 'started': return `${glyph('running', caps)} ${t('dashboard.center.started', { pid: o.pid })}`;
+        case 'approved': return `${glyph('done', caps)} ${t('dashboard.center.approved', { as: n(o.as), time: clock(o.at), pid: o.pid })}`;
+        case 'refused': return `${glyph('failed', caps)} ${t('dashboard.center.refused', { exit: n(o.exit) })}${sep}${t('dashboard.center.nothing')}`;
+        case 'failed': return `${glyph('failed', caps)} ${t('dashboard.center.notStarted', { message: n(o.message) })}${sep}${t('dashboard.center.nothing')}`;
+      }
+    };
+    /** Outside the centre, the latest process's outcome is the footer's notice. */
+    const notify = (s: Started): void => { if (ui.screen !== 'center' && started.at(-1) === s) ui = { ...ui, notice: outcomeLine(s.outcome) }; };
+    /** What the store says now about a started approval: recorded → approved (the process may still run). */
+    const recordOf = (s: Started): { at?: string } | undefined => {
+      const now = freshApproval(d.store, s.runId);
+      return approvalRecord(now.state, now.events, s, s.before);
+    };
+    const finish = (s: Started, r: { code: number | null; signal: NodeJS.Signals | null }): void => {
+      s.alive = false;
+      if (s.outcome.kind === 'approved') return;
+      const rec = recordOf(s);
+      if (rec) s.outcome = { kind: 'approved', pid: s.child!.pid, as: s.as, at: rec.at ?? new Date(now()).toISOString() };
+      else s.outcome = { kind: 'refused', exit: r.code !== null ? String(r.code) : r.signal ?? '?', tail: (s.child?.tail() ?? '').split('\n').filter((l) => l.trim() !== '').slice(-3) };
+    };
+    /** Each poll while an approval is in flight: the store, not the exit code, says whether it was approved. */
+    const watch = (): boolean => {
+      let changed = false;
+      for (const s of started) {
+        if (s.outcome.kind !== 'started') continue;
+        const rec = recordOf(s);
+        if (rec) { s.outcome = { kind: 'approved', pid: s.child!.pid, as: s.as, at: rec.at ?? new Date(now()).toISOString() }; notify(s); changed = true; }
+      }
+      return changed;
+    };
+    const startApprove = (f: ApprovalForm, runId: string, gate: Gate, expect: string, as: string): void => {
+      const st = f.state();
+      const binding = st.step === 'sent' ? st.shown.binding : '';
+      const s: Started = { runId, short: shortOf(runId), gate, binding, as, form: f, alive: false, outcome: { kind: 'failed', message: '' }, before: freshApproval(d.store, runId) };
+      started.push(s);
+      try {
+        const child = spawnApprove({ ...d.approve!, runId, gate, expect, as });
+        s.child = child; s.alive = true; s.outcome = { kind: 'started', pid: child.pid };
+        void child.exited.then((r) => { finish(s, r); if (!closed) { notify(s); draw(); } });
+      } catch (e) {
+        s.outcome = { kind: 'failed', message: nLog(String((e as Error)?.message ?? e)) };
+      }
+    };
+    const openCenter = (): void => {
+      const sel = watcher.model().selected;
+      const gate = sel?.view.pending?.gate;
+      const { viewer: _v, notice: _n, ...rest } = ui;
+      if (!d.approve || !sel || !gate) { ui = { ...rest, screen: 'main', focus: 'approvals' }; return; }
+      decoder.flush(); // input held from before the form: never typed into it
+      const runId = sel.runId;
+      const f: ApprovalForm = approvalForm({
+        runId, gate, ...(approver !== undefined ? { approver } : {}),
+        pending: () => freshPending(d.store, runId),
+        approve: (r, g, expect, as) => { startApprove(f, r, g, expect, as); },
+        onName: (name) => { approver = name; },
+        context: () => {
+          const m = watcher.model(), s = m.selected?.runId === runId ? m.selected : sel;
+          return { view: s.view, request: s.request, read, acceptedRisks: d.fixed.acceptedRisks, waiting: m.runs.filter((r) => r.status === 'waiting-approval').length };
+        },
+        now: () => new Date(now()),
+      });
+      f.open();
+      form = { f, runId };
+      ui = { ...rest, screen: 'center', focus: 'approvals', center: { render: (c, h) => f.render(c, h, started.find((s) => s.form === f)?.outcome) } };
+    };
+    const closeCenter = (): void => {
+      const f = form?.f;
+      form = undefined;
+      const { center: _c, ...rest } = ui;
+      ui = { ...rest, screen: 'main', focus: 'approvals' };
+      const st = f?.state().step;
+      const mine = started.find((s) => s.form === f);
+      if (mine) ui = { ...ui, notice: outcomeLine(mine.outcome) };
+      else if (st === 'cancelled') ui = { ...ui, notice: t('dashboard.center.cancelled') };
+    };
+    /** A raw input chunk while the centre is open: the form's, or — once the form is done — a key that closes it. */
+    const centerKey = (chunk: string): void => {
+      const f = form!.f;
+      if (layoutMode(caps) === 'too-small') { f.typeAhead(chunk); return; } // nothing is typed blind
+      const st = f.state().step;
+      if (st === 'name' || st === 'hash') {
+        void f.key(chunk).catch(() => { /* startApprove reports its own failure */ });
+        draw();
+        return;
+      }
+      const dec = keyDecoder();
+      const keys = [...dec.feed(chunk), ...dec.flush()].flatMap((c) => c.keys);
+      const only = keys.length === 1 ? keys[0]! : undefined;
+      if (st === 'stale' && only?.name === 'char' && only.ch.toLowerCase() === 'd') { closeCenter(); open('review'); draw(); return; }
+      const closes = keys.some((k) => k.name === 'esc' || k.name === 'ctrl-c' || (k.name === 'char' && k.ch.toLowerCase() === 'q') || (k.name === 'enter' && st !== 'sent'));
+      if (closes) { closeCenter(); draw(); }
+    };
+
     const apply = (chunks: KeyChunk[]): void => {
       if (chunks.length === 0) return;
       for (const chunk of chunks) {
+        if (ui.screen === 'center') break; // what follows the opening key is type-ahead: never the form's
         const r = onKey(ui, chunk, watcher.model(), geometry(caps, caps.rows).rows);
         ui = r.ui;
         for (const e of r.effects) {
-          if (e.kind === 'quit') { done?.(0); return; }
+          if (e.kind === 'quit') {
+            const live = started.find((s) => s.alive && s.child);
+            if (live && !e.confirmed) { ui = { ...ui, help: false, quit: { short: live.short, pid: live.child!.pid } }; continue; }
+            done?.(0); return;
+          }
           if (e.kind === 'select') watcher.select(e.runId);
           else if (e.kind === 'open-viewer') open(e.which);
-          else { const { viewer: _v, ...rest } = ui; ui = { ...rest, screen: 'main', focus: 'approvals' }; } // the approval centre arrives with R4's Task 8
+          else openCenter();
         }
         fitViewer();
       }
@@ -230,9 +367,13 @@ export function runDashboard(d: DashDeps): Promise<number> {
         poll = timers.setInterval(() => {
           let changed = false;
           try { changed = watcher.poll(); } catch { /* an unreadable store is the watcher's business; keep the last frame */ }
-          if (changed) { recheck(); syncTick(); draw(); }
+          if (changed) { recheck(); syncTick(); }
+          const outcome = watch();
+          if (ui.screen === 'center') form?.f.refresh(); // the binding re-read each poll (shown, never acted on)
+          if (changed || outcome || ui.screen === 'center') draw();
         }, POLL_MS);
         offs.push(d.tty.onData((chunk) => {
+          if (ui.screen === 'center' && form) { clearFlush(); centerKey(chunk); return; }
           apply(decoder.feed(chunk));
           clearFlush();
           flushTimer = timers.setInterval(() => { clearFlush(); apply(decoder.flush()); }, FLUSH_MS);
@@ -245,10 +386,14 @@ export function runDashboard(d: DashDeps): Promise<number> {
         }));
       });
     } finally {
+      closed = true;
       for (const off of offs) { try { off(); } catch { /* nothing to undo */ } }
       if (poll !== undefined) timers.clearInterval(poll);
       if (tick !== undefined) timers.clearInterval(tick);
       clearFlush();
     }
   });
+  // the terminal is back: say which approval processes go on, and where their output is
+  for (const s of started) if (s.alive && s.child) d.err?.(t('dashboard.childContinues', { run: n(s.runId), pid: s.child.pid, log: n(s.child.logPath) }));
+  return code;
 }

@@ -128,13 +128,32 @@ function readStateFile(store: RepoStore, id: string): RunState {
 
 // ---- the viewer's data -------------------------------------------------------------------------------------------
 
-/** The gate a run waits for and its binding, read from state.json NOW (never the cached model); undefined when none or unreadable. */
-export function freshPending(store: RepoStore, runId: string): { gate: 'plan' | 'commit'; binding: string } | undefined {
+/**
+ * The gate a run waits for and its binding, read from state.json NOW (never the cached model); undefined when none or
+ * unreadable. `at`: when it started waiting (the run's last history entry), for the stale screen's re-verify time.
+ */
+export function freshPending(store: RepoStore, runId: string): { gate: 'plan' | 'commit'; binding: string; at?: string } | undefined {
   try {
     if (!validId(runId)) return undefined;
-    const p = pendingApproval(readStateFile(store, runId));
-    return p ? { gate: p.node === 'approve-plan' ? 'plan' : 'commit', binding: p.binding } : undefined;
+    const state = readStateFile(store, runId);
+    const p = pendingApproval(state);
+    if (!p) return undefined;
+    const at = Array.isArray(state.history) ? state.history.at(-1)?.at : undefined;
+    return { gate: p.node === 'approve-plan' ? 'plan' : 'commit', binding: p.binding, ...(typeof at === 'string' ? { at } : {}) };
   } catch { return undefined; }
+}
+
+/**
+ * The run's state and its last events, read NOW, for one check only: did `taskquoin approve` record the approval
+ * (dashboard-approve.ts approvalRecorded). Never rendered; nothing here is shown or neutralised.
+ */
+export function freshApproval(store: RepoStore, runId: string): { state?: RunState; events: Record<string, unknown>[] } {
+  if (!validId(runId)) return { events: [] };
+  let state: RunState | undefined;
+  try { state = readStateFile(store, runId); } catch { state = undefined; }
+  let events: Record<string, unknown>[] = [];
+  try { events = readEvents(store, runId, { max: MAX_EVENTS, tailBytes: TAIL_BYTES }).events; } catch { events = []; }
+  return { ...(state ? { state } : {}), events };
 }
 
 /** The sha of a named artifact in state.json now. */

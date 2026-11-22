@@ -494,5 +494,11 @@
   "dashboard.center.approved": "approuvé par {as} à {time} · le run continue (pid {pid}) jusqu'à sa prochaine porte ; ce tableau de bord ne fait que regarder",
   "dashboard.center.refused": "taskquoin approve a refusé (code {exit})",
   "dashboard.center.notStarted": "taskquoin approve n'a pas pu être lancé : {message}",
-  "dashboard.center.nothing": "rien n'a été approuvé"
+  "dashboard.center.nothing": "rien n'a été approuvé",
+  "dashboard.frame.openCenter": "p ouvre le centre d'approbation",
+  "dashboard.help.center": "Approuvez dans le centre d'approbation (p) : retapez le hash affiché.",
+  "dashboard.quit.title": "Quitter ?",
+  "dashboard.quit.body": "Le run {short} continue dans le processus {pid} jusqu'à sa prochaine porte — quitter ne l'arrête pas",
+  "dashboard.quit.keys": "q quitter · Échap rester",
+  "dashboard.childContinues": "taskquoin dashboard : le run {run} continue dans le processus {pid} jusqu'à sa prochaine porte ; sa sortie : {log}"
 }

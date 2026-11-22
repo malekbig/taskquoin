@@ -44,7 +44,7 @@ export const VIEWER_KEY_TABLE: readonly { keys: string; label: () => string }[] 
 ];
 
 /** The overlay box, at most `width` columns wide (52 at most); its height is its content. */
-export function renderHelp(screen: UiState['screen'], width: number, caps: Caps): string[] {
+export function renderHelp(screen: UiState['screen'], width: number, caps: Caps, here = false): string[] {
   const w = Math.max(1, Math.min(width, 52)), inner = Math.max(1, w - 4);
   const entries = (screen === 'viewer' ? VIEWER_KEY_TABLE : KEY_TABLE).map((e) => ({ plain: `${e.keys} ${e.label()}`, styled: `${bold(e.keys, caps)} ${e.label()}` }));
   const body: string[] = [];
@@ -56,6 +56,6 @@ export function renderHelp(screen: UiState['screen'], width: number, caps: Caps)
   }
   flush();
   if (w >= 48) body.push('');
-  body.push(...wrap(t('dashboard.help.hash'), inner), ...wrap(t('dashboard.help.route'), inner));
+  body.push(...wrap(t('dashboard.help.hash'), inner), ...wrap(t(here ? 'dashboard.help.center' : 'dashboard.help.route'), inner));
   return panel({ title: t('dashboard.help.title'), body, width: w, height: body.length + 2, focused: true }, caps);
 }

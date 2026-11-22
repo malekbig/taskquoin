@@ -460,7 +460,7 @@ async function cmdConsole(offline: boolean): Promise<number> {
   try { return await runConsole(io, cmds, (animate ? lines.slice(LOGO_ROWS) : lines).join('\n'), caps); } finally { rl.close(); }
 }
 
-/** This file, for the console's `/dashboard` child process. */
+/** This file, for the console's `/dashboard` child process and the dashboard's `taskquoin approve` process. */
 export const SELF = fileURLToPath(import.meta.url);
 
 /**
@@ -491,7 +491,10 @@ async function cmdDashboard(runId: string | undefined): Promise<number> {
     ...(branch ? { branch: nz(branch) } : {}), ...(porcelain === undefined ? {} : { clean: porcelain.trim() === '' }),
     acceptedRisks: loadRiskAcceptances(store).filter(r => r.expires >= today).map(r => nz(r.capability)), squad,
     runtimeVersions: Object.fromEntries(Object.entries(h.runtimes).flatMap(([k, v]) => (v?.version ? [[k, nz(v.version)]] : []))), checkedAt: new Date().toISOString() };
-  return runDashboard({ tty: nodeTty(process.stdin, process.stdout), signals: process, caps: (size) => capsOf(size), store, fixed, ...(runId !== undefined ? { runId } : {}) });
+  // approving hands the typed hash to `taskquoin approve` (this file) in its own process; runDashboard says, once the
+  // terminal is back, which such process still runs and where its output is
+  return runDashboard({ tty: nodeTty(process.stdin, process.stdout), signals: process, caps: (size) => capsOf(size), store, fixed, ...(runId !== undefined ? { runId } : {}),
+    approve: { node: process.execPath, entry: SELF, cwd: root, env: process.env }, err });
 }
 
 /** What the home screen shows about this repository, read once at start-up. Nothing here is a verdict: READY comes from the gates. */

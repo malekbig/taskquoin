@@ -471,14 +471,16 @@ test('loadDocs: a hostile diff arrives neutral, with the marks counted per file'
   for (const str of strings(r)) assert.ok(!FORBIDDEN.test(str));
 });
 
-test('freshPending reads state.json now: the gate and binding, or nothing; artifactSha likewise', () => {
+test('freshPending reads state.json now: the gate, the binding and since when (the last history entry), or nothing; artifactSha likewise', () => {
   const s = fresh();
   put(s, RID, state(RID, { status: 'waiting-approval', current: 'approve-commit', reviewedTree: 'c'.repeat(40), artifacts: { 'diff-1': 'f'.repeat(64) } }));
-  assert.deepEqual(freshPending(s, RID), { gate: 'commit', binding: 'c'.repeat(40) });
+  assert.deepEqual(freshPending(s, RID), { gate: 'commit', binding: 'c'.repeat(40), at: at(2) });
+  put(s, RID, state(RID, { status: 'waiting-approval', current: 'approve-commit', reviewedTree: 'c'.repeat(40), artifacts: { 'diff-1': 'f'.repeat(64) }, history: [] }));
+  assert.deepEqual(freshPending(s, RID), { gate: 'commit', binding: 'c'.repeat(40) }, 'no history: no time, never a guess');
   assert.equal(artifactSha(s, RID, 'diff-1'), 'f'.repeat(64));
   assert.equal(artifactSha(s, RID, 'nope'), undefined);
   put(s, RID, state(RID, { status: 'waiting-approval', current: 'approve-plan', artifacts: { plan: 'a'.repeat(64) } }));
-  assert.deepEqual(freshPending(s, RID), { gate: 'plan', binding: 'a'.repeat(64) });
+  assert.deepEqual(freshPending(s, RID), { gate: 'plan', binding: 'a'.repeat(64), at: at(2) });
   put(s, RID, state(RID));
   assert.equal(freshPending(s, RID), undefined);
   assert.equal(freshPending(s, 'missing'), undefined);
