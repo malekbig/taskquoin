@@ -1,7 +1,8 @@
 /**
  * PROVES (pure, no terminal): the `taskquoin console` loop parses `/` commands only (plain text never starts anything),
  * keeps a current run, and approves ONLY after the human retypes the pending hash (12 chars) — wrong or empty input
- * approves nothing; the approver's name is asked once per session and recorded "via taskquoin console".
+ * approves nothing; the approver's name is asked once per session and recorded "via taskquoin console". A typed
+ * unknown run id or command name is echoed as visible markers, never raw.
  * Under a wide-character (zh-CN) catalog, the `/` menu and the banner keep their second column at one display column.
  * `withTerminalReleased` (fakes) pauses readline, turns raw mode off and leaves SIGINT to the installer, restoring all.
  * DOES NOT PROVE: the readline wiring and the real CLI commands — features/console.feature does (the pseudo-terminal
@@ -306,4 +307,47 @@ test('an installer started from the console gets the terminal: readline paused, 
   f = fakes(false, false); // piped input (scripts, tests): no raw mode to touch
   await withTerminalReleased(f, async () => 0);
   assert.deepEqual(f.calls, ['pause', 'on:SIGINT', 'off:SIGINT', 'resume']);
+});
+
+test('squad: an agent whose gate is ok but whose skills fail is NOT READY with the skill error; the error is neutralised where printed', async () => {
+  const { squadOf, renderBanner } = await import('../src/console.ts');
+  const evil = 'sk' + String.fromCharCode(0x1b) + '[2J: bad';
+  const g = { ok: true, runtimeFound: true, failures: [], acceptedRisks: [], skillErrors: [evil] };
+  const s = squadOf({ planner: { runtime: 'claude' } }, () => g, true);
+  assert.equal(s[0].state, 'blocked');
+  const text = renderBanner(s, { color: false });
+  assert.match(text, /\[○\] Architect\s+planner · claude\s+NOT READY — sk\u2039ESC\u203a\[2J: bad/);
+  assert.ok(!text.includes(String.fromCharCode(0x1b)));
+});
+
+test('unknown run and unknown command: the typed text is shown as markers, never raw', async () => {
+  const ESC = String.fromCharCode(0x1b), BEL = String.fromCharCode(7), RLO = String.fromCharCode(0x202e);
+  const s = session([`/use run-x${ESC}]52;c;ZXZpbA==${BEL}${RLO}y`, `/zz${ESC}[2J${RLO}`, '/quit']);
+  assert.equal(await s.done, 1);
+  const text = s.out.join('\n');
+  assert.ok(!/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e]/.test(text), JSON.stringify(text));
+  assert.ok(text.includes('run-x‹ESC›]52;c;ZXZpbA==‹BEL›‹U+202E›y'), text);
+  assert.ok(text.includes('/zz‹ESC›[2J‹U+202E›'), text);
+});
+
+test('squad: a translated role or note keeps its ZWNJ (never neutralised whole); only the raw parts are marked, a gate reason cut once', async () => {
+  const { squadOf } = await import('../src/console.ts');
+  const Z = String.fromCharCode(0x200c), ESC = String.fromCharCode(0x1b);
+  setLanguage('fa', () => JSON.stringify({ 'console.role.planner': `معمار${Z}ها`, 'console.role.tester': `آزمون${Z}گر`,
+    'console.squad.absent': `{runtime} پیدا نمی${Z}شود`, 'console.squad.testerUnavailable': `bubblewrap در دسترس نمی${Z}باشد` }));
+  try {
+    const gates: Record<string, { ok: boolean; runtimeFound: boolean; failures: { message: string }[]; acceptedRisks: { capability: string }[]; skillErrors?: string[] }> = {
+      planner: { ok: false, runtimeFound: false, failures: [], acceptedRisks: [] },
+      [`x${ESC}[2J`]: { ok: true, runtimeFound: true, failures: [], acceptedRisks: [], skillErrors: [`sk${ESC}: bad`] },
+      judge: { ok: false, runtimeFound: true, failures: [{ message: `${'k'.repeat(66)}${ESC}${'z'.repeat(10)} — fix` }], acceptedRisks: [] },
+    };
+    const s = squadOf({ planner: { runtime: 'claude' }, [`x${ESC}[2J`]: { runtime: 'codex' }, judge: { runtime: 'codex' } }, (id) => gates[id], false);
+    assert.deepEqual(s.map(m => [m.role, m.note]), [
+      [`معمار${Z}ها`, `claude پیدا نمی${Z}شود`],
+      ['X‹ESC›[2J', 'sk‹ESC›: bad'],
+      ['Judge', `${'k'.repeat(66)}…`],
+      [`آزمون${Z}گر`, `bubblewrap در دسترس نمی${Z}باشد`],
+    ]);
+    assert.equal(s[1].who, 'x‹ESC›[2J · codex');
+  } finally { setLanguage('en'); }
 });

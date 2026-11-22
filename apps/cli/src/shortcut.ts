@@ -4,6 +4,7 @@
  * Never overwrites a file Taskquoin did not create; if ~/.local/bin is not on PATH, adds ONE marked block to ~/.bashrc.
  * `taskquoin setup --remove` removes exactly what was created and records the opt-out (the automatic setup stops).
  */
+import { n } from './tui/neutral.ts';
 import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { t } from './i18n/index.ts';
@@ -24,9 +25,9 @@ const ours = (e: ShortcutEnv) => { try { return lstatSync(linkOf(e)).isSymbolicL
 export function installShortcut(e: ShortcutEnv, o: { auto: boolean }): ShortcutResult {
   const link = linkOf(e); const m = read(e);
   if (o.auto && m.optedOut) return { status: 'opted-out', link, pathAdded: false, message: t('shortcut.optedOut') };
-  if (ours(e)) return { status: 'already', link, pathAdded: false, message: t('shortcut.already', { link }) };
+  if (ours(e)) return { status: 'already', link, pathAdded: false, message: t('shortcut.already', { link: n(link) }) };
   let exists = false; try { lstatSync(link); exists = true; } catch { /* free */ }
-  if (exists) return { status: 'conflict', link, pathAdded: false, message: t('shortcut.conflict', { link }) };
+  if (exists) return { status: 'conflict', link, pathAdded: false, message: t('shortcut.conflict', { link: n(link) }) };
   mkdirSync(dirname(link), { recursive: true });
   symlinkSync(e.launcher, link);
   const binDir = dirname(link);
@@ -37,13 +38,13 @@ export function installShortcut(e: ShortcutEnv, o: { auto: boolean }): ShortcutR
   }
   write(e, { shortcut: link, launcher: e.launcher, bashrcBlock: pathAdded || !!m.bashrcBlock, optedOut: false });
   return { status: 'installed', link, pathAdded,
-    message: t('shortcut.installed', { link, path: pathAdded ? t('shortcut.pathAdded') : '' }) };
+    message: t('shortcut.installed', { link: n(link), path: pathAdded ? t('shortcut.pathAdded') : '' }) };
 }
 
 export function removeShortcut(e: ShortcutEnv): { removed: boolean; message: string } {
   const m = read(e); let removed = false; const notes: string[] = [];
-  if (ours(e)) { unlinkSync(linkOf(e)); removed = true; notes.push(t('shortcut.linkRemoved', { link: linkOf(e) })); }
-  else if (existsSync(linkOf(e))) notes.push(t('shortcut.notOurs', { link: linkOf(e) }));
+  if (ours(e)) { unlinkSync(linkOf(e)); removed = true; notes.push(t('shortcut.linkRemoved', { link: n(linkOf(e)) })); }
+  else if (existsSync(linkOf(e))) notes.push(t('shortcut.notOurs', { link: n(linkOf(e)) }));
   const rc = join(e.home, '.bashrc');
   if (m.bashrcBlock && existsSync(rc)) {
     const cur = readFileSync(rc, 'utf8'); const i = cur.indexOf(BEGIN), j = cur.indexOf(END);

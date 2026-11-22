@@ -2,7 +2,8 @@
 import { dirname } from 'node:path';
 import type { CandidateReason, HostReport } from '@taskquoin/host-probe';
 import { t } from './i18n/index.ts';
-import { safe, shellWord } from './safe-text.ts';
+import { shellWord } from './safe-text.ts';
+import { n } from './tui/neutral.ts';
 
 export type RuntimeNotice = { kind: 'fallback' | 'action'; text: string };
 /** Where the remedy is typed: `/upgrade …` in the console, `taskquoin upgrade …` in a shell. */
@@ -24,7 +25,7 @@ export function unusedNotice(h: HostReport, measured: string, surface: Surface =
   const command = c.reason === 'selection path' ? `${upgrade} auto`
     : c.reason === 'writable by others' ? `chmod go-w ${shellWord(dirname(c.bin))} ${shellWord(c.bin)}`
     : `${upgrade} install`;
-  return t('runtime.unused', { measured: safe(measured), reason: (REASON[c.reason] ?? REASON.unreadable)(), command: safe(command) });
+  return t('runtime.unused', { measured: n(measured), reason: (REASON[c.reason] ?? REASON.unreadable)(), command: n(command) });
 }
 
 /**
@@ -34,11 +35,11 @@ export function unusedNotice(h: HostReport, measured: string, surface: Surface =
  */
 export function runtimeNotices(h: HostReport, measured: string, surface: Surface = 'console'): RuntimeNotice[] {
   const p = h.runtimes.claude;
-  if (p?.installed) return [{ kind: 'fallback', text: t('console.notice.fallback', { installed: safe(p.installed.version ?? '?'), version: safe(measured) }) }];
+  if (p?.installed) return [{ kind: 'fallback', text: t('console.notice.fallback', { installed: n(p.installed.version ?? '?'), version: n(measured) }) }];
   const unused = unusedNotice(h, measured, surface);
   if (unused) return [{ kind: 'action', text: unused }];
   if (p?.version !== undefined && p.version !== measured) {
-    const v = { installed: safe(p.version), measured: safe(measured) };
+    const v = { installed: n(p.version), measured: n(measured) };
     return [{ kind: 'action', text: surface === 'console' ? t('console.notice.action', v) : t('cli.notice.action', v) }];
   }
   return [];

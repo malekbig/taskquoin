@@ -3,6 +3,7 @@
  * into the agent's instructions — the SAME text for Claude and Codex — and the `taskquoin skills` commands.
  * Taskquoin never downloads a skill (ADR-0010): the owner imports a local directory.
  */
+import { n as nz } from './tui/neutral.ts';
 import { auditSkill, validateSkill } from '@taskquoin/skills';
 import { approveSkill, firstPartyLock, importSkill, listSkills, loadApprovedSkill, loadFirstPartySkill, readSkillDir, revokeSkill, type LoadedSkill } from '@taskquoin/skill-store';
 import type { RepoStore } from '@taskquoin/store-fs';
@@ -17,7 +18,7 @@ export function resolveSkill(store: RepoStore, name: string): LoadedSkill {
 export function resolveAgentSkills(cfg: TaskquoinConfig, store: RepoStore, agentId: string): { loaded: LoadedSkill[]; errors: string[] } {
   const loaded: LoadedSkill[] = []; const errors: string[] = [];
   for (const n of cfg.agents[agentId].skills ?? []) {
-    try { loaded.push(resolveSkill(store, n)); } catch (e) { errors.push(`${n}: ${(e as Error).message}`); }
+    try { loaded.push(resolveSkill(store, n)); } catch (e) { errors.push(`${nz(n)}: ${nz((e as Error).message)}`); }
   }
   return { loaded, errors };
 }
@@ -32,8 +33,8 @@ export function skillsBlock(loaded: LoadedSkill[]): string {
 export function cmdSkills(store: RepoStore, sub: string | undefined, arg: string | undefined, o: { source?: string; as?: string; acceptFindings?: boolean }, out: (s?: string) => void, err: (s: string) => void): number {
   switch (sub) {
     case 'list': {
-      for (const n of Object.keys(firstPartyLock()).sort()) out(`${n.padEnd(24)} first-party   ${t('skills.pinned')}`);
-      for (const s of listSkills(store)) out(`${s.name.padEnd(24)} ${s.status.padEnd(13)} findings=${s.findings} ${s.treeHash.slice(7, 19)}`);
+      for (const n of Object.keys(firstPartyLock()).sort()) out(`${nz(n).padEnd(24)} first-party   ${t('skills.pinned')}`);
+      for (const s of listSkills(store)) out(`${nz(s.name).padEnd(24)} ${nz(s.status).padEnd(13)} findings=${s.findings} ${s.treeHash.slice(7, 19)}`);
       return 0;
     }
     case 'audit': case 'import': {
@@ -42,26 +43,26 @@ export function cmdSkills(store: RepoStore, sub: string | undefined, arg: string
       if (sub === 'audit') {
         const files = readSkillDir(arg); const name = arg.replace(/\/+$/, '').split('/').pop()!;
         const v = validateSkill(name, files); const f = auditSkill(files);
-        for (const e of v.errors) out(t('skills.specError', { error: e }));
-        for (const x of f) out(t('skills.finding', { mark: x.severity === 'critical' || x.severity === 'high' ? '✖' : '⚠', rule: x.rule, severity: x.severity, file: x.file, message: x.message, evidence: x.evidence }));
+        for (const e of v.errors) out(t('skills.specError', { error: nz(e) }));
+        for (const x of f) out(t('skills.finding', { mark: x.severity === 'critical' || x.severity === 'high' ? '✖' : '⚠', rule: nz(x.rule), severity: nz(x.severity), file: nz(x.file), message: nz(x.message), evidence: nz(x.evidence) }));
         out(v.errors.length || f.length ? t('skills.auditSummary', { errors: v.errors.length, findings: f.length }) : t('skills.auditClean'));
         return v.errors.length || f.some(x => x.severity === 'critical') ? 1 : 0;
       }
       const r = importSkill(store, arg, o.source!.trim());
-      out(t('skills.imported', { mark: r.status === 'invalid' ? '✖' : '⚠', name: r.name, path: r.path, status: r.status }));
-      for (const e of r.errors) out(`  ${t('skills.specError', { error: e })}`);
-      for (const x of r.findings) out(`  ${t('skills.findingShort', { mark: x.severity === 'critical' || x.severity === 'high' ? '✖' : '⚠', rule: x.rule, severity: x.severity, file: x.file, message: x.message })}`);
-      if (r.status !== 'invalid') out(t('skills.reviewThen', { name: r.name, accept: r.findings.some(x => x.severity === 'high') ? ' --accept-findings' : '' }));
+      out(t('skills.imported', { mark: r.status === 'invalid' ? '✖' : '⚠', name: nz(r.name), path: nz(r.path), status: nz(r.status) }));
+      for (const e of r.errors) out(`  ${t('skills.specError', { error: nz(e) })}`);
+      for (const x of r.findings) out(`  ${t('skills.findingShort', { mark: x.severity === 'critical' || x.severity === 'high' ? '✖' : '⚠', rule: nz(x.rule), severity: nz(x.severity), file: nz(x.file), message: nz(x.message) })}`);
+      if (r.status !== 'invalid') out(t('skills.reviewThen', { name: nz(r.name), accept: r.findings.some(x => x.severity === 'high') ? ' --accept-findings' : '' }));
       return r.status === 'invalid' ? 1 : 0;
     }
     case 'approve': {
       if (!arg || !o.as?.trim()) { err(t('skills.usage.approve')); return 2; }
-      try { const e = approveSkill(store, arg, { approvedBy: o.as, acceptFindings: o.acceptFindings }); out(t('skills.approved', { name: e.name, by: e.approvedBy, hash: e.treeHash.slice(7, 19), source: e.source, accepted: e.acceptedFindings.length ? t('skills.acceptedFindings', { list: e.acceptedFindings.join(', ') }) : '' })); return 0; }
-      catch (e) { err(t('workflow.cmdError', { command: 'skills approve', message: (e as Error).message })); return 1; } // i18n-ok: command name
+      try { const e = approveSkill(store, arg, { approvedBy: o.as, acceptFindings: o.acceptFindings }); out(t('skills.approved', { name: nz(e.name), by: nz(e.approvedBy), hash: e.treeHash.slice(7, 19), source: nz(e.source), accepted: e.acceptedFindings.length ? t('skills.acceptedFindings', { list: e.acceptedFindings.map(nz).join(', ') }) : '' })); return 0; }
+      catch (e) { err(t('workflow.cmdError', { command: 'skills approve', message: nz((e as Error).message) })); return 1; } // i18n-ok: command name
     }
     case 'revoke': {
       if (!arg || !o.as?.trim()) { err(t('skills.usage.revoke')); return 2; }
-      try { revokeSkill(store, arg, o.as.trim()); out(t('skills.revoked', { name: arg })); return 0; } catch (e) { err(t('workflow.cmdError', { command: 'skills revoke', message: (e as Error).message })); return 1; } // i18n-ok: command name
+      try { revokeSkill(store, arg, o.as.trim()); out(t('skills.revoked', { name: nz(arg) })); return 0; } catch (e) { err(t('workflow.cmdError', { command: 'skills revoke', message: nz((e as Error).message) })); return 1; } // i18n-ok: command name
     }
     default: err(t('skills.usage.default')); return 2;
   }

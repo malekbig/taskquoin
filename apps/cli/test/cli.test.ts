@@ -221,7 +221,9 @@ test('status text output is unchanged', () => {
   const { tq } = seededRepo();
   const list = tq('status');
   assert.equal(list.status, 0, list.stderr);
-  assert.equal(list.stdout, SEEDED.map(s => `${s.runId}  ${s.status.padEnd(16)} ${s.current.padEnd(15)} ${s.request.split('\n')[0].slice(0, 60)}\n`).join(''));
+  // A first line longer than 60 columns is cut with an ellipsis within the 60 (final review M1).
+  const first = (r: string) => { const l = r.split('\n')[0]; return l.length > 60 ? l.slice(0, 59) + '\u2026' : l; };
+  assert.equal(list.stdout, SEEDED.map(s => `${s.runId}  ${s.status.padEnd(16)} ${s.current.padEnd(15)} ${first(s.request)}\n`).join(''));
   const one = tq('status', 'run-a');
   assert.equal(one.status, 0, one.stderr);
   assert.equal(one.stdout, [
@@ -597,4 +599,201 @@ test('console --offline: /upgrade never reads the registry (the flag reaches the
   assert.ok(!existsSync(marker), `the registry was read: ${existsSync(marker) ? readFileSync(marker, 'utf8') : ''}`);
   assert.match(r.stdout, /Offline: no check for a newer Taskquoin/);
   assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
+// ---- untrusted text: one neutraliser for everything a human reads (Console V2 R1, task 2) ----
+const HOSTILE = 'src/' + String.fromCharCode(0x1b) + '[2J' + String.fromCharCode(0x1b) + ']52;c;ZXZpbA==' + String.fromCharCode(7) + ' a' + String.fromCharCode(0x202e) + 'b';
+const hostileClean = (s: string) => !/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e]/.test(s);
+const MARK_ESC = String.fromCharCode(0x2039) + 'ESC' + String.fromCharCode(0x203a);
+const MARK_BIDI = String.fromCharCode(0x2039) + 'U+202E' + String.fromCharCode(0x203a);
+
+test('status <run>: a hostile reason, history outcome and request reach the terminal as markers, never raw', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, 'run-x', { ...newRun('run-x', HOSTILE), status: 'failed', current: 'plan', reason: `file ${HOSTILE} refused`,
+    history: [{ node: 'plan', outcome: `failed ${HOSTILE}`, at: '2026-11-01T10:00:00.000Z' }] });
+  const one = tq('status', 'run-x');
+  assert.equal(one.status, 0, one.stderr);
+  assert.ok(hostileClean(one.stdout), JSON.stringify(one.stdout));
+  assert.ok(one.stdout.includes(`  file src/${MARK_ESC}[2J${MARK_ESC}]52;c;ZXZpbA==${String.fromCharCode(0x2039)}BEL${String.fromCharCode(0x203a)} a${MARK_BIDI}b refused\n`), JSON.stringify(one.stdout));
+  assert.ok(one.stdout.includes('failed src/'), 'history outcome shown');
+  const list = tq('status');
+  assert.ok(hostileClean(list.stdout), JSON.stringify(list.stdout)); assert.ok(list.stdout.includes(MARK_ESC));
+});
+
+test('status <run>: a reason made only of control characters is a non-empty line of markers', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, 'run-y', { ...newRun('run-y', 'x'), status: 'failed', current: 'plan', reason: String.fromCharCode(0x1b, 0x1b, 0x202e, 7) });
+  const r = tq('status', 'run-y');
+  assert.ok(hostileClean(r.stdout));
+  assert.ok(r.stdout.split('\n').includes('  ' + MARK_ESC + MARK_ESC + MARK_BIDI + String.fromCharCode(0x2039) + 'BEL' + String.fromCharCode(0x203a)), JSON.stringify(r.stdout));
+});
+
+test('show: hostile artifact names and content are neutralised (content keeps its line breaks)', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  const put = (s: string) => putArtifact(store, Buffer.from(s), { mediaType: 'text/plain', producer: 'test' }).sha256;
+  runWith(store, 'run-z', { [HOSTILE]: put(`line one\n${HOSTILE}\r\nline three\tx`) });
+  const ls = tq('show', 'run-z');
+  assert.ok(hostileClean(ls.stdout), JSON.stringify(ls.stdout)); assert.ok(ls.stdout.includes(MARK_ESC));
+  const body = tq('show', 'run-z', HOSTILE);
+  assert.equal(body.status, 0, body.stderr);
+  assert.ok(/^[^\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e]*$/.test(body.stdout.replace(/\n/g, '')) && body.stdout.includes('\nline three\tx'), JSON.stringify(body.stdout));
+  assert.ok(body.stdout.includes(MARK_BIDI) && body.stdout.startsWith('line one\n'));
+  const missing = tq('show', 'run-z', HOSTILE + 'x');
+  assert.equal(missing.status, 1); assert.ok(hostileClean(missing.stderr), JSON.stringify(missing.stderr));
+});
+
+// ---- fix round 1 of the task 2 security review ----
+const CH = (c: number) => String.fromCharCode(c);
+const MK = (name: string) => CH(0x2039) + name + CH(0x203a);
+function editConfig(ws: string, f: (raw: any) => void) {
+  const YAML = require('yaml'); const p = join(ws, 'taskquoin.yaml');
+  const raw = YAML.parse(readFileSync(p, 'utf8')); f(raw); writeFileSync(p, YAML.stringify(raw));
+  git(ws, 'add', '.'); git(ws, '-c', 'user.email=o@example.invalid', '-c', 'user.name=o', 'commit', '-q', '-m', 'cfg');
+}
+
+test('fa: Taskquoin\'s own Persian text keeps its ZWNJ unmarked, skill errors in a preflight message too', () => {
+  const { ws, env, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  editConfig(ws, raw => { raw.agents.challenger.capabilities['fs.write'] = ['**']; });
+  const fa = (...a: string[]) => spawnSync(process.execPath, [main, ...a], { cwd: ws, env: { ...env, TASKQUOIN_LANG: 'fa' }, encoding: 'utf8' });
+  const r = fa('run', 'x');
+  assert.equal(r.status, 1, r.stderr);
+  assert.ok(r.stderr.includes(CH(0x200c)), 'the Persian message carries its ZWNJ: ' + r.stderr);
+  assert.ok(!r.stderr.includes(MK('U+200C')), r.stderr);
+  editConfig(ws, raw => { delete raw.agents.challenger.capabilities['fs.write']; raw.agents.challenger.skills = ['not-approved']; });
+  const s = fa('run', 'x');
+  assert.equal(s.status, 1, s.stderr);
+  assert.ok(!s.stderr.includes(MK('U+200C')), s.stderr);
+  assert.ok(s.stderr.includes(CH(0x200c)) && s.stderr.includes('not-approved'), s.stderr);
+});
+
+test('an error no command catches is shown with the log profile: a ZWNJ it quotes is kept, a bidi control marked', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, 'run-c', newRun('run-c', 'x'));
+  // Not JSON: the parser's error quotes the text, and nothing between it and main() catches it.
+  writeFileSync(join(store.runs, 'run-c', 'state.json'), 'm' + CH(0x200c) + 'x ' + CH(0x202e) + ' y');
+  const r = tq('status', 'run-c');
+  assert.equal(r.status, 1);
+  assert.ok(r.stderr.startsWith('taskquoin: ') && r.stderr.includes('m' + CH(0x200c) + 'x ' + MK('U+202E') + ' y'), JSON.stringify(r.stderr));
+  assert.ok(!r.stderr.includes(CH(0x202e)) && !r.stderr.includes(MK('U+200C')), JSON.stringify(r.stderr));
+});
+
+test('uninstall: a manifest error is shown with the log profile — a hostile path marked as a parameter, a ZWNJ the parser quotes kept', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0);
+  const mf = execFileSync('sh', ['-c', `find ${join(root, 'state')} -name manifest.json`], { encoding: 'utf8' }).trim();
+  const sha = JSON.parse(readFileSync(mf, 'utf8')).files[0].sha256;
+  writeFileSync(mf, JSON.stringify({ files: [{ path: 'x' + CH(0x1b) + '[2J' + CH(0x200c), sha256: sha }] }));
+  let r = tq('uninstall');
+  assert.equal(r.status, 1);
+  assert.ok(r.stderr.includes('"x' + MK('ESC') + '[2J' + MK('U+200C') + '" is not a file Taskquoin creates'), JSON.stringify(r.stderr));
+  // Not JSON: the parser's error quotes the text; the whole message gets the log profile, the path above the strict one.
+  writeFileSync(mf, 'm' + CH(0x200c) + 'x ' + CH(0x202e) + ' y');
+  r = tq('uninstall');
+  assert.equal(r.status, 1);
+  assert.ok(r.stderr.includes('m' + CH(0x200c) + 'x ' + MK('U+202E') + ' y'), JSON.stringify(r.stderr));
+  assert.ok(!r.stderr.includes(CH(0x202e)) && !r.stderr.includes(MK('U+200C')), JSON.stringify(r.stderr));
+  assert.ok(existsSync(join(ws, 'taskquoin.yaml')), 'nothing removed');
+});
+
+test('status <run>: a hostile configured model, provider model and agent id never reach the terminal raw (Judges line)', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  const evil = 'm' + CH(0x1b) + '[2J' + CH(7) + CH(0x202e) + 'x';
+  editConfig(ws, raw => {
+    raw.providers = { p: { url: 'https://api.example.com/v1', model: evil, key: 'env:K' } };
+    raw.agents.security = { runtime: 'api', provider: 'p', description: 'd', prompt: 'p', capabilities: {} };
+    raw.workflow = { challengers: ['challenger'], reviewers: ['challenger', 'security'] };
+  });
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, 'run-j', { ...newRun('run-j', 'x'), status: 'failed', current: 'plan', history: [] });
+  const r = tq('status', 'run-j');
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(!/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e]/.test(r.stdout), JSON.stringify(r.stdout));
+  assert.ok(r.stdout.includes('security (api: api.example.com/m' + MK('ESC') + '[2J' + MK('BEL') + MK('U+202E') + 'x)'), r.stdout);
+});
+
+test('status --json: exact bytes for a plain run, and inert (\\u escapes, same parsed value) for a hostile one', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, 'run-p', { ...newRun('run-p', 'Add X'), status: 'failed', current: 'plan', history: [{ node: 'plan', outcome: 'ok', at: '2026-11-01T10:00:00.000Z' }] });
+  const plain = JSON.stringify([{ runId: 'run-p', status: 'failed', current: 'plan', attempts: 0, branch: null, commit: null, request: 'Add X' }], null, 2) + '\n';
+  assert.equal(tq('status', '--json').stdout, plain, 'byte-identical for a non-hostile run');
+  const one = JSON.stringify({ runId: 'run-p', status: 'failed', current: 'plan', attempts: 0, branch: null, commit: null, request: 'Add X',
+    history: [{ node: 'plan', outcome: 'ok', at: '2026-11-01T10:00:00.000Z' }], pendingApproval: null }, null, 2) + '\n';
+  assert.equal(tq('status', 'run-p', '--json').stdout, one);
+  // DEL, C1, bidi controls and U+2028/U+2029 are escaped by jsonOut, C0 (ESC) by JSON.stringify itself.
+  const evil = 'a' + CH(0x2028) + 'b' + CH(0x202e) + 'c' + CH(0x2066) + 'd' + CH(0x9b) + 'e' + CH(0x7f) + 'f' + CH(0x1b) + 'g' + CH(0x61c) + 'h';
+  saveRunState(store, 'run-h', { ...newRun('run-h', evil), status: 'failed', current: 'plan', history: [{ node: 'plan', outcome: evil, at: 'now' }] });
+  const raw = tq('status', 'run-h', '--json').stdout;
+  assert.ok(/^[\x20-\x7e\n]*$/.test(raw), 'ASCII only: ' + JSON.stringify(raw));
+  assert.ok(raw.includes('a\\u2028b\\u202ec\\u2066d\\u009be\\u007ff\\u001bg\\u061ch'), raw);
+  assert.deepEqual(JSON.parse(raw).history[0].outcome, evil);
+  assert.ok(/^[\x20-\x7e\n]*$/.test(tq('status', '--json').stdout));
+});
+
+test('status --json: the full snapshot, byte for byte, for a run in Persian with emoji, a ZWJ family and a tag flag', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  const fa = 'می' + CH(0x200c) + 'خواهم', heart = String.fromCodePoint(0x2764, 0xfe0f), family = String.fromCodePoint(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467);
+  const england = String.fromCodePoint(0x1f3f4, 0xe0067, 0xe0062, 0xe0065, 0xe006e, 0xe0067, 0xe007f);
+  const request = `${fa} ${heart} ${family} ${england}`, tree = 'f'.repeat(40);
+  const history = [{ node: 'challenge', outcome: 'challenged:APPROVE', at: '2026-11-01T10:00:00.000Z' }, { node: 'approve-plan', outcome: `approved-by:${fa} ${heart}`, at: '2026-11-01T10:05:00.000Z' }];
+  saveRunState(store, 'run-i', { ...newRun('run-i', `${request}\nsecond line`), status: 'waiting-approval', current: 'approve-commit', attempts: 1, branch: `taskquoin/${fa}`,
+    commit: 'c'.repeat(40), reviewedTree: tree, history });
+  const summary = { runId: 'run-i', status: 'waiting-approval', current: 'approve-commit', attempts: 1, branch: `taskquoin/${fa}`, commit: 'c'.repeat(40), request };
+  assert.equal(tq('status', 'run-i', '--json').stdout, JSON.stringify({ ...summary, history, pendingApproval: { gate: 'commit', expectedHash: tree } }, null, 2) + '\n');
+  assert.equal(tq('status', '--json').stdout, JSON.stringify([summary], null, 2) + '\n');
+});
+
+test('status: a hostile request is cut after neutralising, by display width (60 columns)', () => {
+  const { ws, root, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  const store = repoStore(ws, join(root, 'state', 'taskquoin'));
+  saveRunState(store, 'run-w', { ...newRun('run-w', CH(0x1b).repeat(40)), status: 'failed', current: 'plan', history: [] });
+  const line = tq('status').stdout.trimEnd();
+  const request = line.slice(line.indexOf('plan') + 'plan'.length).trim();
+  assert.ok(request.length <= 60 && request.length > 40, request.length + ' ' + request);
+});
+
+test('doctor and accept-risk: root and capability parameters are neutralised', () => {
+  const { ws, env } = sandbox();
+  const evilDir = join(ws, 'a' + CH(0x1b) + '[31mb'); mkdirSync(evilDir);
+  const run = (...a: string[]) => spawnSync(process.execPath, [main, ...a], { cwd: evilDir, env, encoding: 'utf8' });
+  git(evilDir, 'init', '-q'); assert.equal(run('init').status, 0);
+  const d = run('doctor');
+  assert.ok(!d.stdout.includes(CH(0x1b)), JSON.stringify(d.stdout.slice(0, 200)));
+  assert.ok(d.stdout.includes('a' + MK('ESC') + '[31mb'));
+  const a = run('accept-risk', 'challenger', 'fs.read' + CH(0x1b) + '[2J', '--reason', 'x', '--expires', '2099-01-01', '--as', 'o');
+  assert.ok(!(a.stdout + a.stderr).includes(CH(0x1b)), JSON.stringify(a.stderr));
+});
+
+test('console banner and doctor share one definition of ready: a skill error refuses the agent in both, counts agree', () => {
+  const { ws, env, tq } = sandbox();
+  git(ws, 'init', '-q'); assert.equal(tq('init').status, 0); noMemory(ws);
+  const count = () => {
+    const d = tq('doctor');
+    const m = /Verdict: (\d+) of (\d+) agents can run/.exec(d.stdout);
+    const doctorReady = m ? Number(m[1]) : Number(/Verdict: all (\d+)/.exec(d.stdout)?.[1] ?? NaN);
+    const c = spawnSync(process.execPath, [main, 'console'], { cwd: ws, env: { ...env, TASKQUOIN_OFFLINE: '1', NO_COLOR: '1' }, input: '/quit\n', encoding: 'utf8' });
+    const rows = c.stdout.split('\n').filter(l => /^ \[[●○]\] /.test(l) && !/verify · bubblewrap/.test(l));
+    return { doctorReady, bannerReady: rows.filter(l => /\[●\].*READY/.test(l)).length, rows, out: c.stdout };
+  };
+  const before = count();
+  assert.equal(before.bannerReady, before.doctorReady, before.out);
+  editConfig(ws, raw => { raw.agents.planner.skills = ['not-approved']; });
+  const after = count();
+  assert.equal(after.bannerReady, after.doctorReady, after.out);
+  assert.ok(after.doctorReady < before.doctorReady, 'the skill error refuses one more agent');
+  assert.match(after.rows.find(l => /planner/.test(l)) ?? '', /\[○\].*NOT READY — not-approved/);
 });

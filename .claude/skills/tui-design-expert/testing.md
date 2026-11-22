@@ -13,7 +13,7 @@ import { displayWidth } from '../src/i18n/width.ts';
 
 const ESC = /\x1b/g;
 const SGR = /\x1b\[[0-9;]*m/g;                       // the renderer's own colour codes
-const FORBIDDEN = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b\u200e\u200f\u2028-\u202e\u2060-\u2064\u2066-\u2069\ufeff]|[\u{e0000}-\u{e007f}]/u;
+const FORBIDDEN = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u2028-\u202e\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0\ufff9-\ufffb]|[\u{1bca0}-\u{1bca3}\u{e0000}-\u{e007f}\u{e0100}-\u{e01ef}]/u; // the neutraliser's STRICT set (apps/cli/src/tui/neutral.ts)
 const caps = (o: Partial<Caps> = {}): Caps => ({ columns: 100, rows: 30, color: 24, charset: 'utf8', theme: 'dark', motion: false, now: Date.parse('2026-11-22T10:24:13Z'), ...o });
 
 /** Strings an agent, a file name or a provider could send. Each one must come out inert and marked. */

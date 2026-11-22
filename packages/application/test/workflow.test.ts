@@ -8,7 +8,7 @@
  *  - strict verdict: exactly one VERDICT line, and it is the last line (Codex R4 N8);
  *  - oversized diffs are never approved by a reviewer that could not read them;
  *  - ≤ 2 reworks then needs-human; gate refusal; runtime failure; adapter exceptions ⇒ `interrupted` (resumable, N7);
- *  - memory recall/record, never blocking; events carry no prompt/output;
+ *  - memory recall/record, never blocking; events carry no prompt/output; a gate-refused agent never logs agent.started;
  *  - the run's prose language is saved in the state: a resumed run still sends it to plan, challenge and review.
  * DOES NOT PROVE: real model behaviour (pilot) or git adapter correctness (adapters/git tests).
  */
@@ -19,6 +19,10 @@ import { advance, approve, MAX_ATTEMPTS, MAX_ATTEMPTS_NO_COMMANDS, MAX_REVIEW_RE
 import { parseVerdict } from '../src/workflow/prompts.ts';
 import type { RunRequest, RunResult, RuntimeExecutor } from '../src/ports/runtime-executor.ts';
 import type { MemoryPort } from '../src/ports/memory.ts';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { appendEvent, readEvents, repoStore } from '../../../adapters/store-fs/src/store.ts';
 
 const T1 = '1'.repeat(40), T2 = '2'.repeat(40);
 const ok = (msg: string): RunResult => ({ status: 'completed', runtime: 'claude', runtimeVersion: 'fake', exitCode: 0, terminalMessage: msg, command: { bin: '/x', args: [], cwd: '/w' }, effectiveConfigDigest: 'sha256:x', unsupported: [], stdoutTruncated: false, stderr: '', durationMs: 1 });
@@ -488,4 +492,51 @@ test('final review (I4): an agent failure names what the runtime said (e.g. the 
   const h = harness({ claude: [fail], codex: [] , verify: [] });
   const s = await advance(newRun('run-i4', 'x'), h.deps);
   assert.equal(s.status, 'failed'); assert.match(s.reason ?? '', /agent planner ended with status failed: OpenCode \(openai\): APIError 429: quota exhausted/);
+});
+
+// ── Additive timeline events (Console V2 R1, task 4) ─────────────────────────────────────────────────────────────
+test('events: agent.started precedes each agent.finished; finished carries scalar duration, model and tokens', async () => {
+  const withUsage: RunResult = { ...ok('PLAN'), durationMs: 1234, inventory: { tools: [], mcpServers: [], plugins: [], skills: [], agents: [], model: 'fake-model-1' }, usage: { inputTokens: 11, outputTokens: 22 } };
+  const h = harness({ claude: [withUsage, 'impl'], codex: ['plan ok\nVERDICT: APPROVE', APPROVE], verify: [true, false] });
+  await advance(yes(await advance(newRun('run-ev1', 'x'), h.deps), 'approve-plan'), h.deps);
+  const ev = h.events as Record<string, unknown>[];
+  const agentEvents = ev.filter(e => e.type === 'agent.started' || e.type === 'agent.finished');
+  assert.ok(agentEvents.length >= 4);
+  for (let i = 0; i < agentEvents.length; i += 2) {
+    assert.equal(agentEvents[i].type, 'agent.started'); assert.equal(agentEvents[i + 1].type, 'agent.finished');
+    assert.equal(agentEvents[i].agent, agentEvents[i + 1].agent);
+    assert.equal(agentEvents[i].runId, 'run-ev1'); assert.equal(agentEvents[i].label, agentEvents[i + 1].label);
+  }
+  const planner = ev.find(e => e.type === 'agent.finished' && e.agent === 'planner')!;
+  assert.equal(planner.durationMs, 1234); assert.equal(planner.model, 'fake-model-1'); assert.equal(planner.tokensIn, 11); assert.equal(planner.tokensOut, 22);
+  assert.deepEqual(planner.tokens, { prompt: 11, completion: 22 }, 'the existing tokens object stays');
+  const impl = ev.find(e => e.type === 'agent.finished' && e.agent === 'implementer')!;
+  assert.equal(typeof impl.durationMs, 'number'); assert.equal(impl.model, null); assert.equal(impl.tokensIn, null); assert.equal(impl.tokensOut, null);
+});
+
+test('events: the scalar fields survive the real store and are read back by readEvents', async () => {
+  const withUsage: RunResult = { ...ok('PLAN'), durationMs: 50, inventory: { tools: [], mcpServers: [], plugins: [], skills: [], agents: [], model: 'm-x' }, usage: { inputTokens: 3, outputTokens: 4 } };
+  const h = harness({ claude: [withUsage, 'impl'], codex: ['plan ok\nVERDICT: APPROVE', APPROVE], verify: [true, false] });
+  await advance(newRun('run-ev2', 'x'), h.deps);
+  const base = mkdtempSync(join(tmpdir(), 'tq-ev-'));
+  try {
+    const store = repoStore(mkdtempSync(join(tmpdir(), 'tq-repo-')), base);
+    for (const e of h.events as ({ type: string } & Record<string, unknown>)[]) appendEvent(store, 'run-ev2', e);
+    const { events } = readEvents(store, 'run-ev2');
+    const started = events.find(e => e.type === 'agent.started' && e.agent === 'planner')!;
+    assert.equal(started.runtime, 'claude');
+    const fin = events.find(e => e.type === 'agent.finished' && e.agent === 'planner')!;
+    assert.equal(fin.durationMs, 50); assert.equal(fin.model, 'm-x'); assert.equal(fin.tokensIn, 3); assert.equal(fin.tokensOut, 4);
+    assert.ok(!('tokens' in fin), 'the store keeps scalars only');
+  } finally { rmSync(base, { recursive: true, force: true }); }
+});
+
+test('events: an agent the gate refuses never appears as started (nor finished) in the log', async () => {
+  const h = harness({ claude: ['PLAN'], codex: [], verify: [], refuse: 'challenger' });
+  const s = await advance(newRun('run-ev3', 'x'), h.deps);
+  assert.equal(s.status, 'failed'); assert.match(s.reason ?? '', /gate refused agent challenger/);
+  const ev = h.events as Record<string, unknown>[];
+  assert.deepEqual(ev.filter(e => e.type === 'agent.started').map(e => e.agent), ['planner'], 'the planner ran; the refused challenger did not start');
+  assert.ok(!ev.some(e => e.agent === 'challenger' && (e.type === 'agent.started' || e.type === 'agent.finished')));
+  assert.equal(ev.at(-1)!.type, 'run.failed');
 });

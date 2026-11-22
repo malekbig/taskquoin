@@ -183,9 +183,21 @@ test('a command that cannot be shown exactly (control or bidi characters) is ref
   assert.equal(m.asked.length, 0); assert.equal(m.calls.run.length, 0);
   const all = [...m.out, ...m.err].join('\n');
   assert.match(m.err.join('\n'), /cannot be shown exactly/);
-  assert.ok(all.includes('claude?') && all.includes(' install 2.1.327'));
+  assert.ok(all.includes('claude' + String.fromCharCode(0x2039) + 'U+202E' + String.fromCharCode(0x203a)) && all.includes(String.fromCharCode(0x2039) + 'ESC' + String.fromCharCode(0x203a) + '[31mclaude') && all.includes(' install 2.1.327'));
   assert.ok(!all.includes(esc) && !all.includes(bidi));
   assert.ok(!m.out.some((l) => l.startsWith('Command:')), 'no command line is offered for confirmation');
+});
+
+test('the consent check keeps refusing every Cc/Cf/Zl/Zp/Co/Cn character, even those the neutraliser does not mark', async () => {
+  for (const cp of [0x206a, 0x2065, 0xe000, 0xfffe, 0x10ffff, 0x0600, 0x06dd, 0x1d173, 0x13430]) {
+    const hostile = join(vdir, 'claude' + String.fromCodePoint(cp) + 'x');
+    writeFileSync(hostile, '');
+    const h = report({ bin: nativeOld, version: '2.1.327', installed: { bin: hostile, version: '2.1.330' } });
+    const m = mk({ h, answers: ['yes'] });
+    assert.equal(await cmdUpgrade('install', m.e), 1, 'U+' + cp.toString(16));
+    assert.equal(m.asked.length, 0); assert.equal(m.calls.run.length, 0);
+    assert.match(m.err.join('\n'), /cannot be shown exactly/);
+  }
 });
 
 test('a path with a space is shown quoted, and the command run is exactly the one shown', async () => {

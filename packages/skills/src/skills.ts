@@ -59,7 +59,7 @@ export function treeHash(files: SkillFile[]): string {
 interface Rule { id: string; severity: Severity; message: string; re: RegExp }
 const TEXT_RULES: Rule[] = [
   { id: 'SK-INJ-001', severity: 'high', message: 'prompt-injection phrasing (tries to override instructions or policy)', re: /\b(ignore|disregard|forget)\s+(all\s+|any\s+)?(the\s+)?(previous|prior|above|earlier|system)\s+(instructions|rules|prompts?|messages)\b|\boverride\s+(the\s+)?(security|policy|system|safety)\b|\bdo\s+not\s+(tell|inform)\s+the\s+user\b|\bapprove\s+(this|it)\s+(regardless|anyway)\b/i },
-  { id: 'SK-INJ-002', severity: 'high', message: 'hidden Unicode (bidirectional override or zero-width characters)', re: /[‪-‮⁦-⁩​-‍⁠﻿]/ },
+  { id: 'SK-INJ-002', severity: 'high', message: 'hidden Unicode (bidirectional override or zero-width characters)', re: /[\u202a-\u202e\u2066-\u2069\u200b-\u200d\u2060\ufeff]/ },
   { id: 'SK-INJ-003', severity: 'medium', message: 'long base64-like blob (opaque payload)', re: /[A-Za-z0-9+/]{200,}={0,2}/ },
   { id: 'SK-SH-001', severity: 'critical', message: 'downloads and pipes code into a shell', re: /\b(curl|wget|fetch)\b[^\n|]*\|\s*(sudo\s+)?(ba|z|da)?sh\b|\b(bash|sh)\s+<\s*\(\s*(curl|wget)/ },
   { id: 'SK-SH-002', severity: 'high', message: 'destructive or privileged command', re: /\brm\s+-[a-z]*r[a-z]*f?[a-z]*\s+(\/|~|\$HOME)(\s|$|\/)|\bchmod\s+(-R\s+)?777\b|\bsudo\b|\bmkfs\b|\bdd\s+if=|:\(\)\s*\{\s*:\|:&\s*\};:/ },

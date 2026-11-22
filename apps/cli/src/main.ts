@@ -11,7 +11,7 @@ import { dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { validateCapabilityMatrix, type CapabilityMatrix, type HostFacts, type RuntimeId } from '@taskquoin/domain';
 import { API_RUNTIME_VERSION } from '@taskquoin/runtime-api';
-import { failureDigest, isRealDate, pendingApproval, prepareRun, type GateResult, type OwnerException, type RunState } from '@taskquoin/application';
+import { failureDigest, isReady, isRealDate, pendingApproval, prepareRun, type GateResult, type OwnerException, type RunState } from '@taskquoin/application';
 import { defaultConfig, keyEnvName, KNOWN_KEY_VARS, MAX_CONFIG_BYTES, parseConfig, providerOf, renderConfig, workflowOf, type Stack, type TaskquoinConfig } from '@taskquoin/config';
 import { findOnPath, probeHost, probeOllama, type HostReport } from '@taskquoin/host-probe';
 import { connectedProviders, connectEnv, LOCAL_PROVIDERS, LOGIN_ARGS, MEASURED_CONNECTIONS, measuredHosts, OPENCODE_VERSION, userOpenCodeDirs, userOpenCodePaths } from '@taskquoin/runtime-opencode';
@@ -20,6 +20,7 @@ import { codexSandboxFor } from '@taskquoin/runtime-codex';
 import { ClaudeMemMemory } from '@taskquoin/memory-claude-mem';
 import { GitWorkspace } from '@taskquoin/git';
 import { cmdApprove, cmdResume, cmdRun, cmdShow, cmdStatus, configDigest, type CliContext } from './workflow-cli.ts';
+import { jsonOut, n as nz, nLog } from './tui/neutral.ts';
 import { animateLogo, completeCommand, drawSlashMenu, lineReader, renderBanner, runConsole, slashMenu, squadOf, withTerminalReleased, type ConsoleCommands, type ConsoleIO } from './console.ts';
 import { sandboxedToolAvailable } from '@taskquoin/local-tool';
 import { installShortcut, removeShortcut, type ShortcutEnv } from './shortcut.ts';
@@ -72,7 +73,7 @@ function loadConfig(root: string): TaskquoinConfig {
   const p = join(root, CONFIG);
   if (!existsSync(p)) { err(t('cli.configMissing', { config: CONFIG })); process.exit(1); }
   if (statSync(p).size > MAX_CONFIG_BYTES) { err(t('cli.configTooLarge', { config: CONFIG })); process.exit(1); }
-  try { return parseConfig(readFileSync(p, 'utf8')); } catch (e) { err(`taskquoin: ${(e as Error).message}`); process.exit(1); } // i18n-ok: the message comes from the config parser (domain text)
+  try { return parseConfig(readFileSync(p, 'utf8')); } catch (e) { err(`taskquoin: ${nz((e as Error).message)}`); process.exit(1); } // i18n-ok: the message comes from the config parser (domain text)
 }
 
 function gate(cfg: TaskquoinConfig, h: HostReport, agentId: string): GateResult & { runtimeFound: boolean } {
@@ -121,12 +122,12 @@ async function cmdInit(): Promise<number> {
   const mf = join(store.root, 'manifest.json');
   writeFileSync(mf, JSON.stringify({ version: 1, createdAt: new Date().toISOString(), files: [{ path: CONFIG, sha256: sha(text) }] }, null, 2), { mode: 0o600 });
   try { writeFileSync(p, text, { flag: 'wx' }); } catch (e) { rmSync(mf, { force: true }); throw e; }
-  out(t('cli.init.created', { config: CONFIG, stack, agents: Object.entries(cfg0.agents).map(([id, a]) => `${id} (${a.runtime})`).join(', ') }));
-  out(t('cli.init.store', { path: store.root }));
-  if (detected.env.length || detected.ollamaModels.length) out(t('cli.init.detected', { list: [...detected.env, ...(detected.ollamaModels.length ? [t('cli.init.ollama', { models: detected.ollamaModels.join(', ') })] : [])].join(', '), config: CONFIG }));
+  out(t('cli.init.created', { config: CONFIG, stack, agents: Object.entries(cfg0.agents).map(([id, a]) => `${nz(id)} (${a.runtime})`).join(', ') }));
+  out(t('cli.init.store', { path: nz(store.root) }));
+  if (detected.env.length || detected.ollamaModels.length) out(t('cli.init.detected', { list: [...detected.env, ...(detected.ollamaModels.length ? [t('cli.init.ollama', { models: detected.ollamaModels.map(nz).join(', ') })] : [])].join(', '), config: CONFIG }));
   if (!tools.claude && tools.opencode) {
     const ps = connectedProviders(userOpenCodePaths()).map(p => p.id);
-    out(t('cli.init.opencodeOnly', { config: CONFIG, providers: ps.length ? ps.join(', ') : t('cli.init.noProvider') }));
+    out(t('cli.init.opencodeOnly', { config: CONFIG, providers: ps.length ? ps.map(nz).join(', ') : t('cli.init.noProvider') }));
   } else if (!tools.claude) out(t('cli.init.needImplementer'));
   else if (!tools.codex) out(t('cli.init.claudeOnly'));
   out(t('cli.init.next'));
@@ -134,30 +135,30 @@ async function cmdInit(): Promise<number> {
 }
 
 function printGate(id: string, cfg: TaskquoinConfig, g: GateResult & { runtimeFound: boolean }) {
-  out(t('cli.gate.agent', { id, runtime: cfg.agents[id].runtime }) + (g.runtimeFound ? '' : t('cli.gate.notInstalled')));
+  out(t('cli.gate.agent', { id: nz(id), runtime: cfg.agents[id].runtime }) + (g.runtimeFound ? '' : t('cli.gate.notInstalled')));
   const a = cfg.agents[id];
   if (a.runtime === 'api') {
     const p = cfg.providers![a.provider!]; const name = keyEnvName(p);
-    out(t('cli.gate.provider', { id: a.provider!, url: p.url, model: p.model, key: name ? t('cli.gate.key', { name, state: process.env[name]?.trim() ? t('cli.gate.present') : t('cli.gate.absent') }) : t('cli.gate.noKey') }));
+    out(t('cli.gate.provider', { id: nz(a.provider!), url: nz(p.url), model: nz(p.model), key: name ? t('cli.gate.key', { name: nz(name), state: process.env[name]?.trim() ? t('cli.gate.present') : t('cli.gate.absent') }) : t('cli.gate.noKey') }));
   }
   const shown = new Set<unknown>();
   for (const r of g.resolved) {
     const f = g.failures.find(x => x.capability === r.capability); const a = g.acceptedRisks.find(x => x.capability === r.capability);
-    if (r.certified) out(`  ✔ ${r.capability} ${r.class} — ${r.mechanism}`);
-    else if (a) out(t('cli.gate.acceptedRisk', { capability: r.capability, by: a.approvedBy, until: a.expires, reason: a.reason, message: a.message }));
-    else { out(`  ✖ ${r.capability} — ${f?.message ?? r.mechanism}`); if (f) shown.add(f); }
+    if (r.certified) out(`  ✔ ${r.capability} ${r.class} — ${nz(r.mechanism)}`);
+    else if (a) out(t('cli.gate.acceptedRisk', { capability: r.capability, by: nz(a.approvedBy), until: nz(a.expires), reason: nz(a.reason), message: nz(a.message) }));
+    else { out(`  ✖ ${r.capability} — ${nz(f?.message ?? r.mechanism)}`); if (f) shown.add(f); }
   }
   // Failures added outside the capability matrix (a missing api key, an unconnected OpenCode provider) are shown too.
-  for (const f of g.failures) if (!shown.has(f)) out(`  ✖ ${f.message}`);
+  for (const f of g.failures) if (!shown.has(f)) out(`  ✖ ${nz(f.message)}`);
 }
 
 async function cmdDoctor(): Promise<number> {
   const h = await host(); const root = requireRepo(h); const cfg = loadConfig(root);
-  out(t('cli.doctor.title', { root }));
+  out(t('cli.doctor.title', { root: nz(root) }));
   for (const rt of ['claude', 'codex', 'opencode'] as const) {
     const p = h.runtimes[rt]; const m = loadMatrix(rt);
-    if (p?.installed) { out(t('cli.doctor.runtimeFallback', { rt, installed: p.installed.version ?? '?', version: p.version ?? '?', bin: p.bin })); continue; }
-    out(p ? t('cli.doctor.runtime', { rt, version: p.version ?? '?', bin: p.bin, mark: p.version === m.runtimeVersion ? '✔' : t('cli.doctor.matrix', { version: m.runtimeVersion }) }) : t('cli.doctor.runtimeMissing', { rt }));
+    if (p?.installed) { out(t('cli.doctor.runtimeFallback', { rt, installed: nz(p.installed.version ?? '?'), version: nz(p.version ?? '?'), bin: nz(p.bin) })); continue; }
+    out(p ? t('cli.doctor.runtime', { rt, version: nz(p.version ?? '?'), bin: nz(p.bin), mark: p.version === m.runtimeVersion ? '✔' : t('cli.doctor.matrix', { version: m.runtimeVersion }) }) : t('cli.doctor.runtimeMissing', { rt }));
   }
   // Claude Code not measured and the measured one not used: why, and the `taskquoin upgrade` command that fixes it.
   for (const n of runtimeNotices(h, loadMatrix('claude').runtimeVersion, 'cli')) if (n.kind === 'action') out(n.text);
@@ -176,29 +177,29 @@ async function cmdDoctor(): Promise<number> {
       const provider = providerOf(a.model!); const type = connectedProviders(userOpenCodePaths()).find(p => p.id === provider)?.type;
       const hosts = measuredHosts(provider, type)?.code ?? [];
       local = LOCAL_PROVIDERS.includes(provider);
-      where = `${provider} via OpenCode (${a.model})${local ? '' : hosts.length ? t('cli.where.hosts', { hosts: hosts.join(', ') }) : t('cli.where.unmeasured')}`;
+      where = `${nz(provider)} via OpenCode (${nz(a.model!)})${local ? '' : hosts.length ? t('cli.where.hosts', { hosts: hosts.join(', ') }) : t('cli.where.unmeasured')}`;
     }
-    else { const p = cfg.providers![a.provider!]; const u = new URL(p.url); where = `${u.host} (${p.model})`; local = ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname); }
+    else { const p = cfg.providers![a.provider!]; const u = new URL(p.url); where = `${nz(u.host)} (${nz(p.model)})`; local = ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname); }
     dest.set(where, { ids: [...(dest.get(where)?.ids ?? []), id], local });
   }
   for (const id of workflowOf(cfg).reviewers) {
     const rt = cfg.agents[id]?.runtime;
-    if (rt && rt !== 'api' && rt === cfg.agents.implementer?.runtime) out(t('cli.doctor.sameModel', { id, rt, config: CONFIG }));
+    if (rt && rt !== 'api' && rt === cfg.agents.implementer?.runtime) out(t('cli.doctor.sameModel', { id: nz(id), rt, config: CONFIG }));
   }
   out(t('cli.doctor.codeGoesTo'));
-  for (const [where, d] of dest) out(`  ${where} — ${d.ids.join(', ')}${d.local ? ` (${t('cli.where.stays')})` : ''}`);
-  out(t('cli.doctor.connectors', { list: conns.length ? conns.map(([id, c]) => t('cli.doctor.connector', { id, host: c.host, scope: c.scope, read: c.read.length, write: c.write.length })).join('; ') : t('cli.doctor.none') }));
+  for (const [where, d] of dest) out(`  ${where} — ${d.ids.map(nz).join(', ')}${d.local ? ` (${t('cli.where.stays')})` : ''}`);
+  out(t('cli.doctor.connectors', { list: conns.length ? conns.map(([id, c]) => t('cli.doctor.connector', { id: nz(id), host: nz(c.host), scope: nz(c.scope), read: c.read.length, write: c.write.length })).join('; ') : t('cli.doctor.none') }));
   if (cfg.memory.claudeMem.enabled) {
     const mem = new ClaudeMemMemory(); const lo = await mem.localOnlyCheck();
-    out(t('cli.doctor.memory', { state: !lo.ok ? t('cli.doctor.memRefused', { reason: lo.reason ?? '' }) : (await mem.available()) ? t('cli.doctor.memOk') : t('cli.doctor.memNoWorker') }));
+    out(t('cli.doctor.memory', { state: !lo.ok ? t('cli.doctor.memRefused', { reason: nz(lo.reason ?? '') }) : (await mem.available()) ? t('cli.doctor.memOk') : t('cli.doctor.memNoWorker') }));
   } else out(t('cli.doctor.memory', { state: t('cli.doctor.memOff') }));
   out();
   let refused = 0;
   for (const id of Object.keys(cfg.agents)) {
     const g = gate(cfg, h, id); printGate(id, cfg, g);
     const sk = resolveAgentSkills(cfg, repoStore(root), id);
-    if ((cfg.agents[id].skills ?? []).length) out(t('cli.doctor.skills', { list: [...sk.loaded.map(x => `✔ ${x.name} (${x.origin}, ${x.treeHash.slice(7, 19)})`), ...sk.errors.map(e => `✖ ${e}`)].join(' · ') }));
-    if (!g.ok || !g.runtimeFound || sk.errors.length) refused++;
+    if ((cfg.agents[id].skills ?? []).length) out(t('cli.doctor.skills', { list: [...sk.loaded.map(x => `✔ ${nz(x.name)} (${nz(x.origin)}, ${x.treeHash.slice(7, 19)})`), ...sk.errors.map(e => `✖ ${nz(e)}`)].join(' · ') }));
+    if (!isReady({ ...g, skillErrors: sk.errors })) refused++;
     out();
   }
   const n = Object.keys(cfg.agents).length;
@@ -211,7 +212,7 @@ async function cmdCheck(agentId: string | undefined, json: boolean): Promise<num
   if (!agentId || !cfg.agents[agentId]) { err(t('cli.check.usage', { agents: Object.keys(cfg.agents).join(', ') })); return 2; }
   const g = gate(cfg, h, agentId);
   const ok = g.ok && g.runtimeFound;
-  if (json) out(JSON.stringify({ agent: agentId, ok, runtimeFound: g.runtimeFound, failures: g.failures, acceptedRisks: g.acceptedRisks, resolved: g.resolved, warnings: g.warnings }, null, 2));
+  if (json) out(jsonOut({ agent: agentId, ok, runtimeFound: g.runtimeFound, failures: g.failures, acceptedRisks: g.acceptedRisks, resolved: g.resolved, warnings: g.warnings }));
   else printGate(agentId, cfg, g);
   return ok ? 0 : 1;
 }
@@ -225,12 +226,12 @@ async function cmdAcceptRisk(agentId: string | undefined, capability: string | u
   if (cfg.agents[agentId].runtime === 'api') { err(t('cli.accept.apiJudge', { agent: agentId })); return 1; }
   const g = gate(cfg, h, agentId);
   const f = g.failures.find(x => x.capability === capability);
-  if (!f) { err(t('cli.accept.notFailing', { capability, agent: agentId })); return 1; }
+  if (!f) { err(t('cli.accept.notFailing', { capability: nz(capability), agent: nz(agentId) })); return 1; }
   const probe = h.runtimes[cfg.agents[agentId].runtime as 'claude' | 'codex']; // api judges returned above
   saveRiskAcceptance(repoStore(root), { agent: agentId, capability, reason: o.reason.trim(), expires: o.expires, approvedBy: o.as.trim(),
     runtimeVersion: probe?.version ?? 'not-installed', failureDigest: failureDigest(f.message), createdAt: new Date().toISOString() });
-  out(t('cli.accept.done', { by: o.as.trim(), until: o.expires, agent: agentId, capability }));
-  out(`  ${f.message}`);
+  out(t('cli.accept.done', { by: nz(o.as.trim()), until: nz(o.expires), agent: nz(agentId), capability: nz(capability) }));
+  out(`  ${nz(f.message)}`);
   out(t('cli.accept.stops'));
   return 0;
 }
@@ -239,17 +240,17 @@ async function cmdAcceptRisk(agentId: string | undefined, capability: string | u
 function cmdConnect(target: string | undefined, remove: boolean): number {
   if (target !== 'opencode') { err(t('cli.connect.usage')); return 2; }
   const dir = join(stateBase(), 'opencode');
-  if (remove) { rmSync(dir, { recursive: true, force: true }); out(t('cli.connect.removed', { dir })); return 0; }
+  if (remove) { rmSync(dir, { recursive: true, force: true }); out(t('cli.connect.removed', { dir: nz(dir) })); return 0; }
   const bin = findOnPath('opencode', process.env.PATH ?? '');
   if (!bin) { err(t('cli.connect.notInstalled')); return 1; }
   const d = userOpenCodeDirs();
-  out(t('cli.connect.intro', { dir: dirname(d.config) }));
+  out(t('cli.connect.intro', { dir: nz(dirname(d.config)) }));
   const r = spawnSync(bin, [...LOGIN_ARGS], { stdio: 'inherit', cwd: tmpdir(),
     env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? homedir(), LANG: process.env.LANG ?? 'C.UTF-8', ...connectEnv(d) } });
   const ps = connectedProviders(d);
   if (r.status !== 0) err(t('cli.connect.failed'));
   if (!ps.length) { err(t('cli.connect.none')); return 1; }
-  out(t('cli.connect.connected', { list: ps.map(p => `${p.id} (${p.type})`).join(', ') }));
+  out(t('cli.connect.connected', { list: ps.map(p => `${nz(p.id)} (${nz(p.type)})`).join(', ') }));
   return r.status === 0 ? 0 : 1;
 }
 
@@ -265,23 +266,24 @@ async function cmdUninstall(purge: boolean): Promise<number> {
     if (!Array.isArray(manifest.files)) throw new Error(t('cli.uninstall.notList'));
     for (const f of manifest.files) {
       if (typeof f?.path !== 'string' || typeof f.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(f.sha256)) throw new Error(t('cli.uninstall.malformed'));
-      if (!OWNED.has(f.path)) throw new Error(t('cli.uninstall.notOwned', { path: f.path }));
+      if (!OWNED.has(f.path)) throw new Error(t('cli.uninstall.notOwned', { path: nz(f.path) })); // the parameter, neutralised here
     }
-  } catch (e) { err(t('cli.uninstall.invalid', { reason: (e as Error).message })); return 1; }
+    // A whole message (translated, or the JSON parser's quoting the file): the log profile, as for any thrown error.
+  } catch (e) { err(t('cli.uninstall.invalid', { reason: nLog((e as Error).message) })); return 1; }
   let kept = 0;
   for (const f of manifest.files) {
     const p = join(root, f.path);
-    if (!existsSync(p)) { out(t('cli.uninstall.absent', { path: f.path })); continue; }
-    if (lstatSync(p).isSymbolicLink() || realpathSync(p) !== join(realpathSync(root), f.path)) { kept++; out(t('cli.uninstall.keptLink', { path: f.path })); continue; }
-    if (sha(readFileSync(p)) === f.sha256) { rmSync(p); out(t('cli.uninstall.removed', { path: f.path })); }
-    else { kept++; out(t('cli.uninstall.keptModified', { path: f.path })); }
+    if (!existsSync(p)) { out(t('cli.uninstall.absent', { path: nz(f.path) })); continue; }
+    if (lstatSync(p).isSymbolicLink() || realpathSync(p) !== join(realpathSync(root), f.path)) { kept++; out(t('cli.uninstall.keptLink', { path: nz(f.path) })); continue; }
+    if (sha(readFileSync(p)) === f.sha256) { rmSync(p); out(t('cli.uninstall.removed', { path: nz(f.path) })); }
+    else { kept++; out(t('cli.uninstall.keptModified', { path: nz(f.path) })); }
   }
   if (purge) {
-    if (!store.root.startsWith(stateBase() + '/')) { err(t('cli.uninstall.refusePurge', { path: store.root, base: stateBase() })); return 1; }
-    rmSync(store.root, { recursive: true, force: true }); out(t('cli.uninstall.purged', { path: store.root }));
+    if (!store.root.startsWith(stateBase() + '/')) { err(t('cli.uninstall.refusePurge', { path: nz(store.root), base: nz(stateBase()) })); return 1; }
+    rmSync(store.root, { recursive: true, force: true }); out(t('cli.uninstall.purged', { path: nz(store.root) }));
   } else {
     if (!kept) rmSync(mf); // keep the manifest while a recorded file remains, so a later uninstall still knows it
-    out(t('cli.uninstall.storeKept', { path: store.root }));
+    out(t('cli.uninstall.storeKept', { path: nz(store.root) }));
   }
   return kept ? 1 : 0;
 }
@@ -336,8 +338,8 @@ function askStdin(question: string): Promise<string | undefined> {
 function runInherit(bin: string, args: string[], cwd: string): Promise<number> {
   return new Promise((res) => {
     let child;
-    try { child = spawn(bin, args, { cwd, stdio: 'inherit', env: process.env }); } catch (e) { err(t('upgrade.runFailed', { bin, reason: (e as Error).message })); res(127); return; }
-    child.once('error', (e) => { err(t('upgrade.runFailed', { bin, reason: e.message })); res(127); });
+    try { child = spawn(bin, args, { cwd, stdio: 'inherit', env: process.env }); } catch (e) { err(t('upgrade.runFailed', { bin: nz(bin), reason: nz((e as Error).message) })); res(127); return; }
+    child.once('error', (e) => { err(t('upgrade.runFailed', { bin: nz(bin), reason: nz(e.message) })); res(127); });
     child.once('close', (code) => res(code ?? 1));
   });
 }
@@ -397,7 +399,7 @@ async function cmdConsole(offline: boolean): Promise<number> {
     approve: (r, g, e, as) => guard(() => cmdApprove(c, git, r, g, e, as)), resume: (r) => guard(() => cmdResume(c, git, r)),
     doctor: () => guard(() => cmdDoctor()), skills: () => guard(() => cmdSkills(c.store, 'list', undefined, {}, out, err)),
     agents: () => guard(() => {
-      for (const [id, a] of Object.entries(c.cfg.agents)) out(`${id.padEnd(12)} ${a.runtime.padEnd(7)} ${Object.keys(a.capabilities).join(', ')}${a.skills?.length ? t('cli.console.agentSkills', { list: a.skills.join(', ') }) : ''}`);
+      for (const [id, a] of Object.entries(c.cfg.agents)) out(`${nz(id).padEnd(12)} ${a.runtime.padEnd(7)} ${Object.keys(a.capabilities).join(', ')}${a.skills?.length ? t('cli.console.agentSkills', { list: a.skills.map(nz).join(', ') }) : ''}`);
       return 0;
     }),
     pending: (r) => { const s = loadRunState<RunState>(c.store, r); const p = s && pendingApproval(s); return p ? { gate: p.node === 'approve-plan' ? 'plan' : 'commit', binding: p.binding } : undefined; },
@@ -413,7 +415,7 @@ async function cmdConsole(offline: boolean): Promise<number> {
   // Computed while the logo animation plays (terminal with colours only; TASKQUOIN_NO_ANIMATION=1 turns it off).
   const animate = tty && color && !process.env.TASKQUOIN_NO_ANIMATION;
   const playing = animate ? animateLogo((s) => process.stdout.write(s), (ms) => new Promise(r => setTimeout(r, ms))) : Promise.resolve();
-  const squad = squadOf(c.cfg.agents, (id) => gate(c.cfg, c.h, id), await sandboxedToolAvailable());
+  const squad = squadOf(c.cfg.agents, (id) => ({ ...gate(c.cfg, c.h, id), skillErrors: resolveAgentSkills(c.cfg, repoStore(c.root), id).errors }), await sandboxedToolAvailable());
   await playing;
   try { return await runConsole(io, cmds, renderBanner(squad, { color, logo: !animate, notices: runtimeNotices(c.h, loadMatrix('claude').runtimeVersion) })); } finally { rl.close(); }
 }
@@ -428,7 +430,7 @@ async function main(): Promise<number> {
     parsed = parseArgs({ allowPositionals: true, options: { json: { type: 'boolean' }, 'purge-state': { type: 'boolean' },
       reason: { type: 'string' }, expires: { type: 'string' }, as: { type: 'string' }, help: { type: 'boolean', short: 'h' },
       source: { type: 'string' }, 'accept-findings': { type: 'boolean' }, expect: { type: 'string' }, remove: { type: 'boolean' }, offline: { type: 'boolean' } } });
-  } catch (e) { err(`taskquoin: ${(e as Error).message}\n${help()}`); return 2; } // i18n-ok: node's parseArgs message (usage errors exit 2, Codex R4)
+  } catch (e) { err(`taskquoin: ${nz((e as Error).message)}\n${help()}`); return 2; } // i18n-ok: node's parseArgs message (usage errors exit 2, Codex R4)
   const { positionals, values } = parsed;
   if (values.help) { out(help()); return 0; }
   // First launch in a terminal: put `taskquoin` on the PATH by itself (owner's request), unless removed or disabled.
@@ -466,4 +468,6 @@ async function main(): Promise<number> {
 
 /** Exit only once stdout/stderr have drained: process.exit() drops whatever a pipe has not taken yet (pilot 2: `show … | grep` lost the tail). */
 const exitAfterFlush = (code: number) => { process.exitCode = code; process.stdout.write('', () => process.stderr.write('', () => process.exit(code))); };
-main().then(exitAfterFlush, e => { err(`taskquoin: ${(e as Error).message}`); exitAfterFlush(1); }); // i18n-ok: the message comes from the thrown error
+// A whole message from outside (any thrown error): the log profile, like cmdApprove / cmdResume, so a translated
+// message keeps its ZWNJ/ZWJ while controls and bidi are still marked.
+main().then(exitAfterFlush, e => { err(`taskquoin: ${nLog((e as Error).message)}`); exitAfterFlush(1); }); // i18n-ok: the message comes from the thrown error

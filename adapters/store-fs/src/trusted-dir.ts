@@ -10,7 +10,19 @@ const inside = (child: string, parent: string) => child === parent || child.star
  */
 export function ensureTrustedDir(dir: string, workspace?: string): string {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const st = lstatSync(dir);
+  return checkTrustedDir(dir, workspace) as string;
+}
+
+/**
+ * The check-only variant of `ensureTrustedDir`: never creates anything. Returns the physical path, `undefined` when
+ * `dir` does not exist, and throws on the same conditions as `ensureTrustedDir`.
+ */
+export function checkTrustedDir(dir: string, workspace?: string): string | undefined {
+  let st;
+  try { st = lstatSync(dir); } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw e;
+  }
   if (st.isSymbolicLink() || !st.isDirectory()) throw new Error(`${dir} is a symlink or not a directory; refusing`);
   if ((st.mode & 0o022) !== 0) throw new Error(`${dir} is group/world-writable; refusing`);
   if (typeof process.getuid === 'function' && st.uid !== process.getuid()) throw new Error(`${dir} is not owned by the current user; refusing`);

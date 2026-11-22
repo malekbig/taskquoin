@@ -4,6 +4,9 @@
  * human retypes the pending hash. It is never installed as slash commands INSIDE Claude Code or Codex, where a model
  * could type them. The real boundary stays the control store: agents cannot write it, so they cannot approve at all.
  */
+import { projectSquad, type GateVerdict, type SquadMember } from '@taskquoin/application';
+import { n as nz, type Neutral } from './tui/neutral.ts';
+import { shownSquad } from './tui/view.ts';
 import { t, tn, type MessageKey } from './i18n/index.ts';
 import { alignColumns, displayWidth, padEndDisplay } from './i18n/width.ts';
 export interface ConsoleIO {
@@ -129,24 +132,17 @@ export function completeCommand(line: string): [string[], string] {
 }
 
 // ── banner ───────────────────────────────────────────────────────────────────────────────────────────────────────
-export interface SquadMember { role: string; who: string; state: 'ready' | 'risk' | 'blocked'; note?: string }
+export type { SquadMember };
 
-const roleLabel = (id: string): string => (id === 'planner' ? t('console.role.planner') : id === 'implementer' ? t('console.role.implementer') : id === 'challenger' ? t('console.role.challenger') : id === 'security' ? t('console.role.security') : id[0].toUpperCase() + id.slice(1));
 /**
  * The squad as it really is: every agent with its gate verdict (a judge's provider shown), then Taskquoin's own
  * sandboxed Verify as the tester. A refusal shows its short reason (the text before " — ").
+ * The projection is raw and shared with doctor (isReady); shownSquad says it in the user's language and neutralises
+ * what came from config, gates or skill files — never a translated message.
  */
 export function squadOf(agents: Record<string, { runtime: string; provider?: string; model?: string }>,
-  gateOf: (id: string) => { ok: boolean; runtimeFound: boolean; failures: { message: string }[]; acceptedRisks: { capability: string }[] },
-  testerReady: boolean): SquadMember[] {
-  const squad: SquadMember[] = Object.entries(agents).map(([id, a]) => {
-    const g = gateOf(id);
-    const state = !g.ok ? 'blocked' as const : g.acceptedRisks.length ? 'risk' as const : 'ready' as const;
-    const note = !g.ok ? (g.runtimeFound ? g.failures[0]?.message.split(' — ')[0].slice(0, 70) : t('console.squad.absent', { runtime: a.runtime })) : g.acceptedRisks.map(r => r.capability).join(', ') || undefined;
-    return { role: roleLabel(id), who: `${id} · ${a.runtime === 'api' ? `api:${a.provider}` : a.runtime === 'opencode' ? `opencode:${(a.model ?? '').split('/')[0]}` : a.runtime}`, state, ...(note ? { note } : {}) };
-  });
-  squad.push(testerReady ? { role: t('console.role.tester'), who: 'verify · bubblewrap', state: 'ready' } : { role: t('console.role.tester'), who: 'verify · bubblewrap', state: 'blocked', note: t('console.squad.testerUnavailable') });
-  return squad;
+  gateOf: (id: string) => GateVerdict, testerReady: boolean): SquadMember<Neutral>[] {
+  return shownSquad(projectSquad(agents, gateOf, testerReady)).view;
 }
 const TASK_ART = [
   '████████╗ █████╗ ███████╗██╗  ██╗',
@@ -253,7 +249,7 @@ export async function runConsole(io: ConsoleIO, cmd: ConsoleCommands, banner?: s
       }
       case 'runs': track(await cmd.status()); break;
       case 'use': {
-        if (!cmd.runs().includes(arg)) { fail(t('console.unknownRun', { run: arg || t('console.empty') })); break; }
+        if (!cmd.runs().includes(arg)) { fail(t('console.unknownRun', { run: arg ? nz(arg) : t('console.empty') })); break; }
         current = arg; io.out(t('console.currentRun', { run: current })); break;
       }
       case 'status': { const r = needRun(); if (r) track(await cmd.status(r)); break; }
@@ -288,7 +284,7 @@ export async function runConsole(io: ConsoleIO, cmd: ConsoleCommands, banner?: s
         track(await cmd.approve(r, gate, typed, `${approver} (via taskquoin console)`));
         break;
       }
-      default: fail(t('console.unknownCommand', { name }));
+      default: fail(t('console.unknownCommand', { name: nz(name) }));
     }
   }
 }

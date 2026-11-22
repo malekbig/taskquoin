@@ -177,8 +177,10 @@ export async function advance(input: RunState, d: WorkflowDeps): Promise<RunStat
     if (!g.ok) { stop('failed', `gate refused agent ${role}: ${g.failures.map(f => f.message).join(' | ')}`); return undefined; }
     for (const r of g.acceptedRisks) d.event({ type: 'risk.accepted', runId: s.runId, agent: role, capability: r.capability, approvedBy: r.approvedBy, expires: r.expires });
     const { spec, executor } = d.agents[role];
+    d.event({ type: 'agent.started', runId: s.runId, agent: role, runtime: executor.runtime, label: labelOf(role) });
     const r = await executor.run({ agent: spec, task, cwd: d.run.cwd, env: d.run.env, timeoutMs: d.run.timeoutMs, maxOutputBytes: d.run.maxOutputBytes, ticket: g.ticket, ...(frozenPaths?.length ? { frozenPaths } : {}) });
     d.event({ type: 'agent.finished', runId: s.runId, agent: role, runtime: r.runtime, label: labelOf(role), status: r.status, costUsd: r.usage?.costUsd ?? null,
+      durationMs: r.durationMs, model: r.inventory?.model ?? null, tokensIn: r.usage?.inputTokens ?? null, tokensOut: r.usage?.outputTokens ?? null,
       tokens: { prompt: r.usage?.inputTokens ?? null, completion: r.usage?.outputTokens ?? null }, digest: r.effectiveConfigDigest });
     if (r.status !== 'completed' || !r.terminalMessage?.trim()) {
       // What the runtime said (e.g. OpenCode naming its provider's error) comes first, then stderr (final review I4).

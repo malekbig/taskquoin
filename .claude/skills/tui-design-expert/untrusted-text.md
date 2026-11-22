@@ -16,7 +16,8 @@ which may itself have been steered by repository content. Treat every byte from 
 | Device strings | `ESC P` (DCS), `ESC _` (APC), `ESC ^` (PM), `ESC X` (SOS) | Terminal-specific actions, sixel, tmux passthrough |
 | 8-bit C1 controls | U+0080–U+009F (U+009B = CSI, U+009D = OSC) | Same as the ESC forms in terminals that honour C1 — and missed by filters that look for `\x1b` only |
 | Bidi overrides and isolates | U+202A–U+202E, U+2066–U+2069 | Display order differs from logical order ("Trojan Source"): a diff that reads safe and is not |
-| Invisible characters | U+00AD, U+115F, U+1160, U+180E, U+200B, U+2060–U+2064, U+3164, U+FEFF, U+FFA0, tags U+E0000–U+E007F | Hidden content, look-alike identifiers (Hangul fillers render as blank letters) |
+| Invisible characters | U+00AD, U+034F, U+115F, U+1160, U+17B4, U+17B5, U+180B–U+180F, U+200B, U+2060–U+206F, U+3164, U+FEFF, U+FFA0, U+1BCA0–U+1BCA3, tags U+E0000–U+E007F | Hidden content, look-alike identifiers (Hangul and Khmer fillers render as blank letters) |
+| Variation selectors | U+FE00–U+FE0F, U+E0100–U+E01EF | Invisible; `strict` marks them all, `log` keeps U+FE0E and U+FE0F (text or emoji presentation in model output) |
 | Line and paragraph separators | U+2028, U+2029 | A line break that measuring code does not see: broken columns, a line hidden after the cut |
 | Arabic letter mark | U+061C | Bidi control missed by filters that only list the U+202x / U+206x ranges |
 | Bell | `BEL` | Noise; also the OSC terminator |
@@ -38,7 +39,7 @@ which may itself have been steered by repository content. Treat every byte from 
 5. **Tabs** are expanded to spaces by the renderer (tab stops of 4 or 8), never passed through: a tab breaks every
    column computation.
 6. **Width after neutralisation.** Measure and truncate the neutralised string; a marker is ordinary text.
-7. **JSON output** needs no neutralisation (`JSON.stringify` escapes control characters) — keep `--json` byte-identical.
+7. **JSON output** goes through `jsonOut()`: `JSON.stringify` already escapes C0 (ESC included) but not DEL, C1, the bidi controls (U+061C, U+200E, U+200F, U+202A–U+202E, U+2066–U+2069) or U+2028/U+2029 — `jsonOut()` escapes exactly those as `\uXXXX`. The parsed value is identical, and any output without those characters stays byte-identical (a Persian ZWNJ, an emoji or a flag is untouched).
 8. **Source files hold no literal control or bidi characters.** Write them as `\u` escapes in code and tests (an
    editor or a tool can turn an escape into the real character — it happened while writing this skill — and a literal
    U+2028 ends a JS regex literal); a test scans the repository for literal C0/C1 (except `\n`, `\t`), bidi and
@@ -52,8 +53,8 @@ which may itself have been steered by repository content. Treat every byte from 
 /** Untrusted text made inert and visible. `strict` for what a human judges, `log` for streamed output. */
 export type Neutral = string & { readonly __neutral: unique symbol };
 const NAMES: Record<number, string> = { 0x07: 'BEL', 0x08: 'BS', 0x0a: 'LF', 0x09: 'TAB', 0x0d: 'CR', 0x1b: 'ESC', 0x7f: 'DEL', 0x9b: 'CSI', 0x9d: 'OSC', 0x90: 'DCS' };
-const STRICT = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u061c\u115f\u1160\u180e\u200b-\u200f\u2028-\u202e\u2060-\u2064\u2066-\u2069\u3164\ufeff\uffa0\ufff9-\ufffb]|[\u{e0000}-\u{e007f}]/gu;
-const LOG = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u061c\u115f\u1160\u180e\u200b\u200e\u200f\u2028-\u202e\u2060-\u2064\u2066-\u2069\u3164\ufeff\uffa0\ufff9-\ufffb]|[\u{e0000}-\u{e007f}]/gu;
+const STRICT = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u2028-\u202e\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0\ufff9-\ufffb]|[\u{1bca0}-\u{1bca3}\u{e0000}-\u{e007f}\u{e0100}-\u{e01ef}]/gu;
+const LOG = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b\u200e\u200f\u2028-\u202e\u2060-\u206f\u3164\ufe00-\ufe0d\ufeff\uffa0\ufff9-\ufffb]|[\u{1bca0}-\u{1bca3}\u{e0000}-\u{e007f}\u{e0100}-\u{e01ef}]/gu;
 
 export function neutralize(text: string, o: { profile?: 'strict' | 'log'; singleLine?: boolean } = {}): { text: Neutral; marked: number } {
   let marked = 0;
